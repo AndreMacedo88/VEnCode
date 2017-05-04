@@ -12,7 +12,7 @@ import pandas as pd
 import numpy as np
 from scipy.special import comb
 
-from VEnCode import Defs
+import Defs
 
 
 class DatabaseOperations:

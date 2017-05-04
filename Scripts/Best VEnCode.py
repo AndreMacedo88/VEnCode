@@ -4,7 +4,7 @@
 """Best VEnCode.py: Functions for generating the best VEnCode """
 
 import logging
-from VEnCode_FANTOM5 import Classes_2
+import Classes_2
 
 # region "Global Variables"
 complete_primary_cell_list = ["Adipocyte - breast", "Adipocyte - omental", "Adipocyte - perirenal",
