@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from scipy.special import comb
 
-from VEnCode_FANTOM5 import Defs
+import Defs
 
 
 # generating VenCodes:

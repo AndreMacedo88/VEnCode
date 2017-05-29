@@ -11,6 +11,7 @@ import logging
 import pandas as pd
 import numpy as np
 from scipy.special import comb
+import itertools as iter
 
 import Defs
 
@@ -483,7 +484,7 @@ class Promoters(DatabaseOperations):
         else:
             codes_df = Defs.dataframe_regex_searcher(celltype, db)
             codes = list(codes_df.columns.values)
-
+            code_dict = {celltype: codes}
         if not_include is not None:
             if isinstance(not_include, dict):
                 not_codes = []
@@ -505,5 +506,70 @@ class Promoters(DatabaseOperations):
                 codes = list(set(codes) - set(not_codes))
         self.test_codes(codes, celltype)
         return codes
+
+    def ven_diagrams(self, vens_to_take, combinations_number=4, expression=1, threshold=90):
+        if isinstance(self.codes, dict):
+            codes = [j for i in list(self.codes.values()) for j in i]
+        else:
+            codes = self.codes
+        for code in codes:
+            print("donor:", code, sep="\n", end="\n\n")
+            codes_2 = [x for x in codes if x != code]
+            donors_data = self.data[codes_2]
+            data_2 = self.data.drop(codes_2, axis=1)
+            print("donors to exclude:", *codes_2, sep="\n", end="\n\n")
+            filter_2 = Defs.fantom_filters(data_2, code, expression, 2, threshold)
+
+            ven_diagram = {}
+            for r in reversed(range(1, (len(codes_2) + 1))):
+                for z in iter.combinations(codes_2, r):
+                    z = list(z)
+                    string_z = "".join(z)
+                    ven_diagram[string_z] = []
+
+            n = 0
+            while n < vens_to_take:
+                sample = filter_2.sample(n=combinations_number)
+                sample_dropped = sample.drop(code, axis=1).values
+                assess_if_vencode = np.any(sample_dropped == 0, axis=0)
+                if all(assess_if_vencode):
+                    n += 1
+                    donors_data_sample = donors_data.loc[sample.index.values]
+                    no_ven = True
+                    counter = 0
+                    for i in reversed(range(1, (len(codes_2) + 1))):
+                        for y in iter.combinations(codes_2, i):
+                            y = list(y)
+                            string_y = "".join(y)
+                            to_assess = donors_data_sample[y]
+                            assess_if_not_vencode_donors = np.any(to_assess.values == 0, axis=0)
+                            try:
+                                if assess_if_not_vencode_donors:
+                                    pass
+                                else:
+                                    counter += 1
+                                    no_ven = False
+                                    break
+                            except:
+                                if any(assess_if_not_vencode_donors):
+                                    pass
+                                else:
+                                    counter += 1
+                                    no_ven = False
+                                    break
+                        ven_diagram[string_y].append(counter)
+                        if not no_ven:
+                            break
+                else:
+                    pass
+            for key in ven_diagram:
+                ven_diagram[key] = sum(ven_diagram[key])
+
+            folder = "/Figure 3-b2/cell lines/" # .format("cell lines")
+            if not os.path.exists(folder):
+                os.makedirs(folder)
+            position = codes.index(code) + 1
+            file_name = u"/Donor{} - {}".format(position, self.celltype)
+            Defs.write_one_value_dict_to_csv(file_name + ".csv", ven_diagram, folder)
 
 # TODO: with the changes in __init__ to the BaseClass, some of these static methods may now be converted to self.xx!
