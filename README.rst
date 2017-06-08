@@ -44,7 +44,7 @@ Authors
 License
 -------
 
-This project is licensed under the "insert license" license - see the **LICENSE.rst** file for details
+This project is licensed under the Apache License 2.0 license - see the **LICENSE.rst** file for details
 
 Acknowledgements
 ----------------
