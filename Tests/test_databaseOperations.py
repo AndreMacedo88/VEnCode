@@ -6,5 +6,5 @@ prom_data = promoters
 
 class TestDatabaseOperations(TestCase):
     def test_at_least_one_node_calculator_2(self):
-        self.assertEqual(Classes_2.DatabaseOperations.at_least_one_node_calculator_2())
+        self.assertEqual(Classes_2.DatabaseOperations.at_least_one_node_calculator())
         self.fail()

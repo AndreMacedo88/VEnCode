@@ -54,7 +54,7 @@ def reform_vencode_n_combinations_of_k(threshold, data_frame, code, celltype, db
                         if others_df is not None:
                             df4 = pd.concat([df2, others_df], axis=1, join_axes=[df2.index])
                             df_to_write = df4.dropna()
-                            assess_replicates = np.all(df_to_write[others_df.columns.values].values >= 2)
+                            assess_replicates = np.all(df_to_write[others_df.columns.values].values >= 1)
                             if assess_replicates:
                                 name = ", ".join(combo)
                                 print("vencode of %s!" % i)
@@ -783,6 +783,12 @@ def file_names_to_list(folder, pattern="*.csv"):
     return file_list
 
 
+def possible_dict_to_list(possible_dict):
+    if isinstance(possible_dict, dict):
+        final_list = [j for i in list(possible_dict.values()) for j in i]
+    else:
+        final_list = possible_dict
+    return final_list
 
 __author__ = "Andre Macedo"
 __copyright__ = "GPL"

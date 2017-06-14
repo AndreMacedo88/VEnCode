@@ -1013,12 +1013,12 @@ mouse_complete_primary_jit_exclude_list = {}
 #                       celltype_exclude=complete_primary_exclude_list)
 #
 complete_promoters = Promoters("hg19.cage_peak_phase1and2combined_tpm.osc.txt",
-                               ["small cell lung carcinoma"],
+                               ["acute myeloid leukemia"],
                                celltype_exclude=complete_primary_exclude_list,
                                not_include=complete_primary_non_include_list,
                                partial_exclude=complete_primary_jit_exclude_list,
                                sample_types=["primary cells", "cell lines"],
-                               second_parser="primary cells", nrows=1000)
+                               second_parser="primary cells", nrows=100)
 # complete_promoters.get_all_vencodes([12,13,14,15,16,17,18,19,20], threshold=50, multi=True, at_least_one=True)
 # complete_promoters.check_cell_list(no_donors=True)
 # complete_promoters.check_size(10)

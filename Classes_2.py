@@ -183,12 +183,12 @@ class DatabaseOperations:
     def at_least_one_vencode(self, class_instance, combinations_number, expression, threshold):
         # Start the loop through all cell types:
         vencodes = {}
-        for celltype in self.celltype:
+        for celltype in self.celltype:  # start by cycling through the celltypes to find a VEnCode
             print("", "Starting {}".format(celltype), sep="-> ")
             logging.info("Starting %s", celltype)
-            vencodes[celltype] = 0
-            codes = class_instance.codes.get(celltype)
-            try:
+            vencodes[celltype] = 0  # init the dict to append a possible VEnCode
+            codes = class_instance.codes.get(celltype)  # get codes for this celltype
+            try:  # this next section can remove some celltypes from the data just in time before the analysis
                 if class_instance.partial_exclude_codes is not None:
                     if celltype in class_instance.partial_exclude_codes.keys():
                         partial_exclude_codes = class_instance.partial_exclude_codes.get(celltype)
@@ -197,95 +197,48 @@ class DatabaseOperations:
                         data_frame = class_instance.data
             except AttributeError:
                 data_frame = class_instance.data
-                # else:
-                # data_frame = class_instance.data
-            filter_2 = Defs.fantom_filters(data_frame, codes, expression, 2, threshold)
-            filter_2 = filter_2.applymap(lambda x: 0 if x == 0 else 1)  # change expression to 1 and 0 for quickness
-            filter_2["sum"] = filter_2.sum(axis=1)
-            filter_2.sort_values(["sum"], inplace=True)
-            to_get_nodes = filter_2.drop(codes + ["sum"], axis=1)
-            promoters = to_get_nodes.index.values
-            for promoter in promoters:
-                breaks = {}
+            filter_2 = Defs.fantom_filters(data_frame, codes, expression, 2, threshold)  # apply efficiency filters
+            filter_2 = filter_2.applymap(lambda x: 0 if x == 0 else 1)  # change expression to 1s and 0s for quickness
+            filter_2["sum"] = filter_2.sum(axis=1)  # create a extra column with the sum of 1s for each row (promoter)
+            filter_2.sort_values(["sum"], inplace=True)  # sort promoters based on the previous sum. Descending order
+            to_get_nodes = filter_2.drop(codes + ["sum"], axis=1)  # remove the celltype to analyse and the sum column
+            promoters = to_get_nodes.index.values  # get a list (not really a list) of all the promoters, to cycle
+            for promoter in promoters:  # cycle the promoters, starting with these of lower sum of 1s. Founder node.
+                breaks = {}  # this next section creates a dictionary to update with how many times each node is cycled
                 for item in range(1, combinations_number):
                     breaks["breaker_" + str(item)] = 0
-                nodes = self.at_least_one_node_calculator_2(to_get_nodes, promoter,
-                                                            combinations_number=combinations_number, breaks=breaks)
-                if nodes > 0:
-                    vencodes[celltype] = 1
-                    break
+                """
+                Finally, start cycling through nodes - promoters used one at a time to combine with preceding and 
+                subsequent nodes with the purpose of finding a VEnCode - a combination of promoters (nodes) where 
+                for every celltype there's at least one promoter of that combination that does not exhibit any activity
+                """
+                vencodes_from_nodes = self.at_least_one_node_calculator(to_get_nodes, promoter,
+                                                                        combinations_number=combinations_number,
+                                                                        breaks=breaks)
+                if vencodes_from_nodes > 0:
+                    vencodes[celltype] = 1  # if at least one VEnCode was found with the node strategy, return 1
+                    break  # and stop the cycling of the founder nodes
                 else:
-                    to_get_nodes.drop(promoter, axis=0, inplace=True)
-            print(nodes)
+                    to_get_nodes.drop(promoter, axis=0, inplace=True)  # else, drop this founder node and go to next
+            print(vencodes_from_nodes)
         return vencodes
 
-    def at_least_one_node_calculator(self, data_frame, promoter, combinations_number=4, counter=1, breaker_1=0,
-                                     breaker_2=0,
-                                     breaker_3=0,
-                                     breaker_4=0):
-        # print("counter: " str(counter), end="\n")
-        cols = data_frame.loc[promoter] != 0
-        cols = data_frame.columns[cols]
-        new_df = data_frame[cols].drop(promoter, axis=0)
-        nodes = (new_df == 0).all(axis=1)
-        node_count = np.sum(nodes)
-        if node_count > 0:
-            return node_count
-        else:
-            new_df["sum"] = new_df.sum(axis=1)
-            new_df.sort_values(["sum"], inplace=True)
-            new_df = new_df.drop(["sum"], axis=1)
-            counter = counter
-            # region early quit variables, remove in final
-            breakr_1 = breaker_1
-            breakr_2 = breaker_2
-            breakr_3 = breaker_3
-            breakr_4 = breaker_4
-            # endregion of early quit variables
-            while counter < combinations_number:
-                counter += 1
-                for prom in new_df.index.values:
-                    # region "early quit if loop is taking too long"
-                    if counter == combinations_number - 3:
-                        breakr_1 += 1
-                        if breakr_1 == 5:
-                            node_count = 0
-                            return node_count
-                    if counter == combinations_number - 2:
-                        breakr_1 += 1
-                        if breakr_1 == 5:
-                            node_count = 0
-                            return node_count
-                    elif counter == combinations_number - 1:
-                        breakr_2 += 1
-                        if breakr_2 == 5:
-                            node_count = 0
-                            return node_count
-                    elif counter == combinations_number:
-                        breakr_3 += 1
-                        if breakr_3 == 5:
-                            node_count = 0
-                            return node_count
-                    # endregion "early quit if loop is taking too long"
-                    node_count = self.at_least_one_node_calculator(new_df, prom,
-                                                                   combinations_number=combinations_number,
-                                                                   counter=counter, breaker_1=breakr_1,
-                                                                   breaker_2=breakr_2, breaker_3=breakr_3,
-                                                                   breaker_4=breakr_4)
-                    try:
-                        if node_count > 1:
-                            return node_count
-                    except TypeError:
-                        node_count = 0
-                        continue
-            return node_count
+    def at_least_one_node_calculator(self, data_frame, promoter, combinations_number=4, counter=1, breaks=None):
+        """
 
-    def at_least_one_node_calculator_2(self, data_frame, promoter, combinations_number=4, counter=1, breaks=None):
-        # print("counter: " str(counter), end="\n")
-        cols = data_frame.loc[promoter] != 0
-        cols = data_frame.columns[cols]
-        new_df = data_frame[cols].drop(promoter, axis=0)
-        nodes = (new_df == 0).all(axis=1)
+        :param data_frame: Data frame containing cage-seq expression profile for several celltypes. Dataframe object
+        :param promoter: Previous node name(founder node if first time calling this function). str type
+        :param combinations_number: number of combinations of promoters to find VEnCodes. int type
+        :param counter: 
+        :param breaks: dictionary containing keys for the different levels of breaks (one per each combination number)
+        and values corresponding to how many times each combination already cycled
+        :return: if it found a definite VEnCode or not
+        """
+        cols = data_frame.loc[promoter] != 0  # create a mask where True marks the celltypes in which the previous
+        # node is still expressed
+        cols = data_frame.columns[cols]  # apply that mask, selecting the columns that are True
+        new_df = data_frame[cols].drop(promoter, axis=0)  # apply the selection and take the node out of the dataframe
+        nodes = (new_df == 0).all(axis=1)  # Check if any VEnCode - if any other promoter have 0 expression in all cells
         node_count = np.sum(nodes)
         if node_count > 0:
             return node_count
@@ -307,9 +260,9 @@ class DatabaseOperations:
                             breaks["breaker_" + breaker_index] = 0
                             return node_count
                     # endregion "early quit if loop is taking too long"
-                    node_count = self.at_least_one_node_calculator_2(new_df, prom,
-                                                                     combinations_number=combinations_number,
-                                                                     counter=counter, breaks=breaks)
+                    node_count = self.at_least_one_node_calculator(new_df, prom,
+                                                                   combinations_number=combinations_number,
+                                                                   counter=counter, breaks=breaks)
                     try:
                         if node_count > 1:
                             return node_count
@@ -317,9 +270,6 @@ class DatabaseOperations:
                         node_count = 0
                         continue
             return node_count
-
-    def best_vencode_generator(self):
-        pass
 
 
 class Enhancers(DatabaseOperations):
@@ -512,37 +462,38 @@ class Promoters(DatabaseOperations):
             codes = [j for i in list(self.codes.values()) for j in i]
         else:
             codes = self.codes
-        for code in codes:
+        for code in codes:  # subsequent analysis will be done for each sample (code) separately
             print("donor:", code, sep="\n", end="\n\n")
             codes_2 = [x for x in codes if x != code]
             donors_data = self.data[codes_2]
             data_2 = self.data.drop(codes_2, axis=1)
             print("donors to exclude:", *codes_2, sep="\n", end="\n\n")
             filter_2 = Defs.fantom_filters(data_2, code, expression, 2, threshold)
-
-            ven_diagram = {}
-            for r in reversed(range(1, (len(codes_2) + 1))):
+            ven_diagram = {"None": []}  # create the final dict to later append VEnCode counts:
+            for r in reversed(range(1, (len(codes_2) + 1))):  # create dict keys up front because of append
                 for z in iter.combinations(codes_2, r):
                     z = list(z)
-                    string_z = "".join(z)
+                    string_z = "  ".join(z)
                     ven_diagram[string_z] = []
-
             n = 0
             while n < vens_to_take:
-                sample = filter_2.sample(n=combinations_number)
-                sample_dropped = sample.drop(code, axis=1).values
-                assess_if_vencode = np.any(sample_dropped == 0, axis=0)
-                if all(assess_if_vencode):
+                sample = filter_2.sample(n=combinations_number)  # taking a sample of n RE to assess if VEnCode
+                sample_dropped = sample.drop(code, axis=1).values  # dropping code celltype from the sample
+                assess_if_vencode = np.any(sample_dropped == 0, axis=0)  # assess if at least 1 zero per column
+                if all(assess_if_vencode):  # is RE sample a VEnCode for code?
                     n += 1
-                    donors_data_sample = donors_data.loc[sample.index.values]
-                    no_ven = True
+                    donors_data_sample = donors_data.loc[sample.index.values]  # locating the n RE in the other codes db
+                    no_ven = True  # will change to false to prevent double attribution of VEnCodes to the other codes
                     counter = 0
+                    none_counter = 0
+                    # start iterator through all possible other codes combinations:
                     for i in reversed(range(1, (len(codes_2) + 1))):
-                        for y in iter.combinations(codes_2, i):
+                        for y in iter.combinations(codes_2, i):  # take a combination of i number of other codes
                             y = list(y)
-                            string_y = "".join(y)
+                            string_y = "  ".join(y)
                             to_assess = donors_data_sample[y]
                             assess_if_not_vencode_donors = np.any(to_assess.values == 0, axis=0)
+                            # is RE sample not a VEnCode for this comb other codes?
                             try:
                                 if assess_if_not_vencode_donors:
                                     pass
@@ -560,16 +511,130 @@ class Promoters(DatabaseOperations):
                         ven_diagram[string_y].append(counter)
                         if not no_ven:
                             break
+                    if counter == 0:
+                        none_counter += 1
+                        ven_diagram["None"].append(none_counter)
                 else:
                     pass
             for key in ven_diagram:
                 ven_diagram[key] = sum(ven_diagram[key])
 
-            folder = "/Figure 3-b2/cell lines/" # .format("cell lines")
+            folder = "/Figure 3-b2/cell lines/"
             if not os.path.exists(folder):
                 os.makedirs(folder)
             position = codes.index(code) + 1
             file_name = u"/Donor{} - {}".format(position, self.celltype)
             Defs.write_one_value_dict_to_csv(file_name + ".csv", ven_diagram, folder)
+
+    def statistics_ven_diagram(self, vens_to_test, sampling_number, combinations_number=4, expression=1, threshold=90):
+        codes_1 = Defs.possible_dict_to_list(self.codes)
+        number = 0
+        ven_diagram_1 = {}
+        while number < sampling_number:
+            number += 1
+            codes = np.random.choice(codes_1, combinations_number)
+            ven_diagram = {}
+            for code in codes:
+                print("Sample:", code, sep="\n", end="\n\n")
+                codes_2 = [x for x in codes if x != code]
+                donors_data = self.data[codes_2]
+                data_2 = self.data.drop(codes_2, axis=1)
+                print("Samples to exclude:", *codes_2, sep="\n", end="\n\n")
+                filter_2 = Defs.fantom_filters(data_2, code, expression, 2, threshold)
+                ven_diagram[code] = []
+                n = 0
+                stop_counter = 0
+                while n < vens_to_test:
+                    stop_counter += 1
+                    sample = filter_2.sample(n=combinations_number)
+                    sample_dropped = sample.drop(code, axis=1).values
+                    assess_if_vencode = np.any(sample_dropped == 0, axis=0)
+                    if all(assess_if_vencode):
+                        n += 1
+                        donors_data_sample = donors_data.loc[sample.index.values]
+                        counter = 0
+                        to_assess = donors_data_sample[codes_2]
+                        assess_if_not_vencode_donors = np.any(to_assess.values == 0, axis=0)
+                        try:
+                            if assess_if_not_vencode_donors:
+                                pass
+                            else:
+                                counter += 1
+                        except:
+                            if any(assess_if_not_vencode_donors):
+                                pass
+                            else:
+                                counter += 1
+                        ven_diagram[code].append(counter)
+                    if stop_counter > 500000:  # in case there is not enough VEnCodes to check them all
+                        break
+                ven_diagram[code] = sum(ven_diagram[code]) / stop_counter
+                print(n)
+            codes_string = ''.join(codes.tolist())
+            ven_diagram_1[codes_string] = np.mean(list(ven_diagram.values()))
+        print(ven_diagram_1)
+        folder = "/Figure 3-b2/cell lines/"
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+        if isinstance(self.celltype, str):
+            file_name = u"/stats for {} celltype".format(self.celltype)
+        else:
+            file_name = u"/stats for {} celltypes".format(len(self.codes))
+        Defs.write_one_value_dict_to_csv(file_name + ".csv", ven_diagram_1, folder)
+
+    def get_vencodes(self, combinations_number=4, p=None, n=None, write_file=False):
+        if isinstance(self.codes, dict):
+            codes = [j for i in list(self.codes.values()) for j in i]
+        else:
+            codes = self.codes
+        if len(codes) == 1:
+            code = codes[0]
+            others_df = None
+            filter_1 = Defs.fantom_filter_1(self.data, codes, 1)
+            threshold = 100
+            while threshold > 0:
+                with_percentage_of_zeros, column_name = Defs.fantom_percentile_calculator(filter_1, codes,
+                                                                                          threshold)
+                filter_2 = Defs.fantom_filter_2(with_percentage_of_zeros, column_name)
+                if p is not None:
+                    sorted_1 = filter_2.nlargest(p, codes)
+                else:
+                    sorted_1 = filter_2.sort(codes.tolist(), ascending=False)
+                print("starting %s -> threshold = %s" % (code, threshold))
+                success = Defs.reform_vencode_n_combinations_of_k(threshold, sorted_1.drop(column_name, axis=1),
+                                                                  code, self.celltype, "Promoters", combinations_number,
+                                                                  n, others_df, write_file)
+                if not success:
+                    threshold -= 10
+                if success:
+                    threshold = 0
+        else:
+            code = codes[0]
+            codes_2 = np.array(codes).tolist()
+            codes_2.remove(code)
+            filter_1 = Defs.fantom_filter_1(self.data, codes, 1)
+            threshold = 100
+            while threshold > 0:
+                with_percentage_of_zeros, column_name = Defs.fantom_percentile_calculator(filter_1, codes,
+                                                                                          threshold)
+                filter_2 = Defs.fantom_filter_2(with_percentage_of_zeros, column_name)
+                if p is not None:
+                    sorted_1 = filter_2.nlargest(p, codes)
+                else:
+                    sorted_1 = filter_2.sort(codes, ascending=False)
+                codes_2_df = sorted_1[codes_2]
+                cropped = sorted_1.drop(codes_2, axis=1)
+                print("Starting %s -> threshold = %s" % (self.celltype, threshold))
+                success = Defs.reform_vencode_n_combinations_of_k(threshold, cropped.drop(column_name, axis=1),
+                                                                  code, self.celltype, "Promoters", combinations_number,
+                                                                  n, codes_2_df, write_file)
+                if not success:
+                    threshold -= 10
+                if success:
+                    threshold = 0
+
+    def best_vencode_generator(self):
+        print()
+        pass
 
 # TODO: with the changes in __init__ to the BaseClass, some of these static methods may now be converted to self.xx!

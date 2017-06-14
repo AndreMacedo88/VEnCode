@@ -3,7 +3,6 @@
 
 """Best VEnCode.py: Functions for generating the best VEnCode """
 
-import logging
 import Classes_2
 
 # region "Global Variables"
@@ -86,14 +85,13 @@ complete_primary_jit_exclude_list = {"CD14+ CD16- Monocytes": ("CD14+ Monocytes"
 
 # endregion "Global variables"
 
-# region Run
-best_vencode = Classes_2.Promoters("hg19.cage_peak_phase1and2combined_tpm.osc.txt",
-                                   complete_primary_cell_list,
-                                   celltype_exclude=complete_primary_exclude_list,
-                                   not_include=complete_primary_non_include_list,
-                                   partial_exclude=complete_primary_jit_exclude_list,
-                                   sample_types="primary cells",
-                                   second_parser=None, nrows=1000)
-print(best_vencode.codes, best_vencode.data.shape, len(best_vencode.codes), sep="\n\n")
+if __name__ == "__main__":
+    initialize_promoters = Classes_2.Promoters("hg19.cage_peak_phase1and2combined_tpm.osc.txt",
+                                               complete_primary_cell_list,
+                                               celltype_exclude=complete_primary_exclude_list,
+                                               not_include=complete_primary_non_include_list,
+                                               partial_exclude=complete_primary_jit_exclude_list,
+                                               sample_types="primary cells",
+                                               second_parser=None, nrows=1000)
+    initialize_promoters.best_vencode_generator()
 
-# endregion Run
