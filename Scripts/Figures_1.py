@@ -455,8 +455,8 @@ class Promoters:
         self.sample_types = sample_types
         self.file_type = "Promoters"  # may not be needed later when functions become inside enhancers class
         self.database = Classes_2.Promoters(file, celltype, celltype_exclude=celltype_exclude,
-                                          not_include=not_include, partial_exclude=partial_exclude,
-                                          sample_types=sample_types, second_parser=second_parser, nrows=nrows)
+                                            not_include=not_include, partial_exclude=partial_exclude,
+                                            sample_types=sample_types, second_parser=second_parser, nrows=nrows)
 
     def get_all_vencodes(self, combinations_number, threshold=90, expression=1, mode="count",
                          multi=False, at_least_one=False):
@@ -493,8 +493,6 @@ class Promoters:
         # Saving in .CSV
         file_name = u"/VEnC - k={} {}- {} {}".format(combinations_number, self.file_type, len(self.celltype),
                                                      self.sample_types)
-        # if multi:
-        #     Defs.write_dict_to_csv(file_name + ".csv", calculated_vencodes, folder, path="parent")
         if not multi:
             Defs.write_one_value_dict_to_csv(file_name + ".csv", calculated_vencodes, folder)
         # plotting:
@@ -724,6 +722,8 @@ complete_primary_jit_exclude_list = {"CD14+ CD16- Monocytes": ("CD14+ Monocytes"
                                      "CD4+CD25-CD45RA- memory conventional T cells": ("CD4+ T Cells", "CD25"),
                                      "CD4+CD25-CD45RA+ naive conventional T cells": ("CD4+ T Cells", "CD25")}
 
+complete_cancer_non_include_list = {"lung adenocarcinoma cell line": "papillary"}
+
 hard_to_get_ven_celltypes_prom = ["Smooth Muscle Cells - Prostate", "Smooth Muscle Cells - Carotid",
                                   "Skeletal Muscle Cells", "Renal Epithelial Cells", "Melanocyte",
                                   "Fibroblast - Periodontal Ligament",
@@ -890,6 +890,93 @@ complete_cancer_cell_type = ['acantholytic squamous carcinoma cell line:HCC1806'
                              'transitional-cell carcinoma cell line:JMSU1', 'tridermal teratoma cell line:HGRT',
                              'tubular adenocarcinoma cell line:SUIT-2', 'Wilms tumor cell line:G-401',
                              'Wilms tumor cell line:HFWT', 'xeroderma pigentosum b cell line:XPL 17']
+merged_lines_cancer_cells = ["acantholytic squamous carcinoma cell line:HCC1806",
+                             "acute lymphoblastic leukemia (B-ALL) cell line",
+                             "acute lymphoblastic leukemia (T-ALL) cell line",
+                             "acute myeloid leukemia (FAB M0) cell line", "acute myeloid leukemia (FAB M1) cell line",
+                             "acute myeloid leukemia (FAB M2) cell line", "acute myeloid leukemia (FAB M3) cell line",
+                             "acute myeloid leukemia (FAB M4) cell line", "acute myeloid leukemia (FAB M4eo) cell line",
+                             "acute myeloid leukemia (FAB M5) cell line", "acute myeloid leukemia (FAB M6) cell line",
+                             "acute myeloid leukemia (FAB M7) cell line", "adenocarcinoma cell line:IM95m",
+                             "adrenal cortex adenocarcinoma cell line:SW-13", "adult T-cell leukemia cell line:ATN-1",
+                             "alveolar cell carcinoma cell line:SW 1573", "anaplastic carcinoma cell line:8305C",
+                             "anaplastic large cell lymphoma cell line:Ki-JK",
+                             "anaplastic squamous cell carcinoma cell line:RPMI 2650",
+                             "argyrophil small cell carcinoma cell line:TC-YIK", "astrocytoma cell line:TM-31",
+                             "b cell line:RPMI1788", "B lymphoblastoid cell line: GM12878 ENCODE",
+                             "basal cell carcinoma cell line:TE 354", "bile duct carcinoma cell line",
+                             "biphenotypic B myelomonocytic leukemia cell line:MV-4-11",
+                             "bone marrow stromal cell line:StromaNKtert", "breast carcinoma cell line",
+                             "bronchial squamous cell carcinoma cell line:KNS-62",
+                             "bronchioalveolar carcinoma cell line", "bronchogenic carcinoma cell line:ChaGo-K-1",
+                             "Burkitt lymphoma cell line", "carcinoid cell line", "carcinosarcoma cell line:JHUCS-1",
+                             "cervical cancer cell line", "cholangiocellular carcinoma cell line:HuH-28",
+                             "chondrosarcoma cell line:SW 1353", "choriocarcinoma cell line",
+                             "chronic lymphocytic leukemia cell line:SKW-3",
+                             "chronic myeloblastic leukemia cell line:KCL-22", "chronic myelogenous leukemia cell line",
+                             "clear cell carcinoma cell line", "colon carcinoma cell line",
+                             "cord blood derived cell line:COBL-a untreated",
+                             "diffuse large B-cell lymphoma cell line:CTB-1", "ductal cell carcinoma cell line",
+                             "embryonic kidney cell line: HEK293/SLAM untreated", "embryonic pancreas cell line",
+                             "endometrial carcinoma cell line:OMC-2", "endometrial stromal sarcoma cell line:OMC-9",
+                             "endometrioid adenocarcinoma cell line:JHUEM-1", "epidermoid carcinoma cell line",
+                             "epithelioid sarcoma cell line", "epitheloid carcinoma cell line: HelaS3 ENCODE",
+                             "Ewing sarcoma cell line:Hs 863",
+                             "extraskeletal myxoid chondrosarcoma cell line:H-EMC-SS", "fibrosarcoma cell line:HT-1080",
+                             "fibrous histiocytoma cell line:GCT TIB-223", "gall bladder carcinoma cell line",
+                             "gastric adenocarcinoma cell line", "gastric cancer cell line",
+                             "gastrointestinal carcinoma cell line:ECC12", "giant cell carcinoma cell line",
+                             "glassy cell carcinoma cell line:HOKUG", "glioblastoma cell line", "glioma cell line:GI-1",
+                             "granulosa cell tumor cell line:KGN", "hairy cell leukemia cell line:Mo",
+                             "Hep-2 cells mock treated", "hepatic mesenchymal tumor cell line:LI90",
+                             "hepatoblastoma cell line:HuH-6", "hepatocellular carcinoma cell line: HepG2 ENCODE",
+                             "hepatoma cell line:Li-7", "hereditary spherocytic anemia cell line:WIL2-NS",
+                             "Hodgkin lymphoma cell line:HD-Mar2", "keratoacanthoma cell line:HKA-1",
+                             "Krukenberg tumor cell line:HSKTC", "large cell lung carcinoma cell line",
+                             "large cell non-keratinizing squamous carcinoma cell line:SKG-II-SF",
+                             "leiomyoblastoma cell line:G-402", "leiomyoma cell line", "leiomyosarcoma cell line:Hs 5",
+                             "lens epithelial cell line:SRA", "leukemia chronic megakaryoblastic cell line:MEG-01",
+                             "liposarcoma cell line", "lung adenocarcinoma cell line",
+                             "lung adenocarcinoma papillary cell line:NCI-H441", "lymphangiectasia cell line:DS-1",
+                             "lymphoma malignant hairy B-cell cell line:MLMA",
+                             "malignant trichilemmal cyst cell line:DJM-1", "maxillary sinus tumor cell line:HSQ-89",
+                             "medulloblastoma cell line", "melanoma cell line", "meningioma cell line:HKBMM",
+                             "merkel cell carcinoma cell line",
+                             "mesenchymal stem cell line:Hu5/E18", "mesodermal tumor cell line:HIRS-BM",
+                             "mesothelioma cell line", "mixed mullerian tumor cell line:HTMMT",
+                             "mucinous adenocarcinoma cell line:JHOM-1", "mucinous cystadenocarcinoma cell line:MCAS",
+                             "myelodysplastic syndrome cell line:SKM-1", "myeloma cell line:PCM6",
+                             "myxofibrosarcoma cell line", "neuroblastoma cell line", "neuroectodermal tumor cell line",
+                             "neuroepithelioma cell line:SK-N-MC", "neurofibroma cell line:Hs 53",
+                             "NK T cell leukemia cell line:KHYG-1",
+                             "non T non B acute lymphoblastic leukemia cell line:P30/OHK",
+                             "non-small cell lung cancer cell line:NCI-H1385",
+                             "normal embryonic palatal mesenchymal cell line:HEPM",
+                             "normal intestinal epithelial cell line:FHs 74 Int",
+                             "oral squamous cell carcinoma cell line", "osteoclastoma cell line:Hs 706",
+                             "osteosarcoma cell line", "pagetoid sarcoma cell line:Hs 925",
+                             "pancreatic carcinoma cell line:NOR-P1", "papillary adenocarcinoma cell line:8505C",
+                             "papillotubular adenocarcinoma cell line:TGBC18TKB",
+                             "peripheral neuroectodermal tumor cell line:KU-SN",
+                             "pharyngeal carcinoma cell line:Detroit 562", "plasma cell leukemia cell line:ARH-77",
+                             "pleomorphic hepatocellular carcinoma cell line:SNU-387", "prostate cancer cell line",
+                             "rectal cancer cell line:TT1TKB", "renal cell carcinoma cell line",
+                             "retinoblastoma cell line:Y79", "rhabdomyosarcoma cell line",
+                             "sacrococcigeal teratoma cell line:HTST", "schwannoma cell line:HS-PSS",
+                             "serous adenocarcinoma cell line", "serous cystadenocarcinoma cell line:HTOA",
+                             "signet ring carcinoma cell line", "small cell cervical cancer cell line:HCSC-1",
+                             "small cell gastrointestinal carcinoma cell line:ECC10",
+                             "small cell lung carcinoma cell line",
+                             "small-cell gastrointestinal carcinoma cell line:ECC4", "somatostatinoma cell line:QGP-1",
+                             "spindle cell sarcoma cell line:Hs 132",
+                             "splenic lymphoma with villous lymphocytes cell line:SLVL",
+                             "squamous cell carcinoma cell line", "squamous cell lung carcinoma cell line",
+                             "synovial sarcoma cell line:HS-SY-II", "T cell lymphoma cell line:HuT 102 TIB-162",
+                             "teratocarcinoma cell line", "testicular germ cell embryonal carcinoma cell line",
+                             "thymic carcinoma cell line:Ty-82", "thyroid carcinoma cell line",
+                             "transitional cell carcinoma cell line", "tridermal teratoma cell line:HGRT",
+                             "tubular adenocarcinoma cell line:SUIT-2", "Wilms tumor cell line",
+                             "xeroderma pigentosum b cell line:XPL 17"]
 
 labels = ["CD4+CD25+CD45RA+ naive regulatory T cells, donor1",
           "CD4+CD25-CD45RA- memory conventional T cells, donor1",
@@ -1013,18 +1100,19 @@ mouse_complete_primary_jit_exclude_list = {}
 #                       celltype_exclude=complete_primary_exclude_list)
 #
 complete_promoters = Promoters("hg19.cage_peak_phase1and2combined_tpm.osc.txt",
-                               ["acute myeloid leukemia"],
-                               celltype_exclude=complete_primary_exclude_list,
-                               not_include=complete_primary_non_include_list,
-                               partial_exclude=complete_primary_jit_exclude_list,
+                               merged_lines_cancer_cells,
+                               celltype_exclude=None,
+                               not_include=complete_cancer_non_include_list,
+                               partial_exclude=None,
                                sample_types=["primary cells", "cell lines"],
-                               second_parser="primary cells", nrows=100)
+                               second_parser="primary cells")
 # complete_promoters.get_all_vencodes([12,13,14,15,16,17,18,19,20], threshold=50, multi=True, at_least_one=True)
 # complete_promoters.check_cell_list(no_donors=True)
 # complete_promoters.check_size(10)
-complete_promoters.get_all_vencodes(4, threshold=50, multi=False, at_least_one=True)
-
-
+# complete_promoters.get_all_vencodes(4, threshold=50, multi=False, at_least_one=True)
+complete_promoters.database.test_code_size()
+complete_promoters.database.codes_to_csv("codes_merged_cancer_cells.csv", "list", "/Figure 1/Test codes/")
+complete_promoters.database.celltypes_to_csv("celltypes_merged_cancer_cells.csv", "list", "/Figure 1/Test codes/")
 # endregion "Promoters"
 
 # region "Enhancers"
@@ -1060,8 +1148,5 @@ complete_promoters.get_all_vencodes(4, threshold=50, multi=False, at_least_one=T
 # TODO: get at least one vencode for 1<k<x promoters and enhancers: quick method for all celltps and slow for remaining.
 # TODO: re-run problems for enhancers and promoters
 # TODO: curva percent of vencodes that work on all donors per amount of Donors used (or maybe per percentage of donors.
-# TODO: Get figure 2 to run with new non-sampling based method of ven generation - for this, must add stuff to non-sampling - In fact, first do next TODO!
-# TODO: Find the best vencode. Use E-value method on several 2-node combinations. retrieve best and move to several 3rd node. retrieve best and keep doing it.
-# TODO: change second node limit to infinite and keep third node, fourth, fift, etc, the same.
 # (based on Fig 3) - Use several cell types, not just mast cells.
 # endregion "TODOs"

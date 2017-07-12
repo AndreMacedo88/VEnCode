@@ -288,6 +288,8 @@ def write_list_to_csv(file_name, list_data, folder, path="parent"):
         for line in list_data:
             myfile.write(line)
             myfile.write('\n')
+
+
 def write_dict_to_csv(file_name, dict_data, folder, path="normal"):
     if path == "parent":
         current_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -474,6 +476,23 @@ def fantom_filters(data, codes, expression, amount, threshold=None):
         raise Exception("Amount of filters not valid")
 
 
+def fantom_filter_threshold(data, codes, threshold, combinations_number):
+    with_percentile, column_name = fantom_percentile_calculator(data, codes, threshold)
+    filter_2 = fantom_filter_2(with_percentile, column_name)
+    while filter_2.shape[0] < 50 and threshold > 5:
+        threshold -= 5
+        with_percentile, column_name = fantom_percentile_calculator(data, codes, threshold)
+        filter_2 = fantom_filter_2(with_percentile, column_name)
+    if filter_2.shape[0] >= 50:
+        print("After filter 2: ", filter_2.shape[0], "at threshold", threshold)
+        logging.info("After filter 2: %s promoters at threshold %s", filter_2.shape[0], threshold)
+        filter_2.drop(column_name, axis=1, inplace=True)
+        return filter_2, threshold
+    else:
+        print("Filter 2 didn't produce sufficient results even at percentile {}".format(threshold))
+        return
+
+
 def fantom_sampling(codes, celltype, filters, combinations_number, samples_to_take, reps, include_problems=False):
     """
     Returns  a dictionary containing the percentage of VEnCodes found per k combinations, calculated by sampling
@@ -584,15 +603,15 @@ def sample_category_selector(sample_types_file, types, path="parent", get="index
     return celltypes
 
 
-def fantom_sampling_monte_carlo(codes, filters, combinations_number, vens_to_take, reps, vencodes=False):
+def fantom_sampling_monte_carlo(codes, filters, combinations_number, vens_to_take, reps, vencodes=False, stop_at=50000):
     """
-    Returns  a dictionary containing the percentage of VEnCodes found per k combinations, calculated by sampling
-    the df rows for samples_to_take number of times and reps number or repetitions.
+    Returns  a dictionary containing the percentage of VEnCodes found per n combinations of k promoters, calculated by 
+    sampling the df rows for samples_to_take number of times and reps number or repetitions.
     """
     col_list = filters.drop(codes, axis=1).columns.values
     try:
         ven = {}
-        evalues = []
+        e_values = []
         for i in range(reps):
             n = 0
             breaker = 0  # Used to break the while loop in case the cell type has no VEnCodes.
@@ -602,24 +621,25 @@ def fantom_sampling_monte_carlo(codes, filters, combinations_number, vens_to_tak
                 assess_if_vencode = np.any(sample_dropped == 0, axis=0)
                 if all(assess_if_vencode):
                     n += 1
-                    evalue = vencode_simulation(sample.drop(codes, axis=1), col_list)
+                    e_value = vencode_simulation(sample.drop(codes, axis=1), col_list)
                     if vencodes:
-                        ven[n] = [sample.index.values.tolist(), evalue]
-                    evalues.append(evalue)
+                        name = "threshold_" + str(vencodes) + " ven_" + str(n)
+                        ven[name] = [sample.index.values.tolist(), e_value]
+                    e_values.append(e_value)
                 else:
                     breaker += 1
-                    if breaker > 50000:
+                    if breaker > stop_at:
                         print("\nCouldn't find enough VEnCodes!", end="\n\n")
                         break
-        print("evalues: ", evalues)
+        print("e_values: ", e_values)
     except Exception as ex:
         template = "An exception of type {0} occurred. Arguments:\n{1!r}"
         message = template.format(type(ex).__name__, ex.args)
         print(message)
     if vencodes:
-        return evalues, ven
+        return e_values, ven
     else:
-        return evalues
+        return e_values
 
 
 def vencode_simulation(sample_dropped, col_list):
@@ -641,7 +661,7 @@ def vencode_simulation(sample_dropped, col_list):
                 mc_df.set_value(index, col, 1)
                 a = mc_df[col].tolist()
                 try:
-                    b = a.index(0)
+                    b = a.index(0)  # searches for at least one 0 in that column. If there's no 0, it's not a VEnCode.
                 except ValueError:
                     vencode = False
                     global_counter_list.append(local_counter)

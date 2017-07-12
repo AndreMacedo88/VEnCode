@@ -502,5 +502,3 @@ class Promoters(DatabaseOperations):
                 codes = list(set(codes) - set(not_codes))
         self.test_codes(codes, celltype)
         return codes
-
-# TODO: with the changes in __init__ to the BaseClass, some of these static methods may now be converted to self.xx!

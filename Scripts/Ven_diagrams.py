@@ -186,7 +186,7 @@ if __name__ == "__main__":
                                                sample_types=["primary cells", "cell lines"],
                                                second_parser="primary cells")
     # get files for VEn diagram:
-    initialize_promoters.ven_diagrams(50000, threshold=50)
+    initialize_promoters.ven_diagrams(50000, 4, threshold=50)
 
     # test if biologically (statistically) relevant:
-    # initialize_promoters.statistics_ven_diagram(5000, 5, threshold=50, combinations_number=22)
+    # initialize_promoters.statistics_ven_diagram(5000, 5, 22, threshold=50)

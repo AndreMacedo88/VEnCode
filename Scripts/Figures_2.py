@@ -4,7 +4,7 @@ import time
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from VEnCode_FANTOM5 import Defs
+import Defs
 
 
 # region "Figures for paper"
@@ -90,6 +90,7 @@ def figure_2(file, file_type, cell_list, combinations_number, vens_to_take, reps
 # endregion "Global TODOs"
 
 # region "Global Variables"
+# note: complete_primary_cell_list is OUTDATED. Check Figures_1.py file for updated version.
 complete_primary_cell_list = ["Adipocyte - breast", "Adipocyte - omental", "Adipocyte - perirenal",
                               "Adipocyte - subcutaneous", "Alveolar Epithelial Cells", "Amniotic Epithelial Cells",
                               "amniotic membrane cells", "Anulus Pulposus Cell", "Astrocyte - cerebellum",
