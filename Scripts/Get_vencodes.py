@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-import Classes_2
+import Classes
 
 # region Variables
 
@@ -23,13 +23,13 @@ complete_primary_jit_exclude_list = {"CD14+ CD16- Monocytes": ("CD14+ Monocytes"
 # endregion Variables
 
 if __name__ == "__main__":
-    initialize_promoters = Classes_2.Promoters("hg19.cage_peak_phase1and2combined_tpm.osc.txt",
+    initialize_promoters = Classes.Promoters("hg19.cage_peak_phase1and2combined_tpm.osc.txt",
                                                "acute myeloid leukemia",
-                                               celltype_exclude=complete_primary_exclude_list,
-                                               not_include=complete_primary_non_include_list,
-                                               partial_exclude=complete_primary_jit_exclude_list,
-                                               sample_types=["primary cells", "cell lines"],
-                                               second_parser="primary cells")
+                                             celltype_exclude=complete_primary_exclude_list,
+                                             not_include=complete_primary_non_include_list,
+                                             partial_exclude=complete_primary_jit_exclude_list,
+                                             sample_types=["primary cells", "cell lines"],
+                                             second_parser="primary cells")
 
     # get vencodes:
     initialize_promoters.get_vencodes(n=1, write_file=True)

@@ -3,7 +3,7 @@
 
 """intra_robustness.py: Functions for generating intra robustness data """
 
-import Classes_2
+import Classes
 
 # region "Global Variables"
 complete_primary_non_include_list = {"Adipocyte - breast": "pre", "Adipocyte - omental": "pre",
@@ -134,13 +134,13 @@ threshold = 90
 # endregion "Global variables"
 
 if __name__ == "__main__":
-    initialize_promoters = Classes_2.Promoters("hg19.cage_peak_phase1and2combined_tpm.osc.txt",
-                                               cell_list,
-                                               celltype_exclude=complete_primary_exclude_list,
-                                               not_include=complete_primary_non_include_list,
-                                               partial_exclude=complete_primary_jit_exclude_list,
-                                               sample_types="primary cells",
-                                               second_parser=None)
+    initialize_promoters = Classes.Promoters("hg19.cage_peak_phase1and2combined_tpm.osc.txt",
+                                             cell_list,
+                                             celltype_exclude=complete_primary_exclude_list,
+                                             not_include=complete_primary_non_include_list,
+                                             partial_exclude=complete_primary_jit_exclude_list,
+                                             sample_types="primary cells",
+                                             second_parser=None)
     """ All cell types 
     # use: cell_list = complete_primary_cell_list
     initialize_promoters.codes_to_csv("codes_all_cells.csv", "list", "/Figure 2/Test codes/")
@@ -160,5 +160,4 @@ if __name__ == "__main__":
     """
 
     initialize_promoters.intra_individual_robustness(combinations_number, vens_to_take, threshold=threshold)
-# TODO: run intra for cancer cell lines: All, 3 donors, 4 donors, etc..
-# TODO: run intra for All cell lines (I only have old 156 celltypes file)
+

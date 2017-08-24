@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-import Classes_2
+import Classes
 
 # region Variables
 
@@ -178,13 +178,13 @@ case_studies = ["small cell lung carcinoma", "testicular germ cell embryonal car
 # endregion Variables
 
 if __name__ == "__main__":
-    initialize_promoters = Classes_2.Promoters("hg19.cage_peak_phase1and2combined_tpm.osc.txt",
-                                               "acute myeloid leukemia (FAB M2)",
-                                               celltype_exclude=complete_primary_exclude_list,
-                                               not_include=complete_primary_non_include_list,
-                                               partial_exclude=complete_primary_jit_exclude_list,
-                                               sample_types=["primary cells", "cell lines"],
-                                               second_parser="primary cells")
+    initialize_promoters = Classes.Promoters("hg19.cage_peak_phase1and2combined_tpm.osc.txt",
+                                             "acute myeloid leukemia (FAB M2)",
+                                             celltype_exclude=complete_primary_exclude_list,
+                                             not_include=complete_primary_non_include_list,
+                                             partial_exclude=complete_primary_jit_exclude_list,
+                                             sample_types=["primary cells", "cell lines"],
+                                             second_parser="primary cells")
     # get files for VEn diagram:
     initialize_promoters.ven_diagrams(50000, 4, threshold=50)
 

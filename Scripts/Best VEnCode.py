@@ -3,7 +3,7 @@
 
 """Best VEnCode.py: Functions for generating the best VEnCode """
 
-import Classes_2
+import Classes
 
 # region "Global Variables"
 complete_primary_cell_list = ["Adipocyte - breast", "Adipocyte - omental", "Adipocyte - perirenal",
@@ -86,12 +86,12 @@ complete_primary_jit_exclude_list = {"CD14+ CD16- Monocytes": ("CD14+ Monocytes"
 # endregion "Global variables"
 
 if __name__ == "__main__":
-    initialize_promoters = Classes_2.Promoters("hg19.cage_peak_phase1and2combined_tpm.osc.txt",
-                                               complete_primary_cell_list,
-                                               celltype_exclude=complete_primary_exclude_list,
-                                               not_include=complete_primary_non_include_list,
-                                               partial_exclude=complete_primary_jit_exclude_list,
-                                               sample_types="primary cells",
-                                               second_parser=None, nrows=1000)
+    initialize_promoters = Classes.Promoters("hg19.cage_peak_phase1and2combined_tpm.osc.txt",
+                                             complete_primary_cell_list,
+                                             celltype_exclude=complete_primary_exclude_list,
+                                             not_include=complete_primary_non_include_list,
+                                             partial_exclude=complete_primary_jit_exclude_list,
+                                             sample_types="primary cells",
+                                             second_parser=None, nrows=100)
     initialize_promoters.best_vencode_generator()
 
