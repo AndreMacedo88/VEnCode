@@ -24,7 +24,7 @@ Installing
 
 Running the tests
 -----------------
-(most) Scripts to generate figures can be found in the "Scripts" folder. Very old scripts can be found in obsolete files such as "main_fantom.py"
+Note: (most) Scripts to generate figures can be found in the "Scripts" folder. Old scripts can be found in somewhat obsolete files such as "main_fantom.py", even though this file still has some relevant functions for some publication panels/figures. Files such as "Classes_2.py" are probably obsolete by now and I should check if can be removed.
 
 Contributing
 ------------
