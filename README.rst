@@ -34,7 +34,7 @@ Please read **CONTRIBUTING.rst** for details on our code of conduct, and the pro
 Versioning
 ----------
 
-We use "software" for versioning. For the versions available, see the "tags on this repository" (put hyperlink).
+We use git for versioning. For the versions available, see the "tags on this repository" (put hyperlink).
 
 Authors
 -------
