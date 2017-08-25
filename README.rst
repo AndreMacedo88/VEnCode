@@ -24,6 +24,7 @@ Installing
 
 Running the tests
 -----------------
+(most) Scripts to generate figures can be found in the "Scripts" folder. Very old scripts can be found in obsolete files such as "main_fantom.py"
 
 Contributing
 ------------
