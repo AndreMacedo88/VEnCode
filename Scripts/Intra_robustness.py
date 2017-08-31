@@ -126,6 +126,8 @@ four_donors_cell_list = ["Smooth Muscle Cells - Umbilical Artery", "Retinal Pigm
 # endregion "Global variables"
 
 # region "Setup Variables"
+
+file_name = "hg19.cage_peak_phase1and2combined_tpm.osc.txt"
 cell_list = complete_primary_cell_list
 vens_to_take = 20
 combinations_number = 4
@@ -134,8 +136,7 @@ threshold = 90
 # endregion "Global variables"
 
 if __name__ == "__main__":
-    initialize_promoters = Classes.Promoters("hg19.cage_peak_phase1and2combined_tpm.osc.txt",
-                                             cell_list,
+    initialize_promoters = Classes.Promoters(file_name, cell_list,
                                              celltype_exclude=complete_primary_exclude_list,
                                              not_include=complete_primary_non_include_list,
                                              partial_exclude=complete_primary_jit_exclude_list,

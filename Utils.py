@@ -890,12 +890,15 @@ def files_in_folder_to_csv(folder, file_name):
     write_dict_2_to_csv(file_name, to_write, folder, path="parent")
 
 
-def possible_dict_to_list(possible_dict):
-    if isinstance(possible_dict, dict):
-        final_list = [j for i in list(possible_dict.values()) for j in i]
+def possible_dict_to_list(dict_possible):
+    if isinstance(dict_possible, dict):
+        list_final = [j for i in list(dict_possible.values()) for j in i]
     else:
-        final_list = possible_dict
-    return final_list
+        list_final = dict_possible
+    return list_final
+
+
+
 
 # endregion
 

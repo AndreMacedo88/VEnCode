@@ -821,8 +821,9 @@ class Promoters(DatabaseOperations):
 
     def best_vencode_generator(self):
         logger = self.logging_proms(locals())
-        logger.warning("Test")
-        pass
+        for cell in self.codes:
+            pass
+        return
 
     def intra_individual_robustness(self, combinations_number, vens_to_take, reps=1, threshold=90, expression=1,
                                     get_vencodes=False):
@@ -904,6 +905,7 @@ class Promoters(DatabaseOperations):
         Utils.write_list_to_csv(file_name, cell_list, folder_name, path="parent")
 
 # TODO: with the changes in __init__ to the BaseClass, some of these static methods may now be converted to self.xx!
-# TODO: see if can change at_least_one_node_calculator: vencode assessment can be done after select columns
-# also, retrieving the promoter variable here, via appending to a list, enables us to retrieve the vencodes
-# TODO: change the isinstances(obj, type) for isintance(obj, (type1, type2, etc))
+# TODO: see if can change at_least_one_node_calculator: vencode assessment can be done after select columns /
+#  also, retrieving the promoter variable here, via appending to a list, enables us to retrieve the vencodes
+# TODO: change the isinstance(obj, type) for isintance(obj, (type1, type2, etc))
+# TODO: implement database baseclass
