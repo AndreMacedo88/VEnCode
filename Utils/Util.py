@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-""" Utils.py: Functions module for the VEnCode project """
+""" defs.py: Functions module for the VEnCode project """
 import csv
 import os
 import logging
@@ -816,8 +816,8 @@ def open_csv(filename):
     return raw_data
 
 
-def remove_all_x_element(element, list):
-    return filter(lambda x: x != element, list)
+def remove_all_x_element(element, lst):
+    return filter(lambda x: x != element, lst)
 
 
 def other_lines_sum_generator(data_frame, celltype):
@@ -898,7 +898,33 @@ def possible_dict_to_list(dict_possible):
     return list_final
 
 
+def check_list_index_and_append(lst, index, to_append):
+    if isinstance(lst, np.ndarray):
+        lst = lst.tolist
+    try:
+        value = lst[index]
+        try:
+            value.append(to_append)
+        except AttributeError:
+            value = [value, to_append]
+        lst[index] = value
+    except IndexError:
+        lst.append(to_append)
+    logging.info(lst)
+    return lst
 
+
+def combinations_from_nested_lists(lst):
+    lst_new = []
+    for j in lst:
+        if isinstance(j, list):
+            lst_new.append(j)
+        else:
+            lst_new.append([j])
+    lst = lst_new
+    # logging.info(lst)
+    for i in iter.product(*lst):
+        yield i
 
 # endregion
 

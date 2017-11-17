@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 from scipy.special import comb
 
-import Utils
+from Utils import Util
 import Classes
 
 
@@ -33,16 +33,16 @@ def figure_1(file, file_type, cell_list, combinations_number, samples_to_take, r
     raw_data = pd.read_csv("./Files/" + file, sep="\t", index_col=0,
                            skiprows=1831, nrows=1000)  # nrows=x if we want to load only a few rows
     data_1 = raw_data.drop(raw_data.index[[0, 1]])
-    universal_rna = Utils.fantom_code_selector(file_type, data_1, "universal", not_include=None)
+    universal_rna = Util.fantom_code_selector(file_type, data_1, "universal", not_include=None)
     data_1.drop(universal_rna, axis=1, inplace=True)
-    to_keep = Utils.fantom_sample_category_selector("sample types - FANTOM5.csv", sample_types)
+    to_keep = Util.fantom_sample_category_selector("sample types - FANTOM5.csv", sample_types)
     data = pd.DataFrame(index=data_1.index.values)
     for sample in to_keep:
         data_temp = data_1.filter(regex=sample)
         data = data.join(data_temp)
     # Exclude some specific, on-demand, celltypes from the data straight away:
     if isinstance(celltype_exclude, list):
-        codes_exclude = Utils.fantom_code_selector(file_type, data, celltype_exclude)
+        codes_exclude = Util.fantom_code_selector(file_type, data, celltype_exclude)
         print("Cell types to exclude:", *codes_exclude, sep="\n", end="\n\n")
         data.drop(codes_exclude, axis=1, inplace=True)
     new_ven = {}
@@ -58,17 +58,17 @@ def figure_1(file, file_type, cell_list, combinations_number, samples_to_take, r
         else:
             not_celltype = None
         if celltype_to_exclude is not None:
-            ven = Utils.sorted_ven_robustness_test(file, file_type, celltype, combinations_number, samples_to_take, reps,
-                                                   threshold=threshold, expression=expression,
-                                                   celltype_exclude=celltype_to_exclude,
-                                                   not_include=not_celltype, multi_plot=multi_plot, init_data=data,
-                                                   optional_folder=optional_folder, include_problems=include_problems)
+            ven = Util.sorted_ven_robustness_test(file, file_type, celltype, combinations_number, samples_to_take, reps,
+                                                  threshold=threshold, expression=expression,
+                                                  celltype_exclude=celltype_to_exclude,
+                                                  not_include=not_celltype, multi_plot=multi_plot, init_data=data,
+                                                  optional_folder=optional_folder, include_problems=include_problems)
         else:
-            ven = Utils.sorted_ven_robustness_test(file, file_type, celltype, combinations_number, samples_to_take, reps,
-                                                   threshold=threshold, expression=expression,
-                                                   celltype_exclude=None,
-                                                   not_include=not_celltype, multi_plot=multi_plot, init_data=data,
-                                                   optional_folder=optional_folder, include_problems=include_problems)
+            ven = Util.sorted_ven_robustness_test(file, file_type, celltype, combinations_number, samples_to_take, reps,
+                                                  threshold=threshold, expression=expression,
+                                                  celltype_exclude=None,
+                                                  not_include=not_celltype, multi_plot=multi_plot, init_data=data,
+                                                  optional_folder=optional_folder, include_problems=include_problems)
         for k in ven:
             if k in new_ven:
                 new_ven[k].append(ven[k][0])
@@ -82,13 +82,13 @@ def figure_1(file, file_type, cell_list, combinations_number, samples_to_take, r
     file_name_dotplot = u"/Perc VenC of 1 zero_dotplot - k={} - {} {}".format(combinations_number, len(cell_list),
                                                                               sample_types)
     title = "Probability of VEnCode from random promoters sample of size k"
-    Utils.write_dict_to_csv(file_name + ".csv", new_ven_2, folder)
-    Utils.write_dict_to_csv(file_name_dotplot + ".csv", new_ven, folder)
+    Util.write_dict_to_csv(file_name + ".csv", new_ven_2, folder)
+    Util.write_dict_to_csv(file_name_dotplot + ".csv", new_ven, folder)
     label = "Average of {} cell types".format(len(cell_list))
-    fig, path = Utils.errorbar_plot(new_ven_2, folder, file_name, label, title=title, multiple=False)
+    fig, path = Util.errorbar_plot(new_ven_2, folder, file_name, label, title=title, multiple=False)
     fig.savefig(path)
     plt.close(fig)
-    fig_2, path_2 = Utils.box_plotting_from_dict(new_ven, file_name_dotplot, folder, title)
+    fig_2, path_2 = Util.box_plotting_from_dict(new_ven, file_name_dotplot, folder, title)
     fig_2.savefig(path_2, bbox_inches='tight')
     plt.close(fig_2)
     # finish:
@@ -114,16 +114,16 @@ def ven_percentage_per_celltype(file, file_type, cell_list, combinations_number,
     raw_data = pd.read_csv("./Files/" + file, sep="\t", index_col=0,
                            skiprows=1831, nrows=1000)  # nrows=x if we want to load only a few rows
     data_1 = raw_data.drop(raw_data.index[[0, 1]])
-    universal_rna = Utils.fantom_code_selector(file_type, data_1, "universal", not_include=None)
+    universal_rna = Util.fantom_code_selector(file_type, data_1, "universal", not_include=None)
     data_1.drop(universal_rna, axis=1, inplace=True)
-    to_keep = Utils.fantom_sample_category_selector("sample types - FANTOM5.csv", sample_types)
+    to_keep = Util.fantom_sample_category_selector("sample types - FANTOM5.csv", sample_types)
     data = pd.DataFrame(index=data_1.index.values)
     for sample in to_keep:
         data_temp = data_1.filter(regex=sample)
         data = data.join(data_temp)
     # Exclude some specific, on-demand, celltypes from the data straight away:
     if isinstance(celltype_exclude, list):
-        codes_exclude = Utils.fantom_code_selector(file_type, data, celltype_exclude)
+        codes_exclude = Util.fantom_code_selector(file_type, data, celltype_exclude)
         print("Cell types to exclude:", *codes_exclude, sep="\n", end="\n\n")
         data.drop(codes_exclude, axis=1, inplace=True)
     # Starting loop through all cell types:
@@ -136,10 +136,10 @@ def ven_percentage_per_celltype(file, file_type, cell_list, combinations_number,
             not_celltype = not_include.get(celltype)
         else:
             not_celltype = None
-        codes = Utils.fantom_code_selector(file_type, data, celltype, not_include=not_celltype)
+        codes = Util.fantom_code_selector(file_type, data, celltype, not_include=not_celltype)
         print("Cell types to get VEnCodes:", *codes, sep="\n", end="\n\n")
         # Applying filters:
-        filters = Utils.df_filter_by_expression_and_percentile(data, codes, expression, 2, threshold)
+        filters = Util.df_filter_by_expression_and_percentile(data, codes, expression, 2, threshold)
         # Getting VEnCode percentages:
         try:
             ven = {}
@@ -150,7 +150,7 @@ def ven_percentage_per_celltype(file, file_type, cell_list, combinations_number,
                         break
                     sample = filters.sample(n=combinations_number)
                     sample_dropped = sample.drop(codes, axis=1).values
-                    c = Utils.assess_vencode_one_zero(c, sample_dropped)
+                    c = Util.assess_vencode_one_zero(c, sample_dropped)
                 ven[i] = (c / samples_to_take) * 100  # could be a list but dicts are faster
                 print("Finished rep {0} in celltype = {1}".format(i, celltype))
             ven_values = list(ven.values())
@@ -165,8 +165,8 @@ def ven_percentage_per_celltype(file, file_type, cell_list, combinations_number,
     file_name_dotplot = u"/Perc VenC dotplot - k={} - {} {}".format(combinations_number, len(cell_list),
                                                                     sample_types)
     title = "Probability of VEnCode from {} promoters sample of size {}".format(combinations_number, reps)
-    Utils.write_dict_to_csv(file_name_dotplot + ".csv", ven_percent, folder)
-    fig, path = Utils.box_plotting_from_dict(ven_percent, file_name_dotplot, folder, title)
+    Util.write_dict_to_csv(file_name_dotplot + ".csv", ven_percent, folder)
+    fig, path = Util.box_plotting_from_dict(ven_percent, file_name_dotplot, folder, title)
     fig.savefig(path, bbox_inches='tight')
     plt.close(fig)
     # finish:
@@ -206,16 +206,16 @@ def figure_1_non_combinatory_algorithm(file, file_type, cell_list, combinations_
     raw_data = pd.read_csv(parent_path + "/Files/" + file, sep="\t", index_col=0,
                            skiprows=1831)  # nrows=x if we want to load only a few rows
     data_1 = raw_data.drop(raw_data.index[[0, 1]])
-    universal_rna = Utils.fantom_code_selector(file_type, data_1, "universal", not_include=None)
+    universal_rna = Util.fantom_code_selector(file_type, data_1, "universal", not_include=None)
     data_1.drop(universal_rna, axis=1, inplace=True)
-    to_keep = Utils.fantom_sample_category_selector("sample types - FANTOM5.csv", sample_types)
+    to_keep = Util.fantom_sample_category_selector("sample types - FANTOM5.csv", sample_types)
     data = pd.DataFrame(index=data_1.index.values)
     for sample in to_keep:
         data_temp = data_1.filter(regex=sample)
         data = data.join(data_temp)
     # Exclude some specific, on-demand, cell-types from the data straight away:
     if isinstance(celltype_exclude, list):
-        codes_exclude = Utils.fantom_code_selector(file_type, data, celltype_exclude)
+        codes_exclude = Util.fantom_code_selector(file_type, data, celltype_exclude)
         print("Cell types to exclude:", *codes_exclude, sep="\n", end="\n\n")
         data.drop(codes_exclude, axis=1, inplace=True)
     # Starting loop through all cell-types:
@@ -228,18 +228,18 @@ def figure_1_non_combinatory_algorithm(file, file_type, cell_list, combinations_
             not_celltype = not_include.get(celltype)
         else:
             not_celltype = None
-        codes = Utils.fantom_code_selector(file_type, data, celltype, not_include=not_celltype)
+        codes = Util.fantom_code_selector(file_type, data, celltype, not_include=not_celltype)
         print("Cell types to get VEnCodes:", *codes, sep="\n", end="\n\n")
-        filter_2 = Utils.df_filter_by_expression_and_percentile(data, codes, expression, 2, threshold)
+        filter_2 = Util.df_filter_by_expression_and_percentile(data, codes, expression, 2, threshold)
         filter_2 = filter_2.applymap(lambda x: 0 if x == 0 else 1)
-        nodes = Utils.node_calculator(filter_2.drop(codes, axis=1))
+        nodes = Util.node_calculator(filter_2.drop(codes, axis=1))
         if multi:
             for number in range(2, combinations_number + 1):
                 try:
                     calculated_vencodes[number]
                 except KeyError:
                     calculated_vencodes[number] = []
-                ven_combinations = Utils.number_of_combination_from_nodes(nodes, len(filter_2.index), number)
+                ven_combinations = Util.number_of_combination_from_nodes(nodes, len(filter_2.index), number)
                 logger.info("Number of VEnCodes found: %s for k=%s", ven_combinations, number)
                 if mode == "count":
                     calculated_vencodes[number].append(ven_combinations)
@@ -247,7 +247,7 @@ def figure_1_non_combinatory_algorithm(file, file_type, cell_list, combinations_
                     total_comb = comb(len(filter_2.index), combinations_number, exact=False)
                     calculated_vencodes[number] = ven_combinations / total_comb * 100
         else:
-            ven_combinations = Utils.number_of_combination_from_nodes(nodes, len(filter_2.index), combinations_number)
+            ven_combinations = Util.number_of_combination_from_nodes(nodes, len(filter_2.index), combinations_number)
             logger.info("Number of VEnCodes found: %s for k=%s", ven_combinations, combinations_number)
             if mode == "count":
                 calculated_vencodes[celltype] = ven_combinations
@@ -259,13 +259,13 @@ def figure_1_non_combinatory_algorithm(file, file_type, cell_list, combinations_
     folder = "/Figure 1/"
     file_name = u"/Abs_perc VEnC - k={} - {} {}".format(combinations_number, len(cell_list), sample_types)
     if multi:
-        Utils.write_dict_to_csv(file_name + ".csv", calculated_vencodes, folder, path="parent")
+        Util.write_dict_to_csv(file_name + ".csv", calculated_vencodes, folder, path="parent")
     else:
-        Utils.write_one_value_dict_to_csv(file_name + ".csv", calculated_vencodes, folder)
+        Util.write_one_value_dict_to_csv(file_name + ".csv", calculated_vencodes, folder)
     # plotting:
     if multi:
         title = "VEnCode retrieval rate"
-        fig, path = Utils.box_plotting_from_dict(calculated_vencodes, file_name, folder, title, path="parent")
+        fig, path = Util.box_plotting_from_dict(calculated_vencodes, file_name, folder, title, path="parent")
         fig.savefig(path, bbox_inches='tight')
         plt.close(fig)
     else:
@@ -315,13 +315,13 @@ class Enhancers:
         file_name = u"/VEnC - k={} {}- {} {}".format(combinations_number, self.file_type, len(self.celltype),
                                                      self.sample_types)
         if multi:
-            Utils.write_dict_to_csv(file_name + ".csv", calculated_vencodes, folder, path="parent")
+            Util.write_dict_to_csv(file_name + ".csv", calculated_vencodes, folder, path="parent")
         else:
-            Utils.write_one_value_dict_to_csv(file_name + ".csv", calculated_vencodes, folder)
+            Util.write_one_value_dict_to_csv(file_name + ".csv", calculated_vencodes, folder)
         # plotting:
         if multi:
             title = "VEnCode retrieval rate"
-            fig, path = Utils.box_plotting_from_dict(calculated_vencodes, file_name, folder, title, path="parent")
+            fig, path = Util.box_plotting_from_dict(calculated_vencodes, file_name, folder, title, path="parent")
             fig.savefig(path, bbox_inches='tight')
             plt.close(fig)
         else:
@@ -356,7 +356,7 @@ class Enhancers:
                     file_name = u"/VEnC - k={} {}- {} {}".format(k, self.file_type,
                                                                  len(self.celltype),
                                                                  self.sample_types)
-                    Utils.write_one_value_dict_to_csv(file_name + ".csv", calculated_vencodes, folder)
+                    Util.write_one_value_dict_to_csv(file_name + ".csv", calculated_vencodes, folder)
             else:
                 calculated_vencodes = self.database.at_least_one_vencode(self.database, combinations_number, expression,
                                                                          threshold)
@@ -369,7 +369,7 @@ class Enhancers:
         # if multi:
         #     Defs.write_dict_to_csv(file_name + ".csv", calculated_vencodes, folder, path="parent")
         if not multi:
-            Utils.write_one_value_dict_to_csv(file_name + ".csv", calculated_vencodes, folder)
+            Util.write_one_value_dict_to_csv(file_name + ".csv", calculated_vencodes, folder)
         # plotting:
         # if multi:
         #     title = "VEnCode retrieval rate"
@@ -433,13 +433,13 @@ class Enhancers:
         file_name_dotplot = u"/Perc VenC dotplot - k={} {}- {} {}".format(combinations_number, self.file_type,
                                                                           len(self.celltype), self.sample_types)
         title = "VEnCode retrieval rate"
-        Utils.write_dict_to_csv(file_name + ".csv", new_ven_2, folder, path="parent")
-        Utils.write_dict_to_csv(file_name_dotplot + ".csv", new_ven, folder, path="parent")
+        Util.write_dict_to_csv(file_name + ".csv", new_ven_2, folder, path="parent")
+        Util.write_dict_to_csv(file_name_dotplot + ".csv", new_ven, folder, path="parent")
         label = "Average of {} cell types".format(len(self.celltype))
-        fig, path = Utils.errorbar_plot(new_ven_2, folder, file_name, label, title=title, multiple=False, path="parent")
+        fig, path = Util.errorbar_plot(new_ven_2, folder, file_name, label, title=title, multiple=False, path="parent")
         fig.savefig(path)
         plt.close(fig)
-        fig_2, path_2 = Utils.box_plotting_from_dict(new_ven, file_name_dotplot, folder, title, path="parent")
+        fig_2, path_2 = Util.box_plotting_from_dict(new_ven, file_name_dotplot, folder, title, path="parent")
         fig_2.savefig(path_2, bbox_inches='tight')
         plt.close(fig_2)
         # finish:
@@ -489,7 +489,7 @@ class Promoters:
                     file_name = u"/VEnC - k={} {}- {} {}".format(k, self.file_type,
                                                                  len(self.celltype),
                                                                  sample_type)
-                    Utils.write_one_value_dict_to_csv(file_name + ".csv", calculated_vencodes, folder)
+                    Util.write_one_value_dict_to_csv(file_name + ".csv", calculated_vencodes, folder)
             else:
                 calculated_vencodes = self.database.at_least_one_vencode(self.database, combinations_number, expression,
                                                                          threshold)
@@ -500,7 +500,7 @@ class Promoters:
             # Saving in .CSV
             file_name = u"/VEnC - k={} {}- {} {}".format(combinations_number, self.file_type, len(self.celltype),
                                                          sample_type)
-            Utils.write_one_value_dict_to_csv(file_name + ".csv", calculated_vencodes, folder)
+            Util.write_one_value_dict_to_csv(file_name + ".csv", calculated_vencodes, folder)
         if not multi:
             path = self.parent_path + folder + file_name
             plt.bar(range(len(calculated_vencodes)), calculated_vencodes.values(), align="center", color="burlywood")
@@ -577,7 +577,7 @@ class Graphs:
     @staticmethod
     def file_appender_for_heat_map(path, save=True, plot=True):
         # Data prep:
-        file_list = Utils.file_names_to_list(path)
+        file_list = Util.file_names_to_list(path)
         final = pd.DataFrame()
         for file in file_list:
             data = pd.read_csv(file, sep=";", index_col=None)
