@@ -737,12 +737,7 @@ def write_list_to_csv(file_name, list_data, folder, path="parent"):
 
 
 def write_dict_to_csv(file_name, dict_data, folder, path="normal"):
-    if path == "parent":
-        path_working = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    elif path == "normal":
-        path_working = os.getcwd()
-    else:
-        raise Exception("path name not recognized!")
+    path_working = path_handler(path)
     try:
         new_file = path_working + folder + file_name
     except Exception as ex:
@@ -801,6 +796,19 @@ def write_dict_2_to_csv(file_name, dict_data, folder, path="normal"):
         writer.writerow(keys)
         writer.writerows(rows)
     return
+
+
+def write_pandas_df_to_csv(df, file_name, folder, path="normal"):
+    path_working = path_handler(path)
+    try:
+        new_file = path_working + folder + file_name
+    except Exception as ex:
+        template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+        message = template.format(type(ex).__name__, ex.args)
+        print(message)
+        raise
+    check_if_and_makedir(path_working + folder)
+    df.to_csv(new_file)
 
 # endregion
 
@@ -926,6 +934,20 @@ def combinations_from_nested_lists(lst):
     for i in iter.product(*lst):
         yield i
 
+
+def path_handler(path_type):
+    if path_type == "parent":
+        path_working = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    elif path_type == "normal":
+        path_working = os.getcwd()
+    else:
+        raise Exception("path name not recognized!")
+    return path_working
+
+
+def multi_log(handler, *args):
+    for arg in args:
+        handler.info(arg)
 # endregion
 
 __author__ = "Andre Macedo"
