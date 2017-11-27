@@ -14,8 +14,8 @@ import numpy as np
 import pandas as pd
 from scipy.special import comb
 
-from VEnCode_FANTOM5 import Defs
-from VEnCode_FANTOM5 import Classes
+from Utils import Util
+import Classes
 
 
 # region "Figures for paper"
@@ -33,16 +33,16 @@ def figure_1(file, file_type, cell_list, combinations_number, samples_to_take, r
     raw_data = pd.read_csv("./Files/" + file, sep="\t", index_col=0,
                            skiprows=1831, nrows=1000)  # nrows=x if we want to load only a few rows
     data_1 = raw_data.drop(raw_data.index[[0, 1]])
-    universal_rna = Defs.fantom_code_selector(file_type, data_1, "universal", not_include=None)
+    universal_rna = Util.fantom_code_selector(file_type, data_1, "universal", not_include=None)
     data_1.drop(universal_rna, axis=1, inplace=True)
-    to_keep = Defs.sample_category_selector("sample types - FANTOM5.csv", sample_types)
+    to_keep = Util.fantom_sample_category_selector("sample types - FANTOM5.csv", sample_types)
     data = pd.DataFrame(index=data_1.index.values)
     for sample in to_keep:
         data_temp = data_1.filter(regex=sample)
         data = data.join(data_temp)
     # Exclude some specific, on-demand, celltypes from the data straight away:
     if isinstance(celltype_exclude, list):
-        codes_exclude = Defs.fantom_code_selector(file_type, data, celltype_exclude)
+        codes_exclude = Util.fantom_code_selector(file_type, data, celltype_exclude)
         print("Cell types to exclude:", *codes_exclude, sep="\n", end="\n\n")
         data.drop(codes_exclude, axis=1, inplace=True)
     new_ven = {}
@@ -58,13 +58,13 @@ def figure_1(file, file_type, cell_list, combinations_number, samples_to_take, r
         else:
             not_celltype = None
         if celltype_to_exclude is not None:
-            ven = Defs.sorted_ven_robustness_test(file, file_type, celltype, combinations_number, samples_to_take, reps,
+            ven = Util.sorted_ven_robustness_test(file, file_type, celltype, combinations_number, samples_to_take, reps,
                                                   threshold=threshold, expression=expression,
                                                   celltype_exclude=celltype_to_exclude,
                                                   not_include=not_celltype, multi_plot=multi_plot, init_data=data,
                                                   optional_folder=optional_folder, include_problems=include_problems)
         else:
-            ven = Defs.sorted_ven_robustness_test(file, file_type, celltype, combinations_number, samples_to_take, reps,
+            ven = Util.sorted_ven_robustness_test(file, file_type, celltype, combinations_number, samples_to_take, reps,
                                                   threshold=threshold, expression=expression,
                                                   celltype_exclude=None,
                                                   not_include=not_celltype, multi_plot=multi_plot, init_data=data,
@@ -82,13 +82,13 @@ def figure_1(file, file_type, cell_list, combinations_number, samples_to_take, r
     file_name_dotplot = u"/Perc VenC of 1 zero_dotplot - k={} - {} {}".format(combinations_number, len(cell_list),
                                                                               sample_types)
     title = "Probability of VEnCode from random promoters sample of size k"
-    Defs.write_dict_to_csv(file_name + ".csv", new_ven_2, folder)
-    Defs.write_dict_to_csv(file_name_dotplot + ".csv", new_ven, folder)
+    Util.write_dict_to_csv(file_name + ".csv", new_ven_2, folder)
+    Util.write_dict_to_csv(file_name_dotplot + ".csv", new_ven, folder)
     label = "Average of {} cell types".format(len(cell_list))
-    fig, path = Defs.errorbar_plot(new_ven_2, folder, file_name, label, title=title, multiple=False)
+    fig, path = Util.errorbar_plot(new_ven_2, folder, file_name, label, title=title, multiple=False)
     fig.savefig(path)
     plt.close(fig)
-    fig_2, path_2 = Defs.box_plotting_from_dict(new_ven, file_name_dotplot, folder, title)
+    fig_2, path_2 = Util.box_plotting_from_dict(new_ven, file_name_dotplot, folder, title)
     fig_2.savefig(path_2, bbox_inches='tight')
     plt.close(fig_2)
     # finish:
@@ -114,16 +114,16 @@ def ven_percentage_per_celltype(file, file_type, cell_list, combinations_number,
     raw_data = pd.read_csv("./Files/" + file, sep="\t", index_col=0,
                            skiprows=1831, nrows=1000)  # nrows=x if we want to load only a few rows
     data_1 = raw_data.drop(raw_data.index[[0, 1]])
-    universal_rna = Defs.fantom_code_selector(file_type, data_1, "universal", not_include=None)
+    universal_rna = Util.fantom_code_selector(file_type, data_1, "universal", not_include=None)
     data_1.drop(universal_rna, axis=1, inplace=True)
-    to_keep = Defs.sample_category_selector("sample types - FANTOM5.csv", sample_types)
+    to_keep = Util.fantom_sample_category_selector("sample types - FANTOM5.csv", sample_types)
     data = pd.DataFrame(index=data_1.index.values)
     for sample in to_keep:
         data_temp = data_1.filter(regex=sample)
         data = data.join(data_temp)
     # Exclude some specific, on-demand, celltypes from the data straight away:
     if isinstance(celltype_exclude, list):
-        codes_exclude = Defs.fantom_code_selector(file_type, data, celltype_exclude)
+        codes_exclude = Util.fantom_code_selector(file_type, data, celltype_exclude)
         print("Cell types to exclude:", *codes_exclude, sep="\n", end="\n\n")
         data.drop(codes_exclude, axis=1, inplace=True)
     # Starting loop through all cell types:
@@ -136,10 +136,10 @@ def ven_percentage_per_celltype(file, file_type, cell_list, combinations_number,
             not_celltype = not_include.get(celltype)
         else:
             not_celltype = None
-        codes = Defs.fantom_code_selector(file_type, data, celltype, not_include=not_celltype)
+        codes = Util.fantom_code_selector(file_type, data, celltype, not_include=not_celltype)
         print("Cell types to get VEnCodes:", *codes, sep="\n", end="\n\n")
         # Applying filters:
-        filters = Defs.fantom_filters(data, codes, expression, 2, threshold)
+        filters = Util.df_filter_by_expression_and_percentile(data, codes, expression, 2, threshold)
         # Getting VEnCode percentages:
         try:
             ven = {}
@@ -150,7 +150,7 @@ def ven_percentage_per_celltype(file, file_type, cell_list, combinations_number,
                         break
                     sample = filters.sample(n=combinations_number)
                     sample_dropped = sample.drop(codes, axis=1).values
-                    c = Defs.quick_assess_vencode_one_zero_upd(c, sample_dropped)
+                    c = Util.assess_vencode_one_zero(c, sample_dropped)
                 ven[i] = (c / samples_to_take) * 100  # could be a list but dicts are faster
                 print("Finished rep {0} in celltype = {1}".format(i, celltype))
             ven_values = list(ven.values())
@@ -165,8 +165,8 @@ def ven_percentage_per_celltype(file, file_type, cell_list, combinations_number,
     file_name_dotplot = u"/Perc VenC dotplot - k={} - {} {}".format(combinations_number, len(cell_list),
                                                                     sample_types)
     title = "Probability of VEnCode from {} promoters sample of size {}".format(combinations_number, reps)
-    Defs.write_dict_to_csv(file_name_dotplot + ".csv", ven_percent, folder)
-    fig, path = Defs.box_plotting_from_dict(ven_percent, file_name_dotplot, folder, title)
+    Util.write_dict_to_csv(file_name_dotplot + ".csv", ven_percent, folder)
+    fig, path = Util.box_plotting_from_dict(ven_percent, file_name_dotplot, folder, title)
     fig.savefig(path, bbox_inches='tight')
     plt.close(fig)
     # finish:
@@ -206,16 +206,16 @@ def figure_1_non_combinatory_algorithm(file, file_type, cell_list, combinations_
     raw_data = pd.read_csv(parent_path + "/Files/" + file, sep="\t", index_col=0,
                            skiprows=1831)  # nrows=x if we want to load only a few rows
     data_1 = raw_data.drop(raw_data.index[[0, 1]])
-    universal_rna = Defs.fantom_code_selector(file_type, data_1, "universal", not_include=None)
+    universal_rna = Util.fantom_code_selector(file_type, data_1, "universal", not_include=None)
     data_1.drop(universal_rna, axis=1, inplace=True)
-    to_keep = Defs.sample_category_selector("sample types - FANTOM5.csv", sample_types)
+    to_keep = Util.fantom_sample_category_selector("sample types - FANTOM5.csv", sample_types)
     data = pd.DataFrame(index=data_1.index.values)
     for sample in to_keep:
         data_temp = data_1.filter(regex=sample)
         data = data.join(data_temp)
     # Exclude some specific, on-demand, cell-types from the data straight away:
     if isinstance(celltype_exclude, list):
-        codes_exclude = Defs.fantom_code_selector(file_type, data, celltype_exclude)
+        codes_exclude = Util.fantom_code_selector(file_type, data, celltype_exclude)
         print("Cell types to exclude:", *codes_exclude, sep="\n", end="\n\n")
         data.drop(codes_exclude, axis=1, inplace=True)
     # Starting loop through all cell-types:
@@ -228,18 +228,18 @@ def figure_1_non_combinatory_algorithm(file, file_type, cell_list, combinations_
             not_celltype = not_include.get(celltype)
         else:
             not_celltype = None
-        codes = Defs.fantom_code_selector(file_type, data, celltype, not_include=not_celltype)
+        codes = Util.fantom_code_selector(file_type, data, celltype, not_include=not_celltype)
         print("Cell types to get VEnCodes:", *codes, sep="\n", end="\n\n")
-        filter_2 = Defs.fantom_filters(data, codes, expression, 2, threshold)
+        filter_2 = Util.df_filter_by_expression_and_percentile(data, codes, expression, 2, threshold)
         filter_2 = filter_2.applymap(lambda x: 0 if x == 0 else 1)
-        nodes = Defs.node_calculator(filter_2.drop(codes, axis=1))
+        nodes = Util.node_calculator(filter_2.drop(codes, axis=1))
         if multi:
             for number in range(2, combinations_number + 1):
                 try:
                     calculated_vencodes[number]
                 except KeyError:
                     calculated_vencodes[number] = []
-                ven_combinations = Defs.number_of_combination_from_nodes(nodes, len(filter_2.index), number)
+                ven_combinations = Util.number_of_combination_from_nodes(nodes, len(filter_2.index), number)
                 logger.info("Number of VEnCodes found: %s for k=%s", ven_combinations, number)
                 if mode == "count":
                     calculated_vencodes[number].append(ven_combinations)
@@ -247,7 +247,7 @@ def figure_1_non_combinatory_algorithm(file, file_type, cell_list, combinations_
                     total_comb = comb(len(filter_2.index), combinations_number, exact=False)
                     calculated_vencodes[number] = ven_combinations / total_comb * 100
         else:
-            ven_combinations = Defs.number_of_combination_from_nodes(nodes, len(filter_2.index), combinations_number)
+            ven_combinations = Util.number_of_combination_from_nodes(nodes, len(filter_2.index), combinations_number)
             logger.info("Number of VEnCodes found: %s for k=%s", ven_combinations, combinations_number)
             if mode == "count":
                 calculated_vencodes[celltype] = ven_combinations
@@ -259,13 +259,13 @@ def figure_1_non_combinatory_algorithm(file, file_type, cell_list, combinations_
     folder = "/Figure 1/"
     file_name = u"/Abs_perc VEnC - k={} - {} {}".format(combinations_number, len(cell_list), sample_types)
     if multi:
-        Defs.write_dict_to_csv(file_name + ".csv", calculated_vencodes, folder, path="parent")
+        Util.write_dict_to_csv(file_name + ".csv", calculated_vencodes, folder, path="parent")
     else:
-        Defs.write_one_value_dict_to_csv(file_name + ".csv", calculated_vencodes, folder)
+        Util.write_one_value_dict_to_csv(file_name + ".csv", calculated_vencodes, folder)
     # plotting:
     if multi:
         title = "VEnCode retrieval rate"
-        fig, path = Defs.box_plotting_from_dict(calculated_vencodes, file_name, folder, title, path="parent")
+        fig, path = Util.box_plotting_from_dict(calculated_vencodes, file_name, folder, title, path="parent")
         fig.savefig(path, bbox_inches='tight')
         plt.close(fig)
     else:
@@ -315,13 +315,13 @@ class Enhancers:
         file_name = u"/VEnC - k={} {}- {} {}".format(combinations_number, self.file_type, len(self.celltype),
                                                      self.sample_types)
         if multi:
-            Defs.write_dict_to_csv(file_name + ".csv", calculated_vencodes, folder, path="parent")
+            Util.write_dict_to_csv(file_name + ".csv", calculated_vencodes, folder, path="parent")
         else:
-            Defs.write_one_value_dict_to_csv(file_name + ".csv", calculated_vencodes, folder)
+            Util.write_one_value_dict_to_csv(file_name + ".csv", calculated_vencodes, folder)
         # plotting:
         if multi:
             title = "VEnCode retrieval rate"
-            fig, path = Defs.box_plotting_from_dict(calculated_vencodes, file_name, folder, title, path="parent")
+            fig, path = Util.box_plotting_from_dict(calculated_vencodes, file_name, folder, title, path="parent")
             fig.savefig(path, bbox_inches='tight')
             plt.close(fig)
         else:
@@ -356,7 +356,7 @@ class Enhancers:
                     file_name = u"/VEnC - k={} {}- {} {}".format(k, self.file_type,
                                                                  len(self.celltype),
                                                                  self.sample_types)
-                    Defs.write_one_value_dict_to_csv(file_name + ".csv", calculated_vencodes, folder)
+                    Util.write_one_value_dict_to_csv(file_name + ".csv", calculated_vencodes, folder)
             else:
                 calculated_vencodes = self.database.at_least_one_vencode(self.database, combinations_number, expression,
                                                                          threshold)
@@ -369,7 +369,7 @@ class Enhancers:
         # if multi:
         #     Defs.write_dict_to_csv(file_name + ".csv", calculated_vencodes, folder, path="parent")
         if not multi:
-            Defs.write_one_value_dict_to_csv(file_name + ".csv", calculated_vencodes, folder)
+            Util.write_one_value_dict_to_csv(file_name + ".csv", calculated_vencodes, folder)
         # plotting:
         # if multi:
         #     title = "VEnCode retrieval rate"
@@ -433,13 +433,13 @@ class Enhancers:
         file_name_dotplot = u"/Perc VenC dotplot - k={} {}- {} {}".format(combinations_number, self.file_type,
                                                                           len(self.celltype), self.sample_types)
         title = "VEnCode retrieval rate"
-        Defs.write_dict_to_csv(file_name + ".csv", new_ven_2, folder, path="parent")
-        Defs.write_dict_to_csv(file_name_dotplot + ".csv", new_ven, folder, path="parent")
+        Util.write_dict_to_csv(file_name + ".csv", new_ven_2, folder, path="parent")
+        Util.write_dict_to_csv(file_name_dotplot + ".csv", new_ven, folder, path="parent")
         label = "Average of {} cell types".format(len(self.celltype))
-        fig, path = Defs.errorbar_plot(new_ven_2, folder, file_name, label, title=title, multiple=False, path="parent")
+        fig, path = Util.errorbar_plot(new_ven_2, folder, file_name, label, title=title, multiple=False, path="parent")
         fig.savefig(path)
         plt.close(fig)
-        fig_2, path_2 = Defs.box_plotting_from_dict(new_ven, file_name_dotplot, folder, title, path="parent")
+        fig_2, path_2 = Util.box_plotting_from_dict(new_ven, file_name_dotplot, folder, title, path="parent")
         fig_2.savefig(path_2, bbox_inches='tight')
         plt.close(fig_2)
         # finish:
@@ -475,6 +475,12 @@ class Promoters:
             logger.info("%s (%s codes) -> %s", cell, len(codes), codes)
         # Vars for saving in .CSV:
         folder = "/Figure 1/"
+        if isinstance(self.sample_types, list):
+            if len(self.sample_types) == 2:
+                sample_type = self.sample_types[1]
+            else: sample_type = self.sample_types[0]
+        else:
+            sample_type = self.sample_types
         # Start the loop through all expression levels:
         if at_least_one:
             if multi:
@@ -482,27 +488,19 @@ class Promoters:
                     calculated_vencodes = self.database.at_least_one_vencode(self.database, k, expression, threshold)
                     file_name = u"/VEnC - k={} {}- {} {}".format(k, self.file_type,
                                                                  len(self.celltype),
-                                                                 self.sample_types)
-                    Defs.write_one_value_dict_to_csv(file_name + ".csv", calculated_vencodes, folder)
+                                                                 sample_type)
+                    Util.write_one_value_dict_to_csv(file_name + ".csv", calculated_vencodes, folder)
             else:
                 calculated_vencodes = self.database.at_least_one_vencode(self.database, combinations_number, expression,
                                                                          threshold)
         else:
             calculated_vencodes = self.database.non_combinatory_loop(self.database, combinations_number, expression,
                                                                      threshold, mode=mode)
-        # Saving in .CSV
-        file_name = u"/VEnC - k={} {}- {} {}".format(combinations_number, self.file_type, len(self.celltype),
-                                                     self.sample_types)
-        # if multi:
-        #     Defs.write_dict_to_csv(file_name + ".csv", calculated_vencodes, folder, path="parent")
         if not multi:
-            Defs.write_one_value_dict_to_csv(file_name + ".csv", calculated_vencodes, folder)
-        # plotting:
-        # if multi:
-        #     title = "VEnCode retrieval rate"
-        #     fig, path = Defs.box_plotting_from_dict(calculated_vencodes, file_name, folder, title, path="parent")
-        #     fig.savefig(path, bbox_inches='tight')
-        #     plt.close(fig)
+            # Saving in .CSV
+            file_name = u"/VEnC - k={} {}- {} {}".format(combinations_number, self.file_type, len(self.celltype),
+                                                         sample_type)
+            Util.write_one_value_dict_to_csv(file_name + ".csv", calculated_vencodes, folder)
         if not multi:
             path = self.parent_path + folder + file_name
             plt.bar(range(len(calculated_vencodes)), calculated_vencodes.values(), align="center", color="burlywood")
@@ -579,7 +577,7 @@ class Graphs:
     @staticmethod
     def file_appender_for_heat_map(path, save=True, plot=True):
         # Data prep:
-        file_list = Defs.file_names_to_list(path)
+        file_list = Util.file_names_to_list(path)
         final = pd.DataFrame()
         for file in file_list:
             data = pd.read_csv(file, sep=";", index_col=None)
@@ -724,6 +722,8 @@ complete_primary_jit_exclude_list = {"CD14+ CD16- Monocytes": ("CD14+ Monocytes"
                                      "CD4+CD25-CD45RA- memory conventional T cells": ("CD4+ T Cells", "CD25"),
                                      "CD4+CD25-CD45RA+ naive conventional T cells": ("CD4+ T Cells", "CD25")}
 
+complete_cancer_non_include_list = {"lung adenocarcinoma cell line": "papillary"}
+
 hard_to_get_ven_celltypes_prom = ["Smooth Muscle Cells - Prostate", "Smooth Muscle Cells - Carotid",
                                   "Skeletal Muscle Cells", "Renal Epithelial Cells", "Melanocyte",
                                   "Fibroblast - Periodontal Ligament",
@@ -731,13 +731,246 @@ hard_to_get_ven_celltypes_prom = ["Smooth Muscle Cells - Prostate", "Smooth Musc
                                   "CD8+ T Cells", "CD4+CD25-CD45RA- memory conventional T cells",
                                   "Bronchial Epithelial Cell"]
 
-mixed_celltypes = ["Adipocyte - breast", "Adipocyte - omental", "Adipocyte - perirenal",
-                   "Adipocyte - subcutaneous", "Alveolar Epithelial Cells", "Amniotic Epithelial Cells",
-                   "amniotic membrane cells", "Anulus Pulposus Cell", "Astrocyte - cerebellum",
-                   "Astrocyte - cerebral cortex", "Basophils", "Bronchial Epithelial Cell",
-                   "Cardiac Myocyte"]
-
-complete_cancer_cell_type = ['acantholytic squamous carcinoma cell line:HCC1806', 'acute lymphoblastic leukemia (B-ALL) cell line:BALL-1', 'acute lymphoblastic leukemia (B-ALL) cell line:NALM-6', 'acute lymphoblastic leukemia (T-ALL) cell line:HPB-ALL', 'acute lymphoblastic leukemia (T-ALL) cell line:Jurkat', 'acute myeloid leukemia (FAB M0) cell line:Kasumi-3', 'acute myeloid leukemia (FAB M0) cell line:KG-1', 'acute myeloid leukemia (FAB M1) cell line:HYT-1', 'acute myeloid leukemia (FAB M2) cell line:Kasumi-1', 'acute myeloid leukemia (FAB M2) cell line:Kasumi-6', 'acute myeloid leukemia (FAB M2) cell line:NKM-1', 'acute myeloid leukemia (FAB M3) cell line:HL60', 'acute myeloid leukemia (FAB M4) cell line:FKH-1', 'acute myeloid leukemia (FAB M4) cell line:HNT-34', 'acute myeloid leukemia (FAB M4eo) cell line:EoL-1', 'acute myeloid leukemia (FAB M4eo) cell line:EoL-3', 'acute myeloid leukemia (FAB M5) cell line:NOMO-1', 'acute myeloid leukemia (FAB M5) cell line:P31/FUJ', 'acute myeloid leukemia (FAB M5) cell line:THP-1 (fresh)', 'acute myeloid leukemia (FAB M5) cell line:U-937 DE-4', 'acute myeloid leukemia (FAB M6) cell line:EEB', 'acute myeloid leukemia (FAB M6) cell line:F-36E', 'acute myeloid leukemia (FAB M6) cell line:F-36P', 'acute myeloid leukemia (FAB M7) cell line:MKPL-1', 'acute myeloid leukemia (FAB M7) cell line:M-MOK', 'adenocarcinoma cell line:IM95m', 'adrenal cortex adenocarcinoma cell line:SW-13', 'adult T-cell leukemia cell line:ATN-1', 'alveolar cell carcinoma cell line:SW 1573', 'anaplastic carcinoma cell line:8305C', 'anaplastic large cell lymphoma cell line:Ki-JK', 'anaplastic squamous cell carcinoma cell line:RPMI 2650', 'argyrophil small cell carcinoma cell line:TC-YIK', 'astrocytoma cell line:TM-31', 'b cell line:RPMI1788', 'B lymphoblastoid cell line: GM12878 ENCODE', 'basal cell carcinoma cell line:TE 354.T', 'bile duct carcinoma cell line:HuCCT1', 'bile duct carcinoma cell line:TFK-1', 'biphenotypic B myelomonocytic leukemia cell line:MV-4-11', 'bone marrow stromal cell line:StromaNKtert', 'breast carcinoma cell line:MCF7', 'breast carcinoma cell line:MDA-MB-453', 'bronchial squamous cell carcinoma cell line:KNS-62', 'bronchioalveolar carcinoma cell line:NCI-H358', 'bronchioalveolar carcinoma cell line:NCI-H650', 'bronchogenic carcinoma cell line:ChaGo-K-1', 'Burkitt lymphoma cell line:DAUDI', 'Burkitt lymphoma cell line:RAJI', 'carcinoid cell line:NCI-H1770', 'carcinoid cell line:NCI-H727', 'carcinoid cell line:SK-PN-DW', 'carcinosarcoma cell line:JHUCS-1', 'cervical cancer cell line:D98-AH2', 'cervical cancer cell line:ME-180', 'cholangiocellular carcinoma cell line:HuH-28', 'chondrosarcoma cell line:SW 1353', 'choriocarcinoma cell line:BeWo', 'choriocarcinoma cell line:SCH', 'choriocarcinoma cell line:T3M-3', 'chronic lymphocytic leukemia cell line:SKW-3', 'chronic myeloblastic leukemia cell line:KCL-22', 'chronic myelogenous leukemia cell line:K562', 'chronic myelogenous leukemia cell line:KU812', 'chronic myelogenous leukemia cell line:MEG-A2', 'clear cell carcinoma cell line:JHOC-5', 'clear cell carcinoma cell line:TEN', 'colon carcinoma cell line:CACO-2', 'colon carcinoma cell line:COLO-320', 'cord blood derived cell line:COBL-a untreated', 'diffuse large B-cell lymphoma cell line:CTB-1', 'ductal cell carcinoma cell line:KLM-1', 'ductal cell carcinoma cell line:MIA Paca2', 'embryonic kidney cell line: HEK293/SLAM untreated', 'embryonic pancreas cell line:1B2C6', 'embryonic pancreas cell line:1C3D3', 'embryonic pancreas cell line:1C3IKEI', 'embryonic pancreas cell line:2C6', 'endometrial carcinoma cell line:OMC-2', 'endometrial stromal sarcoma cell line:OMC-9', 'endometrioid adenocarcinoma cell line:JHUEM-1', 'epidermoid carcinoma cell line:A431', 'epidermoid carcinoma cell line:Ca Ski', 'epithelioid sarcoma cell line:HS-ES-1', 'epithelioid sarcoma cell line:HS-ES-2R', 'epitheloid carcinoma cell line: HelaS3 ENCODE', 'Ewing sarcoma cell line:Hs 863.T', 'extraskeletal myxoid chondrosarcoma cell line:H-EMC-SS', 'fibrosarcoma cell line:HT-1080', 'fibrous histiocytoma cell line:GCT TIB-223', 'gall bladder carcinoma cell line:TGBC14TKB', 'gall bladder carcinoma cell line:TGBC2TKB', 'gastric adenocarcinoma cell line:MKN1', 'gastric adenocarcinoma cell line:MKN45', 'gastric cancer cell line:AZ521', 'gastric cancer cell line:GSS', 'gastrointestinal carcinoma cell line:ECC12', 'giant cell carcinoma cell line:LU65', 'giant cell carcinoma cell line:Lu99B', 'glassy cell carcinoma cell line:HOKUG', 'glioblastoma cell line:A172', 'glioblastoma cell line:T98G', 'glioma cell line:GI-1', 'granulosa cell tumor cell line:KGN', 'hairy cell leukemia cell line:Mo', 'Hep-2 cells mock treated', 'hepatic mesenchymal tumor cell line:LI90', 'hepatoblastoma cell line:HuH-6', 'hepatocellular carcinoma cell line: HepG2 ENCODE', 'hepatoma cell line:Li-7', 'hereditary spherocytic anemia cell line:WIL2-NS', 'Hodgkin lymphoma cell line:HD-Mar2', 'keratoacanthoma cell line:HKA-1', 'Krukenberg tumor cell line:HSKTC', 'large cell lung carcinoma cell line:IA-LM', 'large cell lung carcinoma cell line:NCI-H460', 'large cell non-keratinizing squamous carcinoma cell line:SKG-II-SF', 'leiomyoblastoma cell line:G-402', 'leiomyoma cell line:10964C', 'leiomyoma cell line:15242A', 'leiomyoma cell line:15425', 'leiomyosarcoma cell line:Hs 5', 'lens epithelial cell line:SRA', 'leukemia, chronic megakaryoblastic cell line:MEG-01', 'liposarcoma cell line:KMLS-1', 'liposarcoma cell line:SW 872', 'lung adenocarcinoma cell line:A549', 'lung adenocarcinoma cell line:PC-14', 'lung adenocarcinoma, papillary cell line:NCI-H441', 'lymphangiectasia cell line:DS-1', 'lymphoma, malignant, hairy B-cell cell line:MLMA', 'malignant trichilemmal cyst cell line:DJM-1', 'maxillary sinus tumor cell line:HSQ-89', 'medulloblastoma cell line:D283 Med', 'medulloblastoma cell line:ONS-76', 'melanoma cell line:COLO 679', 'melanoma cell line:G-361', 'meningioma cell line:HKBMM', 'merkel cell carcinoma cell line:MKL-1', 'merkel cell carcinoma cell line:MS-1', 'mesenchymal stem cell line:Hu5/E18', 'mesodermal tumor cell line:HIRS-BM', 'mesothelioma cell line:ACC-MESO-1', 'mesothelioma cell line:ACC-MESO-4', 'mesothelioma cell line:Mero-14', 'mesothelioma cell line:Mero-25', 'mesothelioma cell line:Mero-41', 'mesothelioma cell line:Mero-48a', 'mesothelioma cell line:Mero-82', 'mesothelioma cell line:Mero-83', 'mesothelioma cell line:Mero-84', 'mesothelioma cell line:Mero-95', 'mesothelioma cell line:NCI-H2052', 'mesothelioma cell line:NCI-H226', 'mesothelioma cell line:NCI-H2452', 'mesothelioma cell line:NCI-H28', 'mesothelioma cell line:No36', 'mesothelioma cell line:ONE58', 'mixed mullerian tumor cell line:HTMMT', 'mucinous adenocarcinoma cell line:JHOM-1', 'mucinous cystadenocarcinoma cell line:MCAS', 'myelodysplastic syndrome cell line:SKM-1', 'myeloma cell line:PCM6', 'myxofibrosarcoma cell line:MFH-ino', 'myxofibrosarcoma cell line:NMFH-1', 'neuroblastoma cell line:CHP-134', 'neuroblastoma cell line:NB-1', 'neuroblastoma cell line:NBsusSR', 'neuroblastoma cell line:NH-12', 'neuroectodermal tumor cell line:FU-RPNT-1', 'neuroectodermal tumor cell line:FU-RPNT-2', 'neuroectodermal tumor cell line:TASK1', 'neuroepithelioma cell line:SK-N-MC', 'neurofibroma cell line:Hs 53.T', 'NK T cell leukemia cell line:KHYG-1', 'non T non B acute lymphoblastic leukemia cell line:P30/OHK', 'non-small cell lung cancer cell line:NCI-H1385', 'normal embryonic palatal mesenchymal cell line:HEPM', 'normal intestinal epithelial cell line:FHs 74 Int', 'oral squamous cell carcinoma cell line:Ca9-22', 'oral squamous cell carcinoma cell line:HO-1-u-1', 'oral squamous cell carcinoma cell line:HSC-3', 'oral squamous cell carcinoma cell line:SAS', 'osteoclastoma cell line:Hs 706.T', 'osteosarcoma cell line:143B/TK', 'osteosarcoma cell line:HS-Os-1', 'pagetoid sarcoma cell line:Hs 925', 'pancreatic carcinoma cell line:NOR-P1', 'papillary adenocarcinoma cell line:8505C', 'papillotubular adenocarcinoma cell line:TGBC18TKB', 'peripheral neuroectodermal tumor cell line:KU-SN', 'pharyngeal carcinoma cell line:Detroit 562', 'plasma cell leukemia cell line:ARH-77', 'pleomorphic hepatocellular carcinoma cell line:SNU-387', 'prostate cancer cell line:DU145', 'prostate cancer cell line:PC-3', 'rectal cancer cell line:TT1TKB', 'renal cell carcinoma cell line:OS-RC-2', 'renal cell carcinoma cell line:TUHR10TKB', 'retinoblastoma cell line:Y79', 'rhabdomyosarcoma cell line:KYM-1', 'rhabdomyosarcoma cell line:RMS-YM', 'sacrococcigeal teratoma cell line:HTST', 'schwannoma cell line:HS-PSS', 'serous adenocarcinoma cell line:JHOS-2', 'serous adenocarcinoma cell line:SK-OV-3-R', 'serous cystadenocarcinoma cell line:HTOA', 'signet ring carcinoma cell line:Kato III', 'signet ring carcinoma cell line:NUGC-4', 'small cell cervical cancer cell line:HCSC-1', 'small cell gastrointestinal carcinoma cell line:ECC10', 'small cell lung carcinoma cell line:DMS 144', 'small cell lung carcinoma cell line:LK-2', 'small cell lung carcinoma cell line:NCI-H82', 'small cell lung carcinoma cell line:WA-hT', 'small-cell gastrointestinal carcinoma cell line:ECC4', 'somatostatinoma cell line:QGP-1', 'spindle cell sarcoma cell line:Hs 132.T', 'splenic lymphoma with villous lymphocytes cell line:SLVL', 'squamous cell carcinoma cell line:EC-GI-10', 'squamous cell carcinoma cell line:JHUS-nk1', 'squamous cell carcinoma cell line:T3M-5', 'squamous cell lung carcinoma cell line:EBC-1', 'squamous cell lung carcinoma cell line:LC-1F', 'squamous cell lung carcinoma cell line:RERF-LC-AI', 'synovial sarcoma cell line:HS-SY-II', 'T cell lymphoma cell line:HuT 102 TIB-162', 'teratocarcinoma cell line:NCC-IT-A3', 'teratocarcinoma cell line:NCR-G1', 'teratocarcinoma cell line:PA-1', 'testicular germ cell embryonal carcinoma cell line:ITO-II', 'testicular germ cell embryonal carcinoma cell line:NEC14', 'testicular germ cell embryonal carcinoma cell line:NEC15', 'testicular germ cell embryonal carcinoma cell line:NEC8', 'thymic carcinoma cell line:Ty-82', 'thyroid carcinoma cell line:KHM-5M', 'thyroid carcinoma cell line:TCO-1', 'transitional cell carcinoma cell line:Hs 769', 'transitional-cell carcinoma cell line:5637', 'transitional-cell carcinoma cell line:JMSU1', 'tridermal teratoma cell line:HGRT', 'tubular adenocarcinoma cell line:SUIT-2', 'Wilms tumor cell line:G-401', 'Wilms tumor cell line:HFWT', 'xeroderma pigentosum b cell line:XPL 17']
+complete_cancer_cell_type = ['acantholytic squamous carcinoma cell line:HCC1806',
+                             'acute lymphoblastic leukemia (B-ALL) cell line:BALL-1',
+                             'acute lymphoblastic leukemia (B-ALL) cell line:NALM-6',
+                             'acute lymphoblastic leukemia (T-ALL) cell line:HPB-ALL',
+                             'acute lymphoblastic leukemia (T-ALL) cell line:Jurkat',
+                             'acute myeloid leukemia (FAB M0) cell line:Kasumi-3',
+                             'acute myeloid leukemia (FAB M0) cell line:KG-1',
+                             'acute myeloid leukemia (FAB M1) cell line:HYT-1',
+                             'acute myeloid leukemia (FAB M2) cell line:Kasumi-1',
+                             'acute myeloid leukemia (FAB M2) cell line:Kasumi-6',
+                             'acute myeloid leukemia (FAB M2) cell line:NKM-1',
+                             'acute myeloid leukemia (FAB M3) cell line:HL60',
+                             'acute myeloid leukemia (FAB M4) cell line:FKH-1',
+                             'acute myeloid leukemia (FAB M4) cell line:HNT-34',
+                             'acute myeloid leukemia (FAB M4eo) cell line:EoL-1',
+                             'acute myeloid leukemia (FAB M4eo) cell line:EoL-3',
+                             'acute myeloid leukemia (FAB M5) cell line:NOMO-1',
+                             'acute myeloid leukemia (FAB M5) cell line:P31/FUJ',
+                             'acute myeloid leukemia (FAB M5) cell line:THP-1 (fresh)',
+                             'acute myeloid leukemia (FAB M5) cell line:U-937 DE-4',
+                             'acute myeloid leukemia (FAB M6) cell line:EEB',
+                             'acute myeloid leukemia (FAB M6) cell line:F-36E',
+                             'acute myeloid leukemia (FAB M6) cell line:F-36P',
+                             'acute myeloid leukemia (FAB M7) cell line:MKPL-1',
+                             'acute myeloid leukemia (FAB M7) cell line:M-MOK', 'adenocarcinoma cell line:IM95m',
+                             'adrenal cortex adenocarcinoma cell line:SW-13', 'adult T-cell leukemia cell line:ATN-1',
+                             'alveolar cell carcinoma cell line:SW 1573', 'anaplastic carcinoma cell line:8305C',
+                             'anaplastic large cell lymphoma cell line:Ki-JK',
+                             'anaplastic squamous cell carcinoma cell line:RPMI 2650',
+                             'argyrophil small cell carcinoma cell line:TC-YIK', 'astrocytoma cell line:TM-31',
+                             'b cell line:RPMI1788', 'B lymphoblastoid cell line: GM12878 ENCODE',
+                             'basal cell carcinoma cell line:TE 354.T', 'bile duct carcinoma cell line:HuCCT1',
+                             'bile duct carcinoma cell line:TFK-1',
+                             'biphenotypic B myelomonocytic leukemia cell line:MV-4-11',
+                             'bone marrow stromal cell line:StromaNKtert', 'breast carcinoma cell line:MCF7',
+                             'breast carcinoma cell line:MDA-MB-453',
+                             'bronchial squamous cell carcinoma cell line:KNS-62',
+                             'bronchioalveolar carcinoma cell line:NCI-H358',
+                             'bronchioalveolar carcinoma cell line:NCI-H650',
+                             'bronchogenic carcinoma cell line:ChaGo-K-1', 'Burkitt lymphoma cell line:DAUDI',
+                             'Burkitt lymphoma cell line:RAJI', 'carcinoid cell line:NCI-H1770',
+                             'carcinoid cell line:NCI-H727', 'carcinoid cell line:SK-PN-DW',
+                             'carcinosarcoma cell line:JHUCS-1', 'cervical cancer cell line:D98-AH2',
+                             'cervical cancer cell line:ME-180', 'cholangiocellular carcinoma cell line:HuH-28',
+                             'chondrosarcoma cell line:SW 1353', 'choriocarcinoma cell line:BeWo',
+                             'choriocarcinoma cell line:SCH', 'choriocarcinoma cell line:T3M-3',
+                             'chronic lymphocytic leukemia cell line:SKW-3',
+                             'chronic myeloblastic leukemia cell line:KCL-22',
+                             'chronic myelogenous leukemia cell line:K562',
+                             'chronic myelogenous leukemia cell line:KU812',
+                             'chronic myelogenous leukemia cell line:MEG-A2', 'clear cell carcinoma cell line:JHOC-5',
+                             'clear cell carcinoma cell line:TEN', 'colon carcinoma cell line:CACO-2',
+                             'colon carcinoma cell line:COLO-320', 'cord blood derived cell line:COBL-a untreated',
+                             'diffuse large B-cell lymphoma cell line:CTB-1', 'ductal cell carcinoma cell line:KLM-1',
+                             'ductal cell carcinoma cell line:MIA Paca2',
+                             'embryonic kidney cell line: HEK293/SLAM untreated', 'embryonic pancreas cell line:1B2C6',
+                             'embryonic pancreas cell line:1C3D3', 'embryonic pancreas cell line:1C3IKEI',
+                             'embryonic pancreas cell line:2C6', 'endometrial carcinoma cell line:OMC-2',
+                             'endometrial stromal sarcoma cell line:OMC-9',
+                             'endometrioid adenocarcinoma cell line:JHUEM-1', 'epidermoid carcinoma cell line:A431',
+                             'epidermoid carcinoma cell line:Ca Ski', 'epithelioid sarcoma cell line:HS-ES-1',
+                             'epithelioid sarcoma cell line:HS-ES-2R', 'epitheloid carcinoma cell line: HelaS3 ENCODE',
+                             'Ewing sarcoma cell line:Hs 863.T',
+                             'extraskeletal myxoid chondrosarcoma cell line:H-EMC-SS', 'fibrosarcoma cell line:HT-1080',
+                             'fibrous histiocytoma cell line:GCT TIB-223', 'gall bladder carcinoma cell line:TGBC14TKB',
+                             'gall bladder carcinoma cell line:TGBC2TKB', 'gastric adenocarcinoma cell line:MKN1',
+                             'gastric adenocarcinoma cell line:MKN45', 'gastric cancer cell line:AZ521',
+                             'gastric cancer cell line:GSS', 'gastrointestinal carcinoma cell line:ECC12',
+                             'giant cell carcinoma cell line:LU65', 'giant cell carcinoma cell line:Lu99B',
+                             'glassy cell carcinoma cell line:HOKUG', 'glioblastoma cell line:A172',
+                             'glioblastoma cell line:T98G', 'glioma cell line:GI-1',
+                             'granulosa cell tumor cell line:KGN', 'hairy cell leukemia cell line:Mo',
+                             'Hep-2 cells mock treated', 'hepatic mesenchymal tumor cell line:LI90',
+                             'hepatoblastoma cell line:HuH-6', 'hepatocellular carcinoma cell line: HepG2 ENCODE',
+                             'hepatoma cell line:Li-7', 'hereditary spherocytic anemia cell line:WIL2-NS',
+                             'Hodgkin lymphoma cell line:HD-Mar2', 'keratoacanthoma cell line:HKA-1',
+                             'Krukenberg tumor cell line:HSKTC', 'large cell lung carcinoma cell line:IA-LM',
+                             'large cell lung carcinoma cell line:NCI-H460',
+                             'large cell non-keratinizing squamous carcinoma cell line:SKG-II-SF',
+                             'leiomyoblastoma cell line:G-402', 'leiomyoma cell line:10964C',
+                             'leiomyoma cell line:15242A', 'leiomyoma cell line:15425', 'leiomyosarcoma cell line:Hs 5',
+                             'lens epithelial cell line:SRA', 'leukemia, chronic megakaryoblastic cell line:MEG-01',
+                             'liposarcoma cell line:KMLS-1', 'liposarcoma cell line:SW 872',
+                             'lung adenocarcinoma cell line:A549', 'lung adenocarcinoma cell line:PC-14',
+                             'lung adenocarcinoma, papillary cell line:NCI-H441', 'lymphangiectasia cell line:DS-1',
+                             'lymphoma, malignant, hairy B-cell cell line:MLMA',
+                             'malignant trichilemmal cyst cell line:DJM-1', 'maxillary sinus tumor cell line:HSQ-89',
+                             'medulloblastoma cell line:D283 Med', 'medulloblastoma cell line:ONS-76',
+                             'melanoma cell line:COLO 679', 'melanoma cell line:G-361', 'meningioma cell line:HKBMM',
+                             'merkel cell carcinoma cell line:MKL-1', 'merkel cell carcinoma cell line:MS-1',
+                             'mesenchymal stem cell line:Hu5/E18', 'mesodermal tumor cell line:HIRS-BM',
+                             'mesothelioma cell line:ACC-MESO-1', 'mesothelioma cell line:ACC-MESO-4',
+                             'mesothelioma cell line:Mero-14', 'mesothelioma cell line:Mero-25',
+                             'mesothelioma cell line:Mero-41', 'mesothelioma cell line:Mero-48a',
+                             'mesothelioma cell line:Mero-82', 'mesothelioma cell line:Mero-83',
+                             'mesothelioma cell line:Mero-84', 'mesothelioma cell line:Mero-95',
+                             'mesothelioma cell line:NCI-H2052', 'mesothelioma cell line:NCI-H226',
+                             'mesothelioma cell line:NCI-H2452', 'mesothelioma cell line:NCI-H28',
+                             'mesothelioma cell line:No36', 'mesothelioma cell line:ONE58',
+                             'mixed mullerian tumor cell line:HTMMT', 'mucinous adenocarcinoma cell line:JHOM-1',
+                             'mucinous cystadenocarcinoma cell line:MCAS', 'myelodysplastic syndrome cell line:SKM-1',
+                             'myeloma cell line:PCM6', 'myxofibrosarcoma cell line:MFH-ino',
+                             'myxofibrosarcoma cell line:NMFH-1', 'neuroblastoma cell line:CHP-134',
+                             'neuroblastoma cell line:NB-1', 'neuroblastoma cell line:NBsusSR',
+                             'neuroblastoma cell line:NH-12', 'neuroectodermal tumor cell line:FU-RPNT-1',
+                             'neuroectodermal tumor cell line:FU-RPNT-2', 'neuroectodermal tumor cell line:TASK1',
+                             'neuroepithelioma cell line:SK-N-MC', 'neurofibroma cell line:Hs 53.T',
+                             'NK T cell leukemia cell line:KHYG-1',
+                             'non T non B acute lymphoblastic leukemia cell line:P30/OHK',
+                             'non-small cell lung cancer cell line:NCI-H1385',
+                             'normal embryonic palatal mesenchymal cell line:HEPM',
+                             'normal intestinal epithelial cell line:FHs 74 Int',
+                             'oral squamous cell carcinoma cell line:Ca9-22',
+                             'oral squamous cell carcinoma cell line:HO-1-u-1',
+                             'oral squamous cell carcinoma cell line:HSC-3',
+                             'oral squamous cell carcinoma cell line:SAS', 'osteoclastoma cell line:Hs 706.T',
+                             'osteosarcoma cell line:143B/TK', 'osteosarcoma cell line:HS-Os-1',
+                             'pagetoid sarcoma cell line:Hs 925', 'pancreatic carcinoma cell line:NOR-P1',
+                             'papillary adenocarcinoma cell line:8505C',
+                             'papillotubular adenocarcinoma cell line:TGBC18TKB',
+                             'peripheral neuroectodermal tumor cell line:KU-SN',
+                             'pharyngeal carcinoma cell line:Detroit 562', 'plasma cell leukemia cell line:ARH-77',
+                             'pleomorphic hepatocellular carcinoma cell line:SNU-387',
+                             'prostate cancer cell line:DU145', 'prostate cancer cell line:PC-3',
+                             'rectal cancer cell line:TT1TKB', 'renal cell carcinoma cell line:OS-RC-2',
+                             'renal cell carcinoma cell line:TUHR10TKB', 'retinoblastoma cell line:Y79',
+                             'rhabdomyosarcoma cell line:KYM-1', 'rhabdomyosarcoma cell line:RMS-YM',
+                             'sacrococcigeal teratoma cell line:HTST', 'schwannoma cell line:HS-PSS',
+                             'serous adenocarcinoma cell line:JHOS-2', 'serous adenocarcinoma cell line:SK-OV-3-R',
+                             'serous cystadenocarcinoma cell line:HTOA', 'signet ring carcinoma cell line:Kato III',
+                             'signet ring carcinoma cell line:NUGC-4', 'small cell cervical cancer cell line:HCSC-1',
+                             'small cell gastrointestinal carcinoma cell line:ECC10',
+                             'small cell lung carcinoma cell line:DMS 144', 'small cell lung carcinoma cell line:LK-2',
+                             'small cell lung carcinoma cell line:NCI-H82', 'small cell lung carcinoma cell line:WA-hT',
+                             'small-cell gastrointestinal carcinoma cell line:ECC4', 'somatostatinoma cell line:QGP-1',
+                             'spindle cell sarcoma cell line:Hs 132.T',
+                             'splenic lymphoma with villous lymphocytes cell line:SLVL',
+                             'squamous cell carcinoma cell line:EC-GI-10', 'squamous cell carcinoma cell line:JHUS-nk1',
+                             'squamous cell carcinoma cell line:T3M-5', 'squamous cell lung carcinoma cell line:EBC-1',
+                             'squamous cell lung carcinoma cell line:LC-1F',
+                             'squamous cell lung carcinoma cell line:RERF-LC-AI', 'synovial sarcoma cell line:HS-SY-II',
+                             'T cell lymphoma cell line:HuT 102 TIB-162', 'teratocarcinoma cell line:NCC-IT-A3',
+                             'teratocarcinoma cell line:NCR-G1', 'teratocarcinoma cell line:PA-1',
+                             'testicular germ cell embryonal carcinoma cell line:ITO-II',
+                             'testicular germ cell embryonal carcinoma cell line:NEC14',
+                             'testicular germ cell embryonal carcinoma cell line:NEC15',
+                             'testicular germ cell embryonal carcinoma cell line:NEC8',
+                             'thymic carcinoma cell line:Ty-82', 'thyroid carcinoma cell line:KHM-5M',
+                             'thyroid carcinoma cell line:TCO-1', 'transitional cell carcinoma cell line:Hs 769',
+                             'transitional-cell carcinoma cell line:5637',
+                             'transitional-cell carcinoma cell line:JMSU1', 'tridermal teratoma cell line:HGRT',
+                             'tubular adenocarcinoma cell line:SUIT-2', 'Wilms tumor cell line:G-401',
+                             'Wilms tumor cell line:HFWT', 'xeroderma pigentosum b cell line:XPL 17']
+merged_lines_cancer_cells = ["acantholytic squamous carcinoma cell line:HCC1806",
+                             "acute lymphoblastic leukemia (B-ALL) cell line",
+                             "acute lymphoblastic leukemia (T-ALL) cell line",
+                             "acute myeloid leukemia (FAB M0) cell line", "acute myeloid leukemia (FAB M1) cell line",
+                             "acute myeloid leukemia (FAB M2) cell line", "acute myeloid leukemia (FAB M3) cell line",
+                             "acute myeloid leukemia (FAB M4) cell line", "acute myeloid leukemia (FAB M4eo) cell line",
+                             "acute myeloid leukemia (FAB M5) cell line", "acute myeloid leukemia (FAB M6) cell line",
+                             "acute myeloid leukemia (FAB M7) cell line", "adenocarcinoma cell line:IM95m",
+                             "adrenal cortex adenocarcinoma cell line:SW-13", "adult T-cell leukemia cell line:ATN-1",
+                             "alveolar cell carcinoma cell line:SW 1573", "anaplastic carcinoma cell line:8305C",
+                             "anaplastic large cell lymphoma cell line:Ki-JK",
+                             "anaplastic squamous cell carcinoma cell line:RPMI 2650",
+                             "argyrophil small cell carcinoma cell line:TC-YIK", "astrocytoma cell line:TM-31",
+                             "b cell line:RPMI1788", "B lymphoblastoid cell line: GM12878 ENCODE",
+                             "basal cell carcinoma cell line:TE 354", "bile duct carcinoma cell line",
+                             "biphenotypic B myelomonocytic leukemia cell line:MV-4-11",
+                             "bone marrow stromal cell line:StromaNKtert", "breast carcinoma cell line",
+                             "bronchial squamous cell carcinoma cell line:KNS-62",
+                             "bronchioalveolar carcinoma cell line", "bronchogenic carcinoma cell line:ChaGo-K-1",
+                             "Burkitt lymphoma cell line", "carcinoid cell line", "carcinosarcoma cell line:JHUCS-1",
+                             "cervical cancer cell line", "cholangiocellular carcinoma cell line:HuH-28",
+                             "chondrosarcoma cell line:SW 1353", "choriocarcinoma cell line",
+                             "chronic lymphocytic leukemia cell line:SKW-3",
+                             "chronic myeloblastic leukemia cell line:KCL-22", "chronic myelogenous leukemia cell line",
+                             "clear cell carcinoma cell line", "colon carcinoma cell line",
+                             "cord blood derived cell line:COBL-a untreated",
+                             "diffuse large B-cell lymphoma cell line:CTB-1", "ductal cell carcinoma cell line",
+                             "embryonic kidney cell line: HEK293/SLAM untreated", "embryonic pancreas cell line",
+                             "endometrial carcinoma cell line:OMC-2", "endometrial stromal sarcoma cell line:OMC-9",
+                             "endometrioid adenocarcinoma cell line:JHUEM-1", "epidermoid carcinoma cell line",
+                             "epithelioid sarcoma cell line", "epitheloid carcinoma cell line: HelaS3 ENCODE",
+                             "Ewing sarcoma cell line:Hs 863",
+                             "extraskeletal myxoid chondrosarcoma cell line:H-EMC-SS", "fibrosarcoma cell line:HT-1080",
+                             "fibrous histiocytoma cell line:GCT TIB-223", "gall bladder carcinoma cell line",
+                             "gastric adenocarcinoma cell line", "gastric cancer cell line",
+                             "gastrointestinal carcinoma cell line:ECC12", "giant cell carcinoma cell line",
+                             "glassy cell carcinoma cell line:HOKUG", "glioblastoma cell line", "glioma cell line:GI-1",
+                             "granulosa cell tumor cell line:KGN", "hairy cell leukemia cell line:Mo",
+                             "Hep-2 cells mock treated", "hepatic mesenchymal tumor cell line:LI90",
+                             "hepatoblastoma cell line:HuH-6", "hepatocellular carcinoma cell line: HepG2 ENCODE",
+                             "hepatoma cell line:Li-7", "hereditary spherocytic anemia cell line:WIL2-NS",
+                             "Hodgkin lymphoma cell line:HD-Mar2", "keratoacanthoma cell line:HKA-1",
+                             "Krukenberg tumor cell line:HSKTC", "large cell lung carcinoma cell line",
+                             "large cell non-keratinizing squamous carcinoma cell line:SKG-II-SF",
+                             "leiomyoblastoma cell line:G-402", "leiomyoma cell line", "leiomyosarcoma cell line:Hs 5",
+                             "lens epithelial cell line:SRA", "leukemia chronic megakaryoblastic cell line:MEG-01",
+                             "liposarcoma cell line", "lung adenocarcinoma cell line",
+                             "lung adenocarcinoma papillary cell line:NCI-H441", "lymphangiectasia cell line:DS-1",
+                             "lymphoma malignant hairy B-cell cell line:MLMA",
+                             "malignant trichilemmal cyst cell line:DJM-1", "maxillary sinus tumor cell line:HSQ-89",
+                             "medulloblastoma cell line", "melanoma cell line", "meningioma cell line:HKBMM",
+                             "merkel cell carcinoma cell line",
+                             "mesenchymal stem cell line:Hu5/E18", "mesodermal tumor cell line:HIRS-BM",
+                             "mesothelioma cell line", "mixed mullerian tumor cell line:HTMMT",
+                             "mucinous adenocarcinoma cell line:JHOM-1", "mucinous cystadenocarcinoma cell line:MCAS",
+                             "myelodysplastic syndrome cell line:SKM-1", "myeloma cell line:PCM6",
+                             "myxofibrosarcoma cell line", "neuroblastoma cell line", "neuroectodermal tumor cell line",
+                             "neuroepithelioma cell line:SK-N-MC", "neurofibroma cell line:Hs 53",
+                             "NK T cell leukemia cell line:KHYG-1",
+                             "non T non B acute lymphoblastic leukemia cell line:P30/OHK",
+                             "non-small cell lung cancer cell line:NCI-H1385",
+                             "normal embryonic palatal mesenchymal cell line:HEPM",
+                             "normal intestinal epithelial cell line:FHs 74 Int",
+                             "oral squamous cell carcinoma cell line", "osteoclastoma cell line:Hs 706",
+                             "osteosarcoma cell line", "pagetoid sarcoma cell line:Hs 925",
+                             "pancreatic carcinoma cell line:NOR-P1", "papillary adenocarcinoma cell line:8505C",
+                             "papillotubular adenocarcinoma cell line:TGBC18TKB",
+                             "peripheral neuroectodermal tumor cell line:KU-SN",
+                             "pharyngeal carcinoma cell line:Detroit 562", "plasma cell leukemia cell line:ARH-77",
+                             "pleomorphic hepatocellular carcinoma cell line:SNU-387", "prostate cancer cell line",
+                             "rectal cancer cell line:TT1TKB", "renal cell carcinoma cell line",
+                             "retinoblastoma cell line:Y79", "rhabdomyosarcoma cell line",
+                             "sacrococcigeal teratoma cell line:HTST", "schwannoma cell line:HS-PSS",
+                             "serous adenocarcinoma cell line", "serous cystadenocarcinoma cell line:HTOA",
+                             "signet ring carcinoma cell line", "small cell cervical cancer cell line:HCSC-1",
+                             "small cell gastrointestinal carcinoma cell line:ECC10",
+                             "small cell lung carcinoma cell line",
+                             "small-cell gastrointestinal carcinoma cell line:ECC4", "somatostatinoma cell line:QGP-1",
+                             "spindle cell sarcoma cell line:Hs 132",
+                             "splenic lymphoma with villous lymphocytes cell line:SLVL",
+                             "squamous cell carcinoma cell line", "squamous cell lung carcinoma cell line",
+                             "synovial sarcoma cell line:HS-SY-II", "T cell lymphoma cell line:HuT 102 TIB-162",
+                             "teratocarcinoma cell line", "testicular germ cell embryonal carcinoma cell line",
+                             "thymic carcinoma cell line:Ty-82", "thyroid carcinoma cell line",
+                             "transitional cell carcinoma cell line", "tridermal teratoma cell line:HGRT",
+                             "tubular adenocarcinoma cell line:SUIT-2", "Wilms tumor cell line",
+                             "xeroderma pigentosum b cell line:XPL 17"]
 
 labels = ["CD4+CD25+CD45RA+ naive regulatory T cells, donor1",
           "CD4+CD25-CD45RA- memory conventional T cells, donor1",
@@ -783,24 +1016,6 @@ labels = ["CD4+CD25+CD45RA+ naive regulatory T cells, donor1",
           "migratory langerhans cells, donor3",
           "CD14-CD16+ Monocytes, donor3",
           "CD14+CD16+ Monocytes, donor3"]
-
-# figure_1_include_list = ["Myoblast", "Oligodendrocyte", "Iris", "Basophils", "Dendritic plasmacytoid",
-#                          "Dendritic monocyte", "Astrocyte", "Astrocyte cerebellum", "Astrocyte cerebral cortex",
-#                          "Neurons", "Mature adipocyte", "Chondrocyte", "Corneal epithelial", "Eosinophils",
-#                          "Fibroblast cardiac", "Fibroblast dermal", "Fibroblast lung", "Fibroblast lymphatic",
-#                          "Fibroblast mammary", "Fibroblast choroid", "Fibroblast gingival", "Gingival epithelial",
-#                          "Dermal papilla", "Root sheath", "Hepatocyte", "Hepatic sinusoid endothelial", "Keratinocyte",
-#                          "Lens epithelial", "Macrophage monocyte", "Mammary epithelial", "Mast cell", "Meningeal cells",
-#                          "Mesothelial cells", "Myoblast", "Natural killer cells", "Neutrophil", "Nucleus pulposus cell",
-#                          "Olfactory epithelial", "Osteoblast", "Pericytes", "Perineurial cells", "Placental epithelial",
-#                          "Prostate epithelial", "Prostate stromal", "Renal epithelial", "Renal mesangial",
-#                          "Retinal epithelial", "Schwann cells", "Sebocyte", "Sertoli cells", "Synoviocyte",
-#                          "Trabecular meshwork cells", "Migratory Langerhans cells", "Tenocyte"]
-
-# small_list = ["Myoblast", "Oligodendrocyte", "Iris", "Basophils", "Dendritic plasmacytoid",
-#              "Dendritic monocyte", "Mature adipocyte"]
-
-# even_smaller_list = ["Myoblast", "Oligodendrocyte", "Iris", "Basophils"]
 
 # endregion "Human"
 
@@ -861,18 +1076,16 @@ mouse_complete_primary_jit_exclude_list = {}
 #                       celltype_exclude=complete_primary_exclude_list)
 #
 complete_promoters = Promoters("hg19.cage_peak_phase1and2combined_tpm.osc.txt",
-                               complete_cancer_cell_type,
+                               merged_lines_cancer_cells,
                                celltype_exclude=complete_primary_exclude_list,
-                               not_include=complete_primary_non_include_list,
+                               not_include=complete_cancer_non_include_list,
                                partial_exclude=complete_primary_jit_exclude_list,
                                sample_types=["primary cells", "cell lines"],
-                               second_parser = "primary cells")
-# complete_promoters.get_all_vencodes([12,13,14,15,16,17,18,19,20], threshold=50, multi=True, at_least_one=True)
-# complete_promoters.check_cell_list(no_donors=True)
-# complete_promoters.check_size(10)
-complete_promoters.get_all_vencodes([1,2,3,4,5,6,7,8,9,10], threshold=50, multi=True, at_least_one=True)
+                               second_parser="primary cells")
 
-
+complete_promoters.get_all_vencodes([1,2,3,4,5], threshold=50, multi=True, at_least_one=True)
+# complete_promoters.database.codes_to_csv("codes_merged_cancer_cells.csv", "list", "/Figure 1/Test codes/")
+# complete_promoters.database.celltypes_to_csv("celltypes_merged_cancer_cells.csv", "list", "/Figure 1/Test codes/")
 # endregion "Promoters"
 
 # region "Enhancers"
@@ -907,9 +1120,5 @@ complete_promoters.get_all_vencodes([1,2,3,4,5,6,7,8,9,10], threshold=50, multi=
 # TODO: figure1 for mouse db
 # TODO: get at least one vencode for 1<k<x promoters and enhancers: quick method for all celltps and slow for remaining.
 # TODO: re-run problems for enhancers and promoters
-# TODO: curva percent of vencodes that work on all donors per amount of Donors used (or maybe per percentage of donors.
-# TODO: Get figure 2 to run with new non-sampling based method of ven generation - for this, must add stuff to non-sampling - In fact, first do next TODO!
-# TODO: Find the best vencode. Use E-value method on several 2-node combinations. retrieve best and move to several 3rd node. retrieve best and keep doing it.
-# TODO: change second node limit to infinite and keep third node, fourth, fift, etc, the same.
-# (based on Fig 3) - Use several cell types, not just mast cells.
+# TODO: curva percent of vencodes that work on all donors per amount of Donors used (or maybe per percentage of donors
 # endregion "TODOs"
