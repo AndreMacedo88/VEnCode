@@ -8,7 +8,6 @@ import itertools as iter
 import logging
 import os
 import re
-from collections import defaultdict
 
 import numpy as np
 import pandas as pd
@@ -507,7 +506,7 @@ class Promoters(DatabaseOperations):
 
     # Promoter specific util methods
 
-    def filter_drop_codes(self, codes, expression, threshold):
+    def filter_prep_sort_drop_codes(self, codes, expression, threshold):
         try:
             data_filtered = Util.df_filter_by_expression_and_percentile(self.data, codes, expression, 2,
                                                                         threshold)  # apply efficiency filters
@@ -517,7 +516,7 @@ class Promoters(DatabaseOperations):
             data_filtered.drop(codes, axis=1, inplace=True)
         data_filtered = data_filtered.applymap(
             lambda x: 0 if x == 0 else 1)  # change expression to 1s and 0s for quickness
-        # data_filtered = self.prep_sort(data_filtered)
+        data_filtered = self.prep_sort(data_filtered)
         data_final = data_filtered.drop(codes, axis=1)
         return data_final
 
@@ -530,7 +529,8 @@ class Promoters(DatabaseOperations):
 
     # Algorithms
 
-    def node_based_vencode_getter(self, data_frame, promoter=False, combinations_number=4, counter=1, breaks=None):
+    def node_based_vencode_getter(self, data_frame, promoter=False, combinations_number=4, counter=1, skip=(),
+                                  breaks=None):
         """
 
         :param data_frame: Data frame containing cage-seq expression profile for several celltypes. Dataframe object
@@ -543,7 +543,7 @@ class Promoters(DatabaseOperations):
         """
 
         vencode_promoters_list = []
-        data_frame = self.prep_sort(data_frame)
+        data_frame = data_frame.copy()
         if promoter:
             cols = data_frame.loc[promoter] != 0  # create a mask where True marks the celltypes in which the previous
             # node is still expressed
@@ -569,25 +569,44 @@ class Promoters(DatabaseOperations):
             # loop the next area until number of nodes in combination exceeds num of desired proms in comb for VEnCode
             while counter < combinations_number:
                 counter += 1  # updates the counter as it will enter the next node depth
-                for prom in promoters:  # cycle the promoters
+                promoters_in_use = (prom for prom in promoters if prom not in skip)
+                data_frame.drop(skip, axis=0, inplace=True)  # drop the promoters previously used to generate vencodes
+                for prom in promoters_in_use:  # cycle the promoters
                     # region "early quit if loop is taking too long"
                     if counter in counter_thresholds:
                         breaker_index = str(counter_thresholds.index(counter) + 1)
                         breaks["breaker_" + breaker_index] += 1
-                        if breaks["breaker_" + breaker_index] == 3:  # here, we only test x promoters per node level
+                        if breaks["breaker_" + breaker_index] > 3:  # here, we only test x promoters per node level
                             breaks["breaker_" + breaker_index] = 0
                             return []
                     # endregion "early quit if loop is taking too long"
                     promoter_next = self.node_based_vencode_getter(data_frame, prom,
-                                                                   combinations_number=combinations_number,
+                                                                   combinations_number=combinations_number, skip=skip,
                                                                    counter=counter, breaks=breaks)
                     if promoter_next:
                         vencode_promoters_list.append(promoter_next)
                         return vencode_promoters_list  # for more than one vencode, need to put an if clause here
             return vencode_promoters_list
 
-    def fill_vencode_list(self, data, ):
-        pass
+    @staticmethod
+    def fill_vencode_list(promoter_list, vencode_list, combinations_number):
+        """
+        Given an incomplete list of x REs that make up a VEnCode, it fills the list up, up to y VEnCodes (
+        y = RE combinations number), based on next sparse REs.
+        :param promoter_list: list of promoters to add to VEnCodes
+        :param vencode_list:
+        :param combinations_number:
+        :return: A list of y REs that comprise a VEnCode, where y = combinations number.
+        """
+        if len(vencode_list) == combinations_number:
+            return vencode_list
+        for prom in promoter_list:
+            if prom in vencode_list:
+                continue
+            vencode_list.append(prom)
+            if len(vencode_list) == combinations_number:
+                break
+        return vencode_list
 
     def logging_proms(self, params):
         # Get function name:
@@ -942,23 +961,51 @@ class Promoters(DatabaseOperations):
                 if success:
                     threshold = 0
 
-    def best_vencode_generator(self, celltype, combinations_number=4, expression=1, threshold=90):
+    def best_vencode_generator(self, celltype, combinations_number=4, expression=1, threshold=90, number_vencodes=8):
+        """
+        Generates a number of vencodes, deemed the best according to E-value.
+        :param celltype: cell type to get VEnCodes for.
+        :param combinations_number: number of REs comprising the VEnCodes.
+        :param expression: minimum expression level for the celltype to develop VEnCodes.
+        :param threshold: threshold of sparseness to filter the data set with, before VEnCode selection.
+        :param number_vencodes: number of VEnCodes to get.
+        :return: None
+        """
         logger = self.logging_proms(locals())
         codes = self.codes[celltype]
-        data = self.filter_drop_codes(codes, expression, threshold)
-        promoters = data.index.values  # get a list (not really a list type) of all the promoters, to cycle
+        data = self.filter_prep_sort_drop_codes(codes, expression, threshold)
+        vencodes_final = []
         breaks = {}  # this next section creates a dictionary to update with how many times each node is cycled
         for item in range(1, combinations_number):
             breaks["breaker_" + str(item)] = 0
-        vencodes_from_nodes = self.node_based_vencode_getter(data,
-                                                             combinations_number=combinations_number,
-                                                             breaks=breaks)
-        logger.debug(vencodes_from_nodes)
-        vencodes_incomplete = [item for sublist in vencodes_from_nodes for item in sublist]
-        logger.debug(vencodes_incomplete)
-        for i in Util.combinations_from_nested_lists(vencodes_incomplete):
-            logger.info(i)
-            pass
+        skip = []
+        vencodes_dict = {}
+        for number in range(round(number_vencodes / 2)):
+            vencodes_from_nodes = self.node_based_vencode_getter(data,
+                                                                 combinations_number=combinations_number, skip=skip,
+                                                                 breaks=breaks)
+            if not vencodes_from_nodes:
+                break
+            for key, value in breaks.items():
+                breaks[key] = 0
+            vencodes_incomplete = [item for sublist in vencodes_from_nodes for item in sublist]
+            vencodes_dict[number] = vencodes_incomplete
+            skip.append(vencodes_incomplete[0])
+            print(skip)
+        promoters = data.index.values.tolist()
+        for key, value in vencodes_dict.items():
+            logger.info("key number {}".format(key))
+            promoters_copy = promoters
+            for i in Util.combinations_from_nested_lists(value):
+                logger.info(i)
+                new = self.fill_vencode_list(promoters_copy, list(i), 4)
+                Util.multi_log(logger, "filled:", new)
+                promoters_copy = [item for item in promoters_copy if item not in i]
+            try:
+                promoters.remove(value[0])
+            except ValueError:
+                pass
+            print(promoters)
         return
 
     def intra_individual_robustness(self, combinations_number, vens_to_take, reps=1, threshold=90, expression=1,
@@ -1052,7 +1099,7 @@ class Promoters(DatabaseOperations):
             codes_list = Util.possible_dict_to_list(self.codes)
             Util.write_list_to_csv(file_name, codes_list, folder_name, path="parent")
 
-    def celltypes_to_csv(self, file_name, type, folder_name):
+    def celltypes_to_csv(self, file_name, folder_name):
         cell_list = list(self.codes.keys())
         Util.write_list_to_csv(file_name, cell_list, folder_name, path="parent")
 

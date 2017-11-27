@@ -12,8 +12,8 @@ if __name__ == "__main__":
                                              celltype_exclude=complete_primary_exclude_list,
                                              not_include=complete_primary_non_include_list,
                                              partial_exclude=complete_primary_jit_exclude_list,
-                                             sample_types="primary cells", second_parser=None,
-                                             nrows=2000, log_level="debug")
+                                             sample_types="primary cells", second_parser=None, log_level="info",
+                                             nrows=2000)
     initialize_promoters.best_vencode_generator("Hepatocyte")
 
     # some tests:
