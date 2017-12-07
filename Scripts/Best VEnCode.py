@@ -4,6 +4,7 @@
 """Best VEnCode.py: Functions for generating the best VEnCode """
 
 import Classes
+from Utils import Util
 from Common_variables import file_name, complete_primary_cell_list, complete_primary_exclude_list, \
     complete_primary_non_include_list, complete_primary_jit_exclude_list
 
@@ -12,9 +13,9 @@ if __name__ == "__main__":
                                              celltype_exclude=complete_primary_exclude_list,
                                              not_include=complete_primary_non_include_list,
                                              partial_exclude=complete_primary_jit_exclude_list,
-                                             sample_types="primary cells", second_parser=None, log_level="info",
-                                             nrows=2000)
-    initialize_promoters.best_vencode_generator("Hepatocyte")
+                                             sample_types="primary cells", second_parser=None,
+                                             conservative=True, log_level="info", nrows=5000)
+    initialize_promoters.best_vencode_generator("Hepatocyte", number_vencodes=4)
 
     # some tests:
     """

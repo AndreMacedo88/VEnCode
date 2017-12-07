@@ -193,7 +193,7 @@ def vencode_percent_sampling_monte_carlo(codes, filters, combinations_number, ve
                 assess_if_vencode = np.any(sample_dropped == 0, axis=0)
                 if all(assess_if_vencode):
                     n += 1
-                    e_value = vencode_simulation(sample.drop(codes, axis=1), col_list)
+                    e_value = vencode_mc_simulation(sample.drop(codes, axis=1), col_list)
                     if vencodes:
                         name = "threshold_" + str(vencodes) + " ven_" + str(n)
                         ven[name] = [sample.index.values.tolist(), e_value]
@@ -259,17 +259,19 @@ def assess_vencode_one_zero_plus_problems(counter, sample, problems):
     return counter, problems
 
 
-def vencode_simulation(sample_dropped, col_list):
+def vencode_mc_simulation(data, col_list, reps=100):
     """
-    Returns ??
+    :param data: pandas data frame of promoter expression per celltype without the celltype of interest.
+    :param col_list: columns of celltypes/donors without the celltype of interest.
+    :return: e_values, that is, the average number of random changes done to the data that breaks the vencode.
     """
-    index_list = sample_dropped.index.values
+    index_list = data.index.values
     simulator = 0
     global_counter_list = []
-    while simulator < 100:
+    while simulator < reps:
         vencode = True
         local_counter = 0
-        mc_df = sample_dropped.copy()
+        mc_df = data.copy()
         while vencode:
             col = random.choice(col_list)
             index = random.choice(index_list)
@@ -737,6 +739,8 @@ def write_list_to_csv(file_name, list_data, folder, path="parent"):
 
 
 def write_dict_to_csv(file_name, dict_data, folder, path="normal"):
+    """ Starting with a dictionary having key, value pairs where value is a list or similar, writes the dictionary
+    to a file named 'file_name'. Remember to include file extension in 'file_name'."""
     path_working = path_handler(path)
     try:
         new_file = path_working + folder + file_name
@@ -798,7 +802,7 @@ def write_dict_2_to_csv(file_name, dict_data, folder, path="normal"):
     return
 
 
-def write_pandas_df_to_csv(df, file_name, folder, path="normal"):
+def file_directory_handler(file_name, folder, path="normal"):
     path_working = path_handler(path)
     try:
         new_file = path_working + folder + file_name
@@ -808,7 +812,7 @@ def write_pandas_df_to_csv(df, file_name, folder, path="normal"):
         print(message)
         raise
     check_if_and_makedir(path_working + folder)
-    df.to_csv(new_file)
+    return
 
 # endregion
 
@@ -936,6 +940,7 @@ def combinations_from_nested_lists(lst):
 
 
 def path_handler(path_type):
+    """ Gets working path in your OS """
     if path_type == "parent":
         path_working = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     elif path_type == "normal":
@@ -946,8 +951,17 @@ def path_handler(path_type):
 
 
 def multi_log(handler, *args):
+    """ Log multiple arguments in one statement. """
     for arg in args:
         handler.info(arg)
+
+
+def key_with_max_val(d):
+    """ a) create a list of the dict's keys and values;
+        b) return the key with the max value """
+    v = list(d.values())
+    k = list(d.keys())
+    return k[v.index(max(v))]
 # endregion
 
 __author__ = "Andre Macedo"

@@ -257,7 +257,6 @@ class DatabaseOperations:
                     break  # and stop the cycling of the founder nodes
                 else:
                     to_get_nodes.drop(promoter, axis=0, inplace=True)  # else, drop this founder node and go to next
-            print(vencodes_from_nodes)
         return vencodes
 
     def at_least_one_node_calculator(self, data_frame, promoter, combinations_number=4, counter=1, breaks=None,
@@ -433,20 +432,21 @@ class Promoters(DatabaseOperations):
     """ A class describing the methods for the promoters database """
 
     def __init__(self, file, celltype, celltype_exclude=None, not_include=None, partial_exclude=None,
-                 sample_types="primary cells", second_parser=None, nrows=None, log_level=logging.DEBUG):
+                 sample_types="primary cells", second_parser=None, nrows=None, conservative=False,
+                 log_level=logging.DEBUG):
         super().__init__(file, celltype, celltype_exclude=celltype_exclude, not_include=not_include,
                          sample_types=sample_types, skiprows=1831, second_parser=second_parser, nrows=nrows,
                          log_level=log_level)
         self.data = self.first_parser()
         self.codes = self.code_selector(self.data, self.celltype, not_include=self.not_include,
                                         to_dict=True)
+        self.conservative = conservative
         if self.second_parser is not None:
             temp_codes = [x for a in self.codes.values() for x in a]
             self.codes_df = self.data.filter(items=temp_codes)
             self.sample_types = self.second_parser
             self.data = self.first_parser()
             # self.data = self.data.join(codes_df)
-
         if partial_exclude:
             self.partial_exclude_codes = {}
             for key, value in partial_exclude.items():
@@ -467,6 +467,26 @@ class Promoters(DatabaseOperations):
             codes_exclude = self.code_selector(data, self.celltype_exclude)
             data.drop(codes_exclude, axis=1, inplace=True)
         return data
+
+    def merge_donors_into_celltypes(self, exclude=None):
+        """
+        Applies a more conservative, but faster approach to data set mining:
+        cell type columns are created by merging all donors for that cell type. Merging is done by calculating the
+        average of all donors.
+        :param exclude: celltypes to exclude from this merging.
+        """
+        if exclude is not None:
+            codes = self.codes.copy()
+            codes.pop(exclude, None)
+            data_merged = pd.DataFrame(index=self.data.index.values, columns=[key for key in codes.keys()])
+            data_merged = pd.concat([data_merged, self.data[self.codes[exclude]]], axis=1)
+        else:
+            codes = self.codes.copy()
+            data_merged = pd.DataFrame(index=self.data.index.values, columns=[key for key in codes.keys()])
+        for code, donors in codes.items():
+            celltypes_averaged = self.data[donors].apply(np.mean, axis=1)
+            data_merged[code] = celltypes_averaged
+        return data_merged
 
     def code_selector(self, db, celltype, not_include=None, to_dict=False):
         """ Selects codes from database using """
@@ -544,6 +564,7 @@ class Promoters(DatabaseOperations):
 
         vencode_promoters_list = []
         data_frame = data_frame.copy()
+        data_frame.drop(skip, axis=0, inplace=True)  # drop the promoters previously used to generate vencodes
         if promoter:
             cols = data_frame.loc[promoter] != 0  # create a mask where True marks the celltypes in which the previous
             # node is still expressed
@@ -551,8 +572,6 @@ class Promoters(DatabaseOperations):
             data_frame = data_frame[cols].drop(promoter,
                                                axis=0)  # apply the selection and take the prom out of the dataframe
             vencode_promoters_list.append(promoter)
-        else:
-            data_frame = data_frame
         nodes = (data_frame == 0).all(
             axis=1)  # Check if any VEnCode - if any other promoter have 0 expression in all cells
         vencode_node_count = np.sum(nodes)  # if any True (VEnCode) the "True" becomes 1 and sum gives num VEnCodes
@@ -570,7 +589,6 @@ class Promoters(DatabaseOperations):
             while counter < combinations_number:
                 counter += 1  # updates the counter as it will enter the next node depth
                 promoters_in_use = (prom for prom in promoters if prom not in skip)
-                data_frame.drop(skip, axis=0, inplace=True)  # drop the promoters previously used to generate vencodes
                 for prom in promoters_in_use:  # cycle the promoters
                     # region "early quit if loop is taking too long"
                     if counter in counter_thresholds:
@@ -607,6 +625,13 @@ class Promoters(DatabaseOperations):
             if len(vencode_list) == combinations_number:
                 break
         return vencode_list
+
+    @staticmethod
+    def e_value_calculator(vencode_data):
+        """ Preps the data to be used in Monte Carlo simulation. """
+        col_list = vencode_data.columns.values.tolist()
+        e_value = Util.vencode_mc_simulation(vencode_data, col_list)
+        return e_value
 
     def logging_proms(self, params):
         # Get function name:
@@ -972,8 +997,9 @@ class Promoters(DatabaseOperations):
         :return: None
         """
         logger = self.logging_proms(locals())
-        codes = self.codes[celltype]
-        data = self.filter_prep_sort_drop_codes(codes, expression, threshold)
+        if self.conservative:
+            self.data = self.merge_donors_into_celltypes(exclude=celltype)
+        data = self.filter_prep_sort_drop_codes(self.codes[celltype], expression, threshold)
         vencodes_final = []
         breaks = {}  # this next section creates a dictionary to update with how many times each node is cycled
         for item in range(1, combinations_number):
@@ -991,21 +1017,39 @@ class Promoters(DatabaseOperations):
             vencodes_incomplete = [item for sublist in vencodes_from_nodes for item in sublist]
             vencodes_dict[number] = vencodes_incomplete
             skip.append(vencodes_incomplete[0])
-            print(skip)
         promoters = data.index.values.tolist()
+        vencodes_evaluated = {}
         for key, value in vencodes_dict.items():
             logger.info("key number {}".format(key))
             promoters_copy = promoters
+            counter = 0
             for i in Util.combinations_from_nested_lists(value):
                 logger.info(i)
-                new = self.fill_vencode_list(promoters_copy, list(i), 4)
-                Util.multi_log(logger, "filled:", new)
-                promoters_copy = [item for item in promoters_copy if item not in i]
+                vencode = self.fill_vencode_list(promoters_copy, list(i), 4)
+                Util.multi_log(logger, "filled:", vencode)
+                promoters_copy = [item for item in promoters_copy if item not in i]  # delete promoters "i"
+                e_value = self.e_value_calculator(data.loc[vencode])
+                vencodes_evaluated[tuple(vencode)] = e_value
+                counter += 1
+                if counter == 5:  # some times the number of combinations may be too big, let's get e_values for 5.
+                    break
             try:
                 promoters.remove(value[0])
             except ValueError:
                 pass
-            print(promoters)
+        # add the vencode from random here, before the final vencode adding. but put as: "if random_ven == True:"
+        Util.multi_log(logger, "VEnCodes with e-values:", vencodes_evaluated)
+        while len(vencodes_final) < number_vencodes:
+            top_valued_vencode = Util.key_with_max_val(vencodes_evaluated)
+            vencodes_evaluated.pop(top_valued_vencode)
+            vencodes_final.append(top_valued_vencode)
+        logger.info(vencodes_final)
+
+        # to csv
+        # file_name = Util.file_directory_handler("{}_ven_1.csv".format(celltype), "/VenCodes/", path="parent")
+        # with open(file_name, 'a') as f:
+        #     to_csv = data.loc[vencode]
+        #     to_csv.to_csv(f, sep=";")
         return
 
     def intra_individual_robustness(self, combinations_number, vens_to_take, reps=1, threshold=90, expression=1,
@@ -1108,3 +1152,4 @@ class Promoters(DatabaseOperations):
 #  also, retrieving the promoter variable here, via appending to a list, enables us to retrieve the vencodes
 # TODO: change the isinstance(obj, type) for isintance(obj, (type1, type2, etc))
 # TODO: implement database baseclass
+# TODO: cd16 must drop cd4+ samples
