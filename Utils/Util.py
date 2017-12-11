@@ -927,16 +927,23 @@ def check_list_index_and_append(lst, index, to_append):
 
 
 def combinations_from_nested_lists(lst):
-    lst_new = []
-    for j in lst:
-        if isinstance(j, list):
-            lst_new.append(j)
-        else:
-            lst_new.append([j])
-    lst = lst_new
-    # logging.info(lst)
-    for i in iter.product(*lst):
-        yield i
+    """
+    Generates tuples with combinations of one element of each list inside the first list.
+    :param lst: the list to combine.
+    """
+    if not any(isinstance(z, list) for z in lst):
+        for j in lst:
+            yield [j]
+    else:
+        lst_new = []
+        for j in lst:
+            if isinstance(j, list):
+                lst_new.append(j)
+            else:
+                lst_new.append([j])
+        lst = lst_new
+        for i in iter.product(*lst):
+            yield i
 
 
 def path_handler(path_type):

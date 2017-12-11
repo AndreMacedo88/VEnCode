@@ -527,6 +527,13 @@ class Promoters(DatabaseOperations):
     # Promoter specific util methods
 
     def filter_prep_sort_drop_codes(self, codes, expression, threshold):
+        """
+
+        :param codes:
+        :param expression:
+        :param threshold:
+        :return:
+        """
         try:
             data_filtered = Util.df_filter_by_expression_and_percentile(self.data, codes, expression, 2,
                                                                         threshold)  # apply efficiency filters
@@ -564,7 +571,7 @@ class Promoters(DatabaseOperations):
 
         vencode_promoters_list = []
         data_frame = data_frame.copy()
-        data_frame.drop(skip, axis=0, inplace=True)  # drop the promoters previously used to generate vencodes
+        data_frame.drop(skip, axis=0, inplace=True, errors="ignore")  # drop the promoters previously used to generate vencodes
         if promoter:
             cols = data_frame.loc[promoter] != 0  # create a mask where True marks the celltypes in which the previous
             # node is still expressed
@@ -986,7 +993,8 @@ class Promoters(DatabaseOperations):
                 if success:
                     threshold = 0
 
-    def best_vencode_generator(self, celltype, combinations_number=4, expression=1, threshold=90, number_vencodes=8):
+    def best_vencode_generator(self, celltype, combinations_number=4, expression=1, threshold=90, number_vencodes=8,
+                               random_ven=True):
         """
         Generates a number of vencodes, deemed the best according to E-value.
         :param celltype: cell type to get VEnCodes for.
@@ -994,13 +1002,15 @@ class Promoters(DatabaseOperations):
         :param expression: minimum expression level for the celltype to develop VEnCodes.
         :param threshold: threshold of sparseness to filter the data set with, before VEnCode selection.
         :param number_vencodes: number of VEnCodes to get.
+        :param random_ven: to add some heterogeneity to the retrieved VEnCodes, include vencode from random sampling
         :return: None
         """
         logger = self.logging_proms(locals())
         if self.conservative:
             self.data = self.merge_donors_into_celltypes(exclude=celltype)
         data = self.filter_prep_sort_drop_codes(self.codes[celltype], expression, threshold)
-        vencodes_final = []
+        vencodes_final_list = []
+        vencodes_final_dict = {}
         breaks = {}  # this next section creates a dictionary to update with how many times each node is cycled
         for item in range(1, combinations_number):
             breaks["breaker_" + str(item)] = 0
@@ -1016,34 +1026,50 @@ class Promoters(DatabaseOperations):
                 breaks[key] = 0
             vencodes_incomplete = [item for sublist in vencodes_from_nodes for item in sublist]
             vencodes_dict[number] = vencodes_incomplete
-            skip.append(vencodes_incomplete[0])
+            if not any(isinstance(z, list) for z in vencodes_incomplete):
+                for item in vencodes_incomplete:
+                    skip.append(item)
+            else:
+                skip.append(vencodes_incomplete[0])
         promoters = data.index.values.tolist()
         vencodes_evaluated = {}
         for key, value in vencodes_dict.items():
-            logger.info("key number {}".format(key))
+            logger.info("Key number {}".format(key))
             promoters_copy = promoters
             counter = 0
             for i in Util.combinations_from_nested_lists(value):
-                logger.info(i)
+                Util.multi_log(logger, "Founder:",i)
                 vencode = self.fill_vencode_list(promoters_copy, list(i), 4)
-                Util.multi_log(logger, "filled:", vencode)
+                Util.multi_log(logger, "Filled:", vencode)
                 promoters_copy = [item for item in promoters_copy if item not in i]  # delete promoters "i"
                 e_value = self.e_value_calculator(data.loc[vencode])
                 vencodes_evaluated[tuple(vencode)] = e_value
                 counter += 1
-                if counter == 5:  # some times the number of combinations may be too big, let's get e_values for 5.
+                if counter == 5:  # some times the number of combinations may be too big, let's get e_values for n.
+                    logger.info("Break. only get {} VEnCodes".format(5))
                     break
-            try:
-                promoters.remove(value[0])
-            except ValueError:
-                pass
-        # add the vencode from random here, before the final vencode adding. but put as: "if random_ven == True:"
+            if not any(isinstance(item, list) for item in value):
+                for j in value:
+                    try:
+                        promoters.remove(j)
+                    except ValueError:
+                        pass
+            else:
+                try:
+                    promoters.remove(value[0])
+                except ValueError:
+                    pass
+        if random_ven:
+            pass
         Util.multi_log(logger, "VEnCodes with e-values:", vencodes_evaluated)
-        while len(vencodes_final) < number_vencodes:
+        while len(vencodes_final_list) < number_vencodes:
             top_valued_vencode = Util.key_with_max_val(vencodes_evaluated)
+            vencodes_final_dict[top_valued_vencode] = vencodes_evaluated[top_valued_vencode]
             vencodes_evaluated.pop(top_valued_vencode)
-            vencodes_final.append(top_valued_vencode)
-        logger.info(vencodes_final)
+            vencodes_final_list.append(top_valued_vencode)
+            if not vencodes_evaluated:
+                break
+        Util.multi_log(logger, vencodes_final_dict)
 
         # to csv
         # file_name = Util.file_directory_handler("{}_ven_1.csv".format(celltype), "/VenCodes/", path="parent")
