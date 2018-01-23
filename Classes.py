@@ -320,123 +320,23 @@ class DatabaseOperations:
             return node_count
 
 
-class Enhancers(DatabaseOperations):
-    """ A class describing the methods for the enhancers database """
-
-    # unique to each call of Enhancers
-    def __init__(self, file, names_db, celltype, celltype_exclude=None, not_include=None, partial_exclude=None,
-                 sample_types="primary cells", nrows=None):
-        super().__init__(file, celltype, celltype_exclude=celltype_exclude, not_include=not_include,
-                         sample_types=sample_types, nrows=nrows)
-        self.names_db = pd.read_csv(self.parent_path + names_db, sep="\t", index_col=1, header=None,
-                                    names=["celltypes"])
-        self.data, self.filtered_names_db = self.first_parser()
-        self.codes = self.code_selector(self.celltype, custom=self.filtered_names_db,
-                                        remove="fraction", not_include=self.not_include, to_dict=True)
-        if partial_exclude:
-            self.partial_exclude_codes = {}
-            for key, value in partial_exclude.items():
-                self.partial_exclude_codes[key] = self.code_selector(value[0], not_include=value[1])
-
-    def first_parser(self):
-        """remove universal RNA pools and select the desired sample_type"""
-        samples_universal = self.code_selector("universal")
-        data_dropped = self.raw_data.drop(samples_universal, axis=1, inplace=False)
-        to_keep = self.sample_category_selector("sample types - FANTOM5.csv", self.sample_types, get="name")
-        to_keep_codes = self.code_selector(to_keep, match="normal", remove="fraction")
-        data = data_dropped[to_keep_codes]
-        # Exclude some specific, on-demand, cell-types from the data straight away:
-        if self.celltype_exclude is not None:
-            codes_exclude = self.code_selector(self.celltype_exclude)
-            data.drop(codes_exclude, axis=1, inplace=True)
-            # Exclude and select new found codes from the names_db dataframe, to use in self.codes
-            new_names_db = self.names_db.loc[to_keep_codes].drop(codes_exclude, axis=0)
-        else:
-            new_names_db = self.names_db.loc[to_keep_codes]
-        return data, new_names_db
-
-    def code_selector(self, celltype, custom=None, match="regex", remove=None, not_include=None, to_dict=False):
-        """ Selects codes from a database containing enhancer style indexes. Input is normal celltype nomenclature """
-        if custom is not None:
-            lines_and_codes = custom
-        else:
-            lines_and_codes = self.names_db
-        if isinstance(celltype, list):
-            codes = []
-            if to_dict:
-                code_dict = {}
-            for item in celltype:
-                if match == "regex":
-                    regular = ".*" + item.replace(" ", ".*").replace("+", "\+") + ".*"
-                    idx = lines_and_codes.celltypes.str.contains(regular, flags=re.IGNORECASE, regex=True, na=False)
-                elif match == "normal":
-                    idx = lines_and_codes.celltypes.str.contains(item, regex=False, na=False)
-                elif match == "exact":
-                    idx = [True if item == cell_type else False for cell_type in lines_and_codes.celltypes]
-                    pass
-                else:
-                    raise Exception("Match type is not recognized")
-                codes_df = lines_and_codes[idx]
-                codes.append(codes_df.index.values)
-                if to_dict:
-                    code_dict[item] = [code for sublist in codes for code in sublist]
-                    codes = []
-            if not to_dict:
-                codes = [code for sublist in codes for code in sublist]
-                codes = list(set(codes))
-            if remove is not None:
-                to_remove_bool = lines_and_codes.celltypes.str.contains(remove, regex=False, na=False)
-                to_remove = lines_and_codes[to_remove_bool]
-                to_remove = to_remove.index.values
-                # remove all codes containing -remove-
-                if to_dict:
-                    codes = {}
-                    for item, values in code_dict.items():
-                        codes[item] = [code for code in values if code not in to_remove]
-                else:
-                    codes = [code for code in codes if code not in to_remove]
-            if not_include is not None:
-                if isinstance(not_include, dict):
-                    for key, values in not_include.items():
-                        if key not in codes.keys():
-                            continue
-                        values_codes = self.code_selector(values, custom=self.filtered_names_db)
-                        not_include_codes = self.not_include_code_getter(values_codes, self.data)
-                        codes[key] = list(set(codes[key]) - set(not_include_codes))
-                else:
-                    values_codes = self.code_selector(not_include, custom=self.filtered_names_db)
-                    not_include_codes = self.not_include_code_getter(values_codes, self.data)
-                    codes = list(set(codes) - set(not_include_codes))
-        else:
-            regular = ".*" + celltype.replace(" ", ".*").replace("+", "\+") + ".*"
-            idx = lines_and_codes.celltypes.str.contains(regular, flags=re.IGNORECASE, regex=True, na=False)
-            codes_df = lines_and_codes[idx]
-            codes = codes_df.index.values.tolist()
-            if not_include is not None:
-                if isinstance(not_include, dict):
-                    for key, values in not_include.items():
-                        if key not in codes.keys():
-                            continue
-                        values_codes = self.code_selector(values, custom=self.filtered_names_db)
-                        not_include_codes = self.not_include_code_getter(values_codes, self.data)
-                        codes[key] = list(set(codes[key]) - set(not_include_codes))
-                else:
-                    values_codes = self.code_selector(not_include, custom=self.filtered_names_db)
-                    not_include_codes = self.not_include_code_getter(values_codes, self.data)
-                    codes = list(set(codes) - set(not_include_codes))
-        self.test_codes(codes, celltype, codes_type=type(codes).__name__)
-        return codes
-
-
 class Promoters(DatabaseOperations):
     """ A class describing the methods for the promoters database """
 
     def __init__(self, file, celltype, celltype_exclude=None, not_include=None, partial_exclude=None,
-                 sample_types="primary cells", second_parser=None, nrows=None, conservative=False,
-                 log_level=logging.DEBUG):
+                 sample_types="primary cells", skiprows=1831, second_parser=None, nrows=None, conservative=False,
+                 log_level=logging.DEBUG, enhancers=None):
         super().__init__(file, celltype, celltype_exclude=celltype_exclude, not_include=not_include,
-                         sample_types=sample_types, skiprows=1831, second_parser=second_parser, nrows=nrows,
+                         sample_types=sample_types, skiprows=skiprows, second_parser=second_parser, nrows=nrows,
                          log_level=log_level)
+        if enhancers is not None:
+            self.enhancers = enhancers
+            self.names_db = pd.read_csv(self.parent_path + enhancers, sep="\t", index_col=1, header=None,
+                                        names=["celltypes"], engine="python")
+            crazy_dict = {}
+            for column_code in self.raw_data.columns:
+                crazy_dict[column_code] = self.names_db.loc[column_code, "celltypes"]
+            self.raw_data.rename(columns=crazy_dict, inplace=True)
         self.data = self.first_parser()
         self.codes = self.code_selector(self.data, self.celltype, not_include=self.not_include,
                                         to_dict=True)
@@ -446,8 +346,8 @@ class Promoters(DatabaseOperations):
             self.codes_df = self.data.filter(items=temp_codes)
             self.sample_types = self.second_parser
             self.data = self.first_parser()
-            # self.data = self.data.join(codes_df)
-        if partial_exclude:
+            self.data = pd.concat([self.data, self.codes_df], axis=1)
+        if partial_exclude and (enhancers is None):
             self.partial_exclude_codes = {}
             for key, value in partial_exclude.items():
                 self.partial_exclude_codes[key] = self.code_selector(self.data, value[0], not_include=value[1])
@@ -457,10 +357,19 @@ class Promoters(DatabaseOperations):
         # self.raw_data = None  # for RAM optimization only, remove if raw_data is needed
         universal_rna = self.code_selector(data_1, "universal", not_include=None)
         data_1.drop(universal_rna, axis=1, inplace=True)
-        to_keep = self.sample_category_selector("sample types - FANTOM5.csv", self.sample_types)
+        if self.enhancers is None:
+            to_keep = self.sample_category_selector("sample types - FANTOM5.csv", self.sample_types)
+        else:
+            to_keep = self.sample_category_selector("sample types - FANTOM5.csv", self.sample_types, get="name")
         data = pd.DataFrame(index=data_1.index.values)
         for sample in to_keep:
-            data_temp = data_1.filter(regex=sample)
+            if self.enhancers is None:
+                data_temp = data_1.filter(regex=sample)
+            else:
+                try:
+                    data_temp = data_1.loc[:, sample]
+                except KeyError:
+                    data_temp = data_1.loc[:, data_1.columns.str.contains(sample+".*", regex=True)]
             data = data.join(data_temp)
         # Exclude some specific, on-demand, cell-types from the data straight away:
         if self.celltype_exclude is not None:
@@ -538,9 +447,8 @@ class Promoters(DatabaseOperations):
             data_filtered = Util.df_filter_by_expression_and_percentile(self.data, codes, expression, 2,
                                                                         threshold)  # apply efficiency filters
         except KeyError:
-            data_frame = self.data.join(self.codes_df[codes])
+            data_frame = pd.concat([self.data, self.codes_df], axis=1)
             data_filtered = Util.df_filter_by_expression_and_percentile(data_frame, codes, expression, 2, threshold)
-            data_filtered.drop(codes, axis=1, inplace=True)
         data_filtered = data_filtered.applymap(
             lambda x: 0 if x == 0 else 1)  # change expression to 1s and 0s for quickness
         data_filtered = self.prep_sort(data_filtered)
@@ -571,7 +479,8 @@ class Promoters(DatabaseOperations):
 
         vencode_promoters_list = []
         data_frame = data_frame.copy()
-        data_frame.drop(skip, axis=0, inplace=True, errors="ignore")  # drop the promoters previously used to generate vencodes
+        data_frame.drop(skip, axis=0, inplace=True,
+                        errors="ignore")  # drop the promoters previously used to generate vencodes
         if promoter:
             cols = data_frame.loc[promoter] != 0  # create a mask where True marks the celltypes in which the previous
             # node is still expressed
@@ -634,11 +543,36 @@ class Promoters(DatabaseOperations):
         return vencode_list
 
     @staticmethod
-    def e_value_calculator(vencode_data):
+    def e_value_calculator(vencode_data, reps=100):
         """ Preps the data to be used in Monte Carlo simulation. """
         col_list = vencode_data.columns.values.tolist()
-        e_value = Util.vencode_mc_simulation(vencode_data, col_list)
+        e_value = Util.vencode_mc_simulation(vencode_data, col_list, reps=reps)
         return e_value
+
+    @staticmethod
+    def e_value_normalizer(e_value, celltype_number, m, b):
+        """
+        Normalizes the e-value due to disparity in number of celltypes
+        :param e_value: value to normalize
+        :param data: data set used to get e-value
+        :param m: slope
+        :param b: interception at origin
+        :return: normalized e-value
+        """
+        e_value = (e_value / ((m * celltype_number) + b)) * 100
+        if e_value < 100:
+            return e_value
+        else:
+            return 100
+
+    @staticmethod
+    def get_vencode_sampling(data, combinations_number=4, to_drop=None, n_samples=100000):
+        for i in range(n_samples):
+            sample = data.sample(n=combinations_number)  # take a sample of n promoters
+            if to_drop is not None:
+                sample = sample.drop(to_drop, axis=1)  # remove it from the data to access VEn
+            if Util.assess_vencode_one_zero_boolean(sample):  # assess if VEnCode
+                return sample
 
     def logging_proms(self, params):
         # Get function name:
@@ -1033,20 +967,24 @@ class Promoters(DatabaseOperations):
                 skip.append(vencodes_incomplete[0])
         promoters = data.index.values.tolist()
         vencodes_evaluated = {}
+        logger.info(vencodes_dict)
         for key, value in vencodes_dict.items():
             logger.info("Key number {}".format(key))
+            logger.info(value)
             promoters_copy = promoters
             counter = 0
             for i in Util.combinations_from_nested_lists(value):
-                Util.multi_log(logger, "Founder:",i)
+                Util.multi_log(logger, "Founder:", i)
                 vencode = self.fill_vencode_list(promoters_copy, list(i), 4)
                 Util.multi_log(logger, "Filled:", vencode)
                 promoters_copy = [item for item in promoters_copy if item not in i]  # delete promoters "i"
                 e_value = self.e_value_calculator(data.loc[vencode])
+                e_value = self.e_value_normalizer(e_value, data.shape[1], 0.689168,
+                                                  48.71315)  # normalizing the e-values
                 vencodes_evaluated[tuple(vencode)] = e_value
                 counter += 1
                 if counter == 5:  # some times the number of combinations may be too big, let's get e_values for n.
-                    logger.info("Break. only get {} VEnCodes".format(5))
+                    logger.info("Break. Only get {} VEnCodes".format(5))
                     break
             if not any(isinstance(item, list) for item in value):
                 for j in value:
@@ -1060,7 +998,22 @@ class Promoters(DatabaseOperations):
                 except ValueError:
                     pass
         if random_ven:
-            pass
+            vencode_from_sample = self.get_vencode_sampling(data)
+            if vencode_from_sample is not None:
+                e_value_sampling = self.e_value_calculator(vencode_from_sample)
+                e_value_sampling = self.e_value_normalizer(e_value_sampling, data.shape[1], 0.689168, 48.71315)
+                vencodes_final_dict[tuple(vencode_from_sample.index.values)] = e_value_sampling
+                vencodes_final_list.append(vencode_from_sample.index.values.tolist())
+            else:
+                logger.info("Random sampling the data yielded no VEnCodes")
+        vencode_from_sample = self.get_vencode_sampling(self.data, to_drop=self.codes[celltype])
+        if vencode_from_sample is not None:
+            e_value_sampling = self.e_value_calculator(vencode_from_sample)
+            e_value_sampling = self.e_value_normalizer(e_value_sampling, self.data.shape[1], 0.689168, 48.71315)
+            vencodes_final_dict[tuple(vencode_from_sample.index.values)] = e_value_sampling
+            vencodes_final_list.append(vencode_from_sample.index.values.tolist())
+        else:
+            logger.info("Random sampling the unsorted data yielded no VEnCodes")
         Util.multi_log(logger, "VEnCodes with e-values:", vencodes_evaluated)
         while len(vencodes_final_list) < number_vencodes:
             top_valued_vencode = Util.key_with_max_val(vencodes_evaluated)
@@ -1070,12 +1023,16 @@ class Promoters(DatabaseOperations):
             if not vencodes_evaluated:
                 break
         Util.multi_log(logger, vencodes_final_dict)
-
-        # to csv
-        # file_name = Util.file_directory_handler("{}_ven_1.csv".format(celltype), "/VenCodes/", path="parent")
-        # with open(file_name, 'a') as f:
-        #     to_csv = data.loc[vencode]
-        #     to_csv.to_csv(f, sep=";")
+        # plotting:
+        for vencode_to_write in vencodes_final_dict.keys():
+            to_csv = self.data.loc[list(vencode_to_write)]
+            to_csv = to_csv.applymap(
+                lambda x: 0 if x == 0 else 1)  # change expression to 1s and 0s for quickness
+            file_name = Util.file_directory_handler("{}_ven_enh_1.csv".format(celltype), "/VenCodes/", path="parent")
+            with open(file_name, 'a') as f:
+                to_csv.to_csv(f, sep=";")
+        file_name_e_values = "{}_ven_enh_1_evalues.csv".format(celltype)
+        Util.write_dict_to_csv(file_name_e_values, vencodes_final_dict, "/VenCodes/", path="parent")
         return
 
     def intra_individual_robustness(self, combinations_number, vens_to_take, reps=1, threshold=90, expression=1,
@@ -1173,9 +1130,118 @@ class Promoters(DatabaseOperations):
         cell_list = list(self.codes.keys())
         Util.write_list_to_csv(file_name, cell_list, folder_name, path="parent")
 
+
 # TODO: with the changes in __init__ to the BaseClass, some of these static methods may now be converted to self.xx!
 # TODO: see if can change at_least_one_node_calculator: vencode assessment can be done after select columns /
 #  also, retrieving the promoter variable here, via appending to a list, enables us to retrieve the vencodes
 # TODO: change the isinstance(obj, type) for isintance(obj, (type1, type2, etc))
 # TODO: implement database baseclass
 # TODO: cd16 must drop cd4+ samples
+
+
+class Enhancers(DatabaseOperations):
+    """ A class describing the methods for the enhancers database """
+
+    # unique to each call of Enhancers
+    def __init__(self, file, names_db, celltype, celltype_exclude=None, not_include=None, partial_exclude=None,
+                 sample_types="primary cells", second_parser=None, conservative=False, log_level="info", nrows=None):
+        super().__init__(file, celltype, celltype_exclude=celltype_exclude, not_include=not_include,
+                         sample_types=sample_types, second_parser=second_parser, log_level=log_level, nrows=nrows)
+        self.names_db = pd.read_csv(self.parent_path + names_db, sep="\t", index_col=1, header=None,
+                                    names=["celltypes"], engine="python")
+        self.data, self.filtered_names_db = self.first_parser()
+        self.codes = self.code_selector(self.celltype, custom=self.filtered_names_db,
+                                        remove="fraction", not_include=self.not_include, to_dict=True)
+        if partial_exclude:
+            self.partial_exclude_codes = {}
+            for key, value in partial_exclude.items():
+                self.partial_exclude_codes[key] = self.code_selector(value[0], not_include=value[1])
+
+    def first_parser(self):
+        """remove universal RNA pools and select the desired sample_type"""
+        samples_universal = self.code_selector("universal")
+        data_dropped = self.raw_data.drop(samples_universal, axis=1, inplace=False)
+        to_keep = self.sample_category_selector("sample types - FANTOM5.csv", self.sample_types, get="name")
+        to_keep_codes = self.code_selector(to_keep, match="normal", remove="fraction")
+        data = data_dropped[to_keep_codes]
+        # Exclude some specific, on-demand, cell-types from the data straight away:
+        if self.celltype_exclude is not None:
+            codes_exclude = self.code_selector(self.celltype_exclude)
+            data.drop(codes_exclude, axis=1, inplace=True)
+            # Exclude and select new found codes from the names_db dataframe, to use in self.codes
+            new_names_db = self.names_db.loc[to_keep_codes].drop(codes_exclude, axis=0)
+        else:
+            new_names_db = self.names_db.loc[to_keep_codes]
+        return data, new_names_db
+
+    def code_selector(self, celltype, custom=None, match="regex", remove=None, not_include=None, to_dict=False):
+        """ Selects codes from a database containing enhancer style indexes. Input is normal celltype nomenclature """
+        if custom is not None:
+            lines_and_codes = custom
+        else:
+            lines_and_codes = self.names_db
+        if isinstance(celltype, list):
+            codes = []
+            if to_dict:
+                code_dict = {}
+            for item in celltype:
+                if match == "regex":
+                    regular = ".*" + item.replace(" ", ".*").replace("+", "\+") + ".*"
+                    idx = lines_and_codes.celltypes.str.contains(regular, flags=re.IGNORECASE, regex=True, na=False)
+                elif match == "normal":
+                    idx = lines_and_codes.celltypes.str.contains(item, regex=False, na=False)
+                elif match == "exact":
+                    idx = [True if item == cell_type else False for cell_type in lines_and_codes.celltypes]
+                    pass
+                else:
+                    raise Exception("Match type is not recognized")
+                codes_df = lines_and_codes[idx]
+                codes.append(codes_df.index.values)
+                if to_dict:
+                    code_dict[item] = [code for sublist in codes for code in sublist]
+                    codes = []
+            if not to_dict:
+                codes = [code for sublist in codes for code in sublist]
+                codes = list(set(codes))
+            if remove is not None:
+                to_remove_bool = lines_and_codes.celltypes.str.contains(remove, regex=False, na=False)
+                to_remove = lines_and_codes[to_remove_bool]
+                to_remove = to_remove.index.values
+                # remove all codes containing -remove-
+                if to_dict:
+                    codes = {}
+                    for item, values in code_dict.items():
+                        codes[item] = [code for code in values if code not in to_remove]
+                else:
+                    codes = [code for code in codes if code not in to_remove]
+            if not_include is not None:
+                if isinstance(not_include, dict):
+                    for key, values in not_include.items():
+                        if key not in codes.keys():
+                            continue
+                        values_codes = self.code_selector(values, custom=self.filtered_names_db)
+                        not_include_codes = self.not_include_code_getter(values_codes, self.data)
+                        codes[key] = list(set(codes[key]) - set(not_include_codes))
+                else:
+                    values_codes = self.code_selector(not_include, custom=self.filtered_names_db)
+                    not_include_codes = self.not_include_code_getter(values_codes, self.data)
+                    codes = list(set(codes) - set(not_include_codes))
+        else:
+            regular = ".*" + celltype.replace(" ", ".*").replace("+", "\+") + ".*"
+            idx = lines_and_codes.celltypes.str.contains(regular, flags=re.IGNORECASE, regex=True, na=False)
+            codes_df = lines_and_codes[idx]
+            codes = codes_df.index.values.tolist()
+            if not_include is not None:
+                if isinstance(not_include, dict):
+                    for key, values in not_include.items():
+                        if key not in codes.keys():
+                            continue
+                        values_codes = self.code_selector(values, custom=self.filtered_names_db)
+                        not_include_codes = self.not_include_code_getter(values_codes, self.data)
+                        codes[key] = list(set(codes[key]) - set(not_include_codes))
+                else:
+                    values_codes = self.code_selector(not_include, custom=self.filtered_names_db)
+                    not_include_codes = self.not_include_code_getter(values_codes, self.data)
+                    codes = list(set(codes) - set(not_include_codes))
+        self.test_codes(codes, celltype, codes_type=type(codes).__name__)
+        return codes

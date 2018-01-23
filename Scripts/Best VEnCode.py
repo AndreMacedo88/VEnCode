@@ -5,17 +5,46 @@
 
 import Classes
 from Utils import Util
-from Common_variables import file_name, complete_primary_cell_list, complete_primary_exclude_list, \
+from Common_variables import promoter_file_name, enhancer_file_name, enhancer_names_db, complete_primary_cell_list, complete_primary_exclude_list, \
     complete_primary_non_include_list, complete_primary_jit_exclude_list
 
 if __name__ == "__main__":
-    initialize_promoters = Classes.Promoters(file_name, complete_primary_cell_list,
+
+    # Promoters
+    """
+    initialize_promoters = Classes.Promoters(promoter_file_name, complete_primary_cell_list,
                                              celltype_exclude=complete_primary_exclude_list,
                                              not_include=complete_primary_non_include_list,
                                              partial_exclude=complete_primary_jit_exclude_list,
                                              sample_types="primary cells", second_parser=None,
-                                             conservative=True, log_level="info", nrows=5000)
+                                             conservative=True, log_level="info", nrows=1000)
     initialize_promoters.best_vencode_generator("Hepatocyte", number_vencodes=4)
+    """
+
+    # Enhancers
+
+    initialize_enhancers = Classes.Promoters(enhancer_file_name,
+                                             complete_primary_cell_list,
+                                             celltype_exclude=complete_primary_exclude_list,
+                                             not_include=complete_primary_non_include_list,
+                                             partial_exclude=complete_primary_jit_exclude_list,
+                                             sample_types="primary cells", second_parser=None,
+                                             conservative=True, log_level="info", enhancers=enhancer_names_db,
+                                             skiprows=None, nrows=24000)
+    initialize_enhancers.best_vencode_generator("Hepatocyte", number_vencodes=4)
+    # To create an ill patient:
+    """
+    complete_primary_cell_list.append("testicular germ cell embryonal carcinoma")
+    initialize_promoters = Classes.Promoters(promoter_file_name,
+                                             complete_primary_cell_list,
+                                             celltype_exclude=complete_primary_exclude_list,
+                                             not_include=complete_primary_non_include_list,
+                                             partial_exclude=complete_primary_jit_exclude_list,
+                                             sample_types=["primary cells", "cell lines"],
+                                             second_parser="primary cells", conservative=True,
+                                             log_level="info", nrows=40000)
+    initialize_promoters.best_vencode_generator("testicular germ cell embryonal carcinoma", number_vencodes=4)
+    """
 
     # some tests:
     """

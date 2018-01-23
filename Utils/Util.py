@@ -135,42 +135,42 @@ def full_vencodes_count_combinations_for_graph(filter_1, celltypes, others_df, x
 
 
 def vencode_percent_sampling(codes, celltype, filters, combinations_number, samples_to_take, reps,
-                                 include_problems=False):
-        """
+                             include_problems=False):
+    """
         Returns  a dictionary containing the percentage of VEnCodes found per k combinations, calculated by sampling
         the df rows for samples_to_take number of times and reps number or repetitions.
         """
-        k_ven_percent = {}
-        if include_problems: problems = {}
-        for number in combinations_number:
-            try:
-                ven = {}
-                for i in range(reps):
-                    c = 0
-                    for n in range(samples_to_take):
-                        if n >= comb(int(filters.shape[0]), len(combinations_number), exact=False):
-                            break
-                        sample = filters.sample(n=number)
-                        sample_dropped = sample.drop(codes, axis=1).values
-                        if include_problems:
-                            c, problems = assess_vencode_one_zero_plus_problems(c, sample.drop(codes, axis=1), problems)
-                        else:
-                            c = assess_vencode_one_zero(c, sample_dropped)
-                    ven[i] = (c / samples_to_take) * 100
-                    print("Finished rep {0} for k = {1} in celltype = {2}".format(i, number, celltype))
-                ven_values = list(ven.values())
-                means = np.mean(ven_values, dtype=np.float64)
-                st_error = np.std(ven_values, dtype=np.float64) / math.sqrt(len(ven_values))
-                k_ven_percent[number] = [means, st_error]
-            except Exception as ex:
-                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-                message = template.format(type(ex).__name__, ex.args)
-                print(message)
-                break
-        if include_problems:
-            return k_ven_percent, problems
-        else:
-            return k_ven_percent
+    k_ven_percent = {}
+    if include_problems: problems = {}
+    for number in combinations_number:
+        try:
+            ven = {}
+            for i in range(reps):
+                c = 0
+                for n in range(samples_to_take):
+                    if n >= comb(int(filters.shape[0]), len(combinations_number), exact=False):
+                        break
+                    sample = filters.sample(n=number)
+                    sample_dropped = sample.drop(codes, axis=1).values
+                    if include_problems:
+                        c, problems = assess_vencode_one_zero_plus_problems(c, sample.drop(codes, axis=1), problems)
+                    else:
+                        c = assess_vencode_one_zero(c, sample_dropped)
+                ven[i] = (c / samples_to_take) * 100
+                print("Finished rep {0} for k = {1} in celltype = {2}".format(i, number, celltype))
+            ven_values = list(ven.values())
+            means = np.mean(ven_values, dtype=np.float64)
+            st_error = np.std(ven_values, dtype=np.float64) / math.sqrt(len(ven_values))
+            k_ven_percent[number] = [means, st_error]
+        except Exception as ex:
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args)
+            print(message)
+            break
+    if include_problems:
+        return k_ven_percent, problems
+    else:
+        return k_ven_percent
 
 
 def vencode_percent_sampling_monte_carlo(codes, filters, combinations_number, vens_to_take, reps,
@@ -213,6 +213,7 @@ def vencode_percent_sampling_monte_carlo(codes, filters, combinations_number, ve
         return e_values, ven
     else:
         return e_values
+
 
 # endregion
 
@@ -418,6 +419,8 @@ def sorted_ven_robustness_test(file, file_type, celltype, combinations_number, s
     if init_data is None:
         print("Process Quick finished in %s seconds" % (time.time() - start_time))
     return k_ven_percent
+
+
 # endregion
 
 # region Data frame specific functions
@@ -528,6 +531,7 @@ def df_regex_searcher(string, database):
     regex_filtered_df = database.loc[:, idx]
     return regex_filtered_df
 
+
 # endregion
 
 # region FANTOM5 database specific functions
@@ -579,36 +583,37 @@ def fantom_code_selector(type, db, celltype, not_include=None):
 
 
 def fantom_sample_category_selector(sample_types_file, types, path="parent", get="index"):
-        """
+    """
         Returns a list of cell types to keep/drop from a file containing the list of cell types and a 'Sample category'
         column which determines which cell types to retrieve.
         """
-        if not isinstance(types, list): types = [types]
-        if path == "parent":
-            parent_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-            database = pd.read_csv(parent_path + "/Files/" + sample_types_file, sep=",", index_col=0)
-        elif path == "normal":
-            database = pd.read_csv("./Files/" + sample_types_file, sep=",", index_col=0)
-        try:
-            possible_types = database["Sample category"].drop_duplicates().values.tolist()
-        except Exception as ex:
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(ex).__name__, ex.args)
-            print(message)
-            raise
-        assert all(
-            sample in possible_types for sample in types), "Sample type is not valid.\nValid sample types: {}".format(
-            possible_types)
-        celltypes = []
-        for sample in types:
-            selected = database[database["Sample category"] == sample]
-            if get == "index":
-                [celltypes.append(value) for value in selected.index.values]
-            elif get == "name":
-                [celltypes.append(value) for value in selected["Name"].tolist()]
-            else:
-                pass
-        return celltypes
+    if not isinstance(types, list): types = [types]
+    if path == "parent":
+        parent_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        database = pd.read_csv(parent_path + "/Files/" + sample_types_file, sep=",", index_col=0)
+    elif path == "normal":
+        database = pd.read_csv("./Files/" + sample_types_file, sep=",", index_col=0)
+    try:
+        possible_types = database["Sample category"].drop_duplicates().values.tolist()
+    except Exception as ex:
+        template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+        message = template.format(type(ex).__name__, ex.args)
+        print(message)
+        raise
+    assert all(
+        sample in possible_types for sample in types), "Sample type is not valid.\nValid sample types: {}".format(
+        possible_types)
+    celltypes = []
+    for sample in types:
+        selected = database[database["Sample category"] == sample]
+        if get == "index":
+            [celltypes.append(value) for value in selected.index.values]
+        elif get == "name":
+            [celltypes.append(value) for value in selected["Name"].tolist()]
+        else:
+            pass
+    return celltypes
+
 
 # endregion
 
@@ -711,6 +716,7 @@ def errorbar_plot(input_data, folder, file_name, label=None, title=None, multipl
         plt.legend(numpoints=1, loc="best", shadow=True, fancybox=True)
     return fig, path
 
+
 # endregion
 
 # region Writing to .csv
@@ -812,7 +818,8 @@ def file_directory_handler(file_name, folder, path="normal"):
         print(message)
         raise
     check_if_and_makedir(path_working + folder)
-    return
+    return new_file
+
 
 # endregion
 
@@ -938,7 +945,9 @@ def combinations_from_nested_lists(lst):
         lst_new = []
         for j in lst:
             if isinstance(j, list):
-                lst_new.append(j)
+                for y in combinations_from_nested_lists(j):
+                    lst_new.append(y)
+                # lst_new.append(j)
             else:
                 lst_new.append([j])
         lst = lst_new
@@ -969,6 +978,8 @@ def key_with_max_val(d):
     v = list(d.values())
     k = list(d.keys())
     return k[v.index(max(v))]
+
+
 # endregion
 
 __author__ = "Andre Macedo"
