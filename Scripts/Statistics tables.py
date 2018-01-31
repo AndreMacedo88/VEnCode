@@ -15,7 +15,7 @@ if __name__ == "__main__":
     for i in celltype_number:
         for z in promoter_number:
             data = pd.DataFrame(np.zeros(shape=(z, i)), dtype=np.int8)
-            e_value = Classes.Promoters.e_value_calculator(data, reps=100)
+            e_value = Classes.Promoters.e_value_calculator(data, reps=1000)
             e_values.loc[z, i] = e_value
     file_name = Util.file_directory_handler("Table for e_value statistics_quick.csv", "/Files/", path="parent")
     with open(file_name, 'w') as f:

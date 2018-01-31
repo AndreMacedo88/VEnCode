@@ -1,19 +1,29 @@
-from unittest import TestCase
-from Utils import Util
-from unittest import TestCase
-
 from Utils import Util
 
 
-class TestFiles_in_folder_to_csv(TestCase):
+class TestCFNL:
+    """ Tests function combinations_from_nested_lists"""
+    def __init__(self, lst):
+        self.list = lst
 
-    def setUp(self):
-        self.folder = "/Figure 3-b2/cell lines/"
+    def general_testing(self):
+        """
+        runs normal function
+        """
+        for i in Util.combinations_from_nested_lists(self.list):
+            print(i)
 
-    def test_file_creation(self):
-        file_name = "all_cell_lines.csv"
-        Util.files_in_folder_to_csv(self.folder, file_name)
 
 if __name__ == "__main__":
+    """
     test = TestFiles_in_folder_to_csv()
     test.test_file_creation()
+    """
+    lst1 = ["aa", "bb", "cc"]
+    lst2 = ["aa", ["bb", "cc"]]
+    lst3 = ["aa", ["bb", ["cc"]]]
+    lst4 = ["aa", ["bb", ["cc", "dd"]]]
+    lst5 = ["aa", ["bb", ["cc", ["dd"]]]]
+    lst6 = ["aa", ["bb", ["cc", ["dd", "ee"]]]]
+    test = TestCFNL(lst6)
+    test.general_testing()

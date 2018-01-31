@@ -4,14 +4,13 @@
 """Best VEnCode.py: Functions for generating the best VEnCode """
 
 import Classes
-from Utils import Util
 from Common_variables import promoter_file_name, enhancer_file_name, enhancer_names_db, complete_primary_cell_list, complete_primary_exclude_list, \
     complete_primary_non_include_list, complete_primary_jit_exclude_list
 
 if __name__ == "__main__":
 
     # Promoters
-    """
+
     initialize_promoters = Classes.Promoters(promoter_file_name, complete_primary_cell_list,
                                              celltype_exclude=complete_primary_exclude_list,
                                              not_include=complete_primary_non_include_list,
@@ -19,10 +18,10 @@ if __name__ == "__main__":
                                              sample_types="primary cells", second_parser=None,
                                              conservative=True, log_level="info", nrows=1000)
     initialize_promoters.best_vencode_generator("Hepatocyte", number_vencodes=4)
-    """
+
 
     # Enhancers
-
+    """
     initialize_enhancers = Classes.Promoters(enhancer_file_name,
                                              complete_primary_cell_list,
                                              celltype_exclude=complete_primary_exclude_list,
@@ -32,6 +31,7 @@ if __name__ == "__main__":
                                              conservative=True, log_level="info", enhancers=enhancer_names_db,
                                              skiprows=None, nrows=24000)
     initialize_enhancers.best_vencode_generator("Hepatocyte", number_vencodes=4)
+    """
     # To create an ill patient:
     """
     complete_primary_cell_list.append("testicular germ cell embryonal carcinoma")

@@ -278,7 +278,7 @@ def vencode_mc_simulation(data, col_list, reps=100):
             index = random.choice(index_list)
             if mc_df.loc[index][col] == 0:
                 local_counter += 1
-                mc_df.set_value(index, col, 1)
+                mc_df.set_value(index, col, 1)  # TODO: deprecated, test .at[index, col] = 1
                 a = mc_df[col].tolist()
                 try:
                     b = a.index(
@@ -938,16 +938,28 @@ def combinations_from_nested_lists(lst):
     Generates tuples with combinations of one element of each list inside the first list.
     :param lst: the list to combine.
     """
-    if not any(isinstance(z, list) for z in lst):
-        for j in lst:
-            yield [j]
+
+    def helper(lst_):
+        """
+        Helps by allowing it's recursive use to generate a correctly shaped list to then iter.product
+        """
+        if not any(isinstance(e, list) for e in lst_):
+            lst_new.append(lst_)
+        else:
+            for z in lst_:
+                if isinstance(z, list):
+                    helper(z)
+                else:
+                    lst_new.append([z])
+
+    if not any(isinstance(w, list) for w in lst):
+        for g in lst:
+            yield [g]
     else:
         lst_new = []
         for j in lst:
             if isinstance(j, list):
-                for y in combinations_from_nested_lists(j):
-                    lst_new.append(y)
-                # lst_new.append(j)
+                helper(j)
             else:
                 lst_new.append([j])
         lst = lst_new

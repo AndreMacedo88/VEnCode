@@ -20,7 +20,7 @@ class DatabaseOperations:
     """ A class with classes for each type of database and common methods to all """
 
     def __init__(self, file, celltype, celltype_exclude=None, not_include=None, sample_types="primary cells",
-                 skiprows=None, second_parser=None, nrows=None, log_level=logging.DEBUG):
+                 skiprows=None, second_parser=None, nrows=None, log_level="DEBUG"):
         self.file = file
         self.celltype = celltype
         self.celltype_exclude = celltype_exclude
@@ -325,12 +325,12 @@ class Promoters(DatabaseOperations):
 
     def __init__(self, file, celltype, celltype_exclude=None, not_include=None, partial_exclude=None,
                  sample_types="primary cells", skiprows=1831, second_parser=None, nrows=None, conservative=False,
-                 log_level=logging.DEBUG, enhancers=None):
+                 log_level="DEBUG", enhancers=None):
         super().__init__(file, celltype, celltype_exclude=celltype_exclude, not_include=not_include,
                          sample_types=sample_types, skiprows=skiprows, second_parser=second_parser, nrows=nrows,
                          log_level=log_level)
-        if enhancers is not None:
-            self.enhancers = enhancers
+        self.enhancers = enhancers
+        if self.enhancers is not None:
             self.names_db = pd.read_csv(self.parent_path + enhancers, sep="\t", index_col=1, header=None,
                                         names=["celltypes"], engine="python")
             crazy_dict = {}
@@ -369,7 +369,7 @@ class Promoters(DatabaseOperations):
                 try:
                     data_temp = data_1.loc[:, sample]
                 except KeyError:
-                    data_temp = data_1.loc[:, data_1.columns.str.contains(sample+".*", regex=True)]
+                    data_temp = data_1.loc[:, data_1.columns.str.contains(sample + ".*", regex=True)]
             data = data.join(data_temp)
         # Exclude some specific, on-demand, cell-types from the data straight away:
         if self.celltype_exclude is not None:
@@ -532,6 +532,7 @@ class Promoters(DatabaseOperations):
         :param combinations_number:
         :return: A list of y REs that comprise a VEnCode, where y = combinations number.
         """
+        assert len(vencode_list) <= combinations_number, "vencode list len is bigger than wanted RE number"
         if len(vencode_list) == combinations_number:
             return vencode_list
         for prom in promoter_list:
@@ -554,7 +555,7 @@ class Promoters(DatabaseOperations):
         """
         Normalizes the e-value due to disparity in number of celltypes
         :param e_value: value to normalize
-        :param data: data set used to get e-value
+        :param celltype_number: number of cell types in data set
         :param m: slope
         :param b: interception at origin
         :return: normalized e-value
@@ -928,7 +929,7 @@ class Promoters(DatabaseOperations):
                     threshold = 0
 
     def best_vencode_generator(self, celltype, combinations_number=4, expression=1, threshold=90, number_vencodes=8,
-                               random_ven=True):
+                               random_ven=True, random_unfiltered_ven=False):
         """
         Generates a number of vencodes, deemed the best according to E-value.
         :param celltype: cell type to get VEnCodes for.
@@ -1006,14 +1007,15 @@ class Promoters(DatabaseOperations):
                 vencodes_final_list.append(vencode_from_sample.index.values.tolist())
             else:
                 logger.info("Random sampling the data yielded no VEnCodes")
-        vencode_from_sample = self.get_vencode_sampling(self.data, to_drop=self.codes[celltype])
-        if vencode_from_sample is not None:
-            e_value_sampling = self.e_value_calculator(vencode_from_sample)
-            e_value_sampling = self.e_value_normalizer(e_value_sampling, self.data.shape[1], 0.689168, 48.71315)
-            vencodes_final_dict[tuple(vencode_from_sample.index.values)] = e_value_sampling
-            vencodes_final_list.append(vencode_from_sample.index.values.tolist())
-        else:
-            logger.info("Random sampling the unsorted data yielded no VEnCodes")
+        if random_unfiltered_ven:
+            vencode_from_sample = self.get_vencode_sampling(self.data, to_drop=self.codes[celltype])
+            if vencode_from_sample is not None:
+                e_value_sampling = self.e_value_calculator(vencode_from_sample)
+                e_value_sampling = self.e_value_normalizer(e_value_sampling, self.data.shape[1], 0.689168, 48.71315)
+                vencodes_final_dict[tuple(vencode_from_sample.index.values)] = e_value_sampling
+                vencodes_final_list.append(vencode_from_sample.index.values.tolist())
+            else:
+                logger.info("Random sampling the unsorted data yielded no VEnCodes")
         Util.multi_log(logger, "VEnCodes with e-values:", vencodes_evaluated)
         while len(vencodes_final_list) < number_vencodes:
             top_valued_vencode = Util.key_with_max_val(vencodes_evaluated)
@@ -1031,7 +1033,7 @@ class Promoters(DatabaseOperations):
             file_name = Util.file_directory_handler("{}_ven_enh_1.csv".format(celltype), "/VenCodes/", path="parent")
             with open(file_name, 'a') as f:
                 to_csv.to_csv(f, sep=";")
-        file_name_e_values = "{}_ven_enh_1_evalues.csv".format(celltype)
+        file_name_e_values = "{}_ven_test_1_evalues.csv".format(celltype)
         Util.write_dict_to_csv(file_name_e_values, vencodes_final_dict, "/VenCodes/", path="parent")
         return
 

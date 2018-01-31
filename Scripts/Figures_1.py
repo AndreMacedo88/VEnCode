@@ -15,6 +15,7 @@ import pandas as pd
 from scipy.special import comb
 
 from Utils import Util
+from Common_variables import three_donors_cell_list
 import Classes
 
 
@@ -478,7 +479,8 @@ class Promoters:
         if isinstance(self.sample_types, list):
             if len(self.sample_types) == 2:
                 sample_type = self.sample_types[1]
-            else: sample_type = self.sample_types[0]
+            else:
+                sample_type = self.sample_types[0]
         else:
             sample_type = self.sample_types
         # Start the loop through all expression levels:
@@ -1074,7 +1076,21 @@ mouse_complete_primary_jit_exclude_list = {}
 # ven_percentage_per_celltype("hg19.cage_peak_phase1and2combined_tpm.osc.txt", "Promoters", "Adipocyte - perirenal", 4,
 #                       1000, 20,expression=1, not_include=complete_primary_non_include_list,
 #                       celltype_exclude=complete_primary_exclude_list)
-#
+
+# """
+complete_promoters = Promoters("hg19.cage_peak_phase1and2combined_tpm.osc.txt",
+                               three_donors_cell_list,
+                               celltype_exclude=complete_primary_exclude_list,
+                               not_include=complete_cancer_non_include_list,
+                               partial_exclude=complete_primary_jit_exclude_list,
+                               sample_types="primary cells")
+
+complete_promoters.get_all_vencodes([1, 2, 3, 4, 5], threshold=50, multi=True, at_least_one=True)
+complete_promoters.database.codes_to_csv("codes_three_donors.csv", "list", "/Figure 1/Test codes/")
+complete_promoters.database.celltypes_to_csv("celltypes_three_donors.csv", "/Figure 1/Test codes/")
+# """
+
+""" For figure 1 cancer cell lines:
 complete_promoters = Promoters("hg19.cage_peak_phase1and2combined_tpm.osc.txt",
                                merged_lines_cancer_cells,
                                celltype_exclude=complete_primary_exclude_list,
@@ -1084,8 +1100,10 @@ complete_promoters = Promoters("hg19.cage_peak_phase1and2combined_tpm.osc.txt",
                                second_parser="primary cells")
 
 complete_promoters.get_all_vencodes([1,2,3,4,5], threshold=50, multi=True, at_least_one=True)
+
 # complete_promoters.database.codes_to_csv("codes_merged_cancer_cells.csv", "list", "/Figure 1/Test codes/")
 # complete_promoters.database.celltypes_to_csv("celltypes_merged_cancer_cells.csv", "list", "/Figure 1/Test codes/")
+"""
 # endregion "Promoters"
 
 # region "Enhancers"
