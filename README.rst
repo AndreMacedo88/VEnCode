@@ -22,9 +22,10 @@ Additionally, you will have to download any unannotated TSS database from `FANTO
 Installing
 ^^^^^^^^^^
 
-Running the tests
+Running the method Objects
 -----------------
-Note: (most) Scripts to generate figures can be found in the "Scripts" folder. Old scripts can be found in somewhat obsolete files such as "main_fantom.py", even though this file still has some relevant functions for some publication panels/figures. Files such as "Classes_2.py" are probably obsolete by now and I should check if can be removed.
+Import objects from .py files (Classes.py, Plots.py) using, for example, "from VEnCode import Classes", to use in your own methods.
+Note: You can see examples of most functions and objects being used by going to the "Scripts" folder. Old scripts can be found in somewhat obsolete files such as "main_fantom.py", even though this file still has some relevant functions for some publication panels/figures.
 
 Contributing
 ------------
@@ -45,7 +46,7 @@ Authors
 License
 -------
 
-This project is licensed under the Apache License 2.0 license - see the **LICENSE.rst** file for details
+This project is not under any free License at the moment.
 
 Acknowledgements
 ----------------

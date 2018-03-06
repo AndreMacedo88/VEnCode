@@ -1211,15 +1211,6 @@ class Promoters(DatabaseOperations):
         cell_list = list(self.codes.keys())
         Util.write_list_to_csv(file_name, cell_list, folder_name, path="parent")
 
-
-# TODO: with the changes in __init__ to the BaseClass, some of these static methods may now be converted to self.xx!
-# TODO: see if can change at_least_one_node_calculator: vencode assessment can be done after select columns /
-#  also, retrieving the promoter variable here, via appending to a list, enables us to retrieve the vencodes
-# TODO: change the isinstance(obj, type) for isintance(obj, (type1, type2, etc))
-# TODO: implement database baseclass
-# TODO: cd16 must drop cd4+ samples
-
-
 class Enhancers(DatabaseOperations):
     """ A class describing the methods for the enhancers database """
 
