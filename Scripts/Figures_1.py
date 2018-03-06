@@ -1054,6 +1054,7 @@ mouse_complete_primary_non_include_list = {}
 mouse_complete_primary_exclude_list = []
 mouse_complete_primary_jit_exclude_list = {}
 
+# endregion "Mouse"
 # endregion "Global Variables"
 
 

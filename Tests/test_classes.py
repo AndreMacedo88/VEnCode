@@ -2,8 +2,10 @@
 
 """Tests classes for VEnCode"""
 
+import pandas as pd
 from .context import Classes
-from Common_variables import file_name, complete_primary_cell_list, complete_primary_exclude_list, \
+from Common_variables import promoter_file_name, enhancer_file_name, enhancer_names_db, complete_primary_cell_list, \
+    complete_primary_exclude_list, \
     complete_primary_non_include_list, complete_primary_jit_exclude_list
 
 # region "test enhancer class methods"
@@ -17,9 +19,26 @@ for key, value in x.partial_exclude_codes.items():
     print("Enhancers", key, value, len(value), sep="\n", end="\n\n")
 print(x.celltype, x.raw_data.shape, x.sample_types, x.file, x.parent_path, x.data.shape, x.codes, sep="\n", end="\n\n")
 """
+
+
 # endregion "test enhancer class methods"
 
 # region "test promoter class methods"
+
+class TestHeuristicAlgo():
+    def __init__(self):
+        self.setup = Classes.Promoters(promoter_file_name, complete_primary_cell_list,
+                                 celltype_exclude=complete_primary_exclude_list,
+                                 not_include=complete_primary_non_include_list,
+                                 partial_exclude=complete_primary_jit_exclude_list,
+                                 sample_types="primary cells", second_parser=None,
+                                 conservative=True, log_level="info", nrows=100)
+        self.test_data = pd.DataFrame()
+
+    def test_node_based_vencode_getter(self):
+        test_list = self.setup.node_based_vencode_getter()
+
+
 """
 y = Classes.Promoters("hg19.cage_peak_phase1and2combined_tpm.osc.txt", complete_primary_cell_list,
                       celltype_exclude=complete_primary_exclude_list, not_include=complete_primary_non_include_list,

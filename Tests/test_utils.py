@@ -13,6 +13,13 @@ class TestCFNL:
         for i in Util.combinations_from_nested_lists(self.list):
             print(i)
 
+class TestMakingWritingFiles:
+    def test_dicts(self):
+        results_dict = {"aa": [1,2], "bb": [2,4]}
+        results_directory = Util.check_if_and_makefile(r"/example/testing dicts",
+                                                       path_type="parent")
+        # Util.check_if_and_makedir(results_directory)
+        Util.write_dict_to_csv(results_directory, results_dict, deprecated=False)
 
 if __name__ == "__main__":
     """

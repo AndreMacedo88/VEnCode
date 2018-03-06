@@ -8,6 +8,7 @@ import itertools as iter
 import logging
 import os
 import re
+from collections import defaultdict
 
 import numpy as np
 import pandas as pd
@@ -325,7 +326,7 @@ class Promoters(DatabaseOperations):
 
     def __init__(self, file, celltype, celltype_exclude=None, not_include=None, partial_exclude=None,
                  sample_types="primary cells", skiprows=1831, second_parser=None, nrows=None, conservative=False,
-                 log_level="DEBUG", enhancers=None):
+                 log_level="DEBUG", enhancers=None, ram_saving=True):
         super().__init__(file, celltype, celltype_exclude=celltype_exclude, not_include=not_include,
                          sample_types=sample_types, skiprows=skiprows, second_parser=second_parser, nrows=nrows,
                          log_level=log_level)
@@ -337,25 +338,26 @@ class Promoters(DatabaseOperations):
             for column_code in self.raw_data.columns:
                 crazy_dict[column_code] = self.names_db.loc[column_code, "celltypes"]
             self.raw_data.rename(columns=crazy_dict, inplace=True)
-        self.data = self.first_parser()
-        self.codes = self.code_selector(self.data, self.celltype, not_include=self.not_include,
-                                        to_dict=True)
+        self.data = self._first_parser()
+        self.codes = self._code_selector(self.data, self.celltype, not_include=self.not_include,
+                                         to_dict=True)
         self.conservative = conservative
         if self.second_parser is not None:
             temp_codes = [x for a in self.codes.values() for x in a]
             self.codes_df = self.data.filter(items=temp_codes)
             self.sample_types = self.second_parser
-            self.data = self.first_parser()
+            self.data = self._first_parser()
             self.data = pd.concat([self.data, self.codes_df], axis=1)
         if partial_exclude and (enhancers is None):
             self.partial_exclude_codes = {}
             for key, value in partial_exclude.items():
-                self.partial_exclude_codes[key] = self.code_selector(self.data, value[0], not_include=value[1])
+                self.partial_exclude_codes[key] = self._code_selector(self.data, value[0], not_include=value[1])
+        if ram_saving:
+            self.raw_data = None  # for RAM optimization only, remove if raw_data is needed
 
-    def first_parser(self):
+    def _first_parser(self):
         data_1 = self.raw_data.drop(self.raw_data.index[[0, 1]])
-        # self.raw_data = None  # for RAM optimization only, remove if raw_data is needed
-        universal_rna = self.code_selector(data_1, "universal", not_include=None)
+        universal_rna = self._code_selector(data_1, "universal", not_include=None)
         data_1.drop(universal_rna, axis=1, inplace=True)
         if self.enhancers is None:
             to_keep = self.sample_category_selector("sample types - FANTOM5.csv", self.sample_types)
@@ -373,31 +375,11 @@ class Promoters(DatabaseOperations):
             data = data.join(data_temp)
         # Exclude some specific, on-demand, cell-types from the data straight away:
         if self.celltype_exclude is not None:
-            codes_exclude = self.code_selector(data, self.celltype_exclude)
+            codes_exclude = self._code_selector(data, self.celltype_exclude)
             data.drop(codes_exclude, axis=1, inplace=True)
         return data
 
-    def merge_donors_into_celltypes(self, exclude=None):
-        """
-        Applies a more conservative, but faster approach to data set mining:
-        cell type columns are created by merging all donors for that cell type. Merging is done by calculating the
-        average of all donors.
-        :param exclude: celltypes to exclude from this merging.
-        """
-        if exclude is not None:
-            codes = self.codes.copy()
-            codes.pop(exclude, None)
-            data_merged = pd.DataFrame(index=self.data.index.values, columns=[key for key in codes.keys()])
-            data_merged = pd.concat([data_merged, self.data[self.codes[exclude]]], axis=1)
-        else:
-            codes = self.codes.copy()
-            data_merged = pd.DataFrame(index=self.data.index.values, columns=[key for key in codes.keys()])
-        for code, donors in codes.items():
-            celltypes_averaged = self.data[donors].apply(np.mean, axis=1)
-            data_merged[code] = celltypes_averaged
-        return data_merged
-
-    def code_selector(self, db, celltype, not_include=None, to_dict=False):
+    def _code_selector(self, db, celltype, not_include=None, to_dict=False):
         """ Selects codes from database using """
         if isinstance(celltype, list):
             codes = []
@@ -433,6 +415,26 @@ class Promoters(DatabaseOperations):
         self.test_codes(codes, celltype)
         return codes
 
+    def merge_donors_into_celltypes(self, exclude=None):
+        """
+        Applies a more conservative, but faster approach to data set mining:
+        cell type columns are created by merging all donors for that cell type. Merging is done by calculating the
+        average of all donors.
+        :param exclude: celltypes to exclude from this merging.
+        """
+        if exclude is not None:
+            codes = self.codes.copy()
+            codes.pop(exclude, None)
+            data_merged = pd.DataFrame(index=self.data.index.values, columns=[key for key in codes.keys()])
+            data_merged = pd.concat([data_merged, self.data[self.codes[exclude]]], axis=1)
+        else:
+            codes = self.codes.copy()
+            data_merged = pd.DataFrame(index=self.data.index.values, columns=[key for key in codes.keys()])
+        for code, donors in codes.items():
+            celltypes_averaged = self.data[donors].apply(np.mean, axis=1)
+            data_merged[code] = celltypes_averaged
+        return data_merged
+
     # Promoter specific util methods
 
     def filter_prep_sort_drop_codes(self, codes, expression, threshold):
@@ -465,7 +467,7 @@ class Promoters(DatabaseOperations):
     # Algorithms
 
     def node_based_vencode_getter(self, data_frame, promoter=False, combinations_number=4, counter=1, skip=(),
-                                  breaks=None):
+                                  breaks=None, stop=3):
         """
 
         :param data_frame: Data frame containing cage-seq expression profile for several celltypes. Dataframe object
@@ -474,9 +476,9 @@ class Promoters(DatabaseOperations):
         :param counter: Counter is equal to the depth of the current node. int type
         :param breaks: Dictionary containing keys for the different levels of breaks (one per each combination number)
         and values corresponding to how many times each combination already cycled. dict type
+        :param stop: integer representing the number of promoters to test per node level
         :return: The VEnCode if the algorithm found one, or False if it didn't find.
         """
-
         vencode_promoters_list = []
         data_frame = data_frame.copy()
         data_frame.drop(skip, axis=0, inplace=True,
@@ -510,7 +512,7 @@ class Promoters(DatabaseOperations):
                     if counter in counter_thresholds:
                         breaker_index = str(counter_thresholds.index(counter) + 1)
                         breaks["breaker_" + breaker_index] += 1
-                        if breaks["breaker_" + breaker_index] > 3:  # here, we only test x promoters per node level
+                        if breaks["breaker_" + breaker_index] > stop:  # here, we only test x promoters per node level
                             breaks["breaker_" + breaker_index] = 0
                             return []
                     # endregion "early quit if loop is taking too long"
@@ -519,7 +521,9 @@ class Promoters(DatabaseOperations):
                                                                    counter=counter, breaks=breaks)
                     if promoter_next:
                         vencode_promoters_list.append(promoter_next)
-                        return vencode_promoters_list  # for more than one vencode, need to put an if clause here
+                        return vencode_promoters_list
+            else:
+                vencode_promoters_list = []
             return vencode_promoters_list
 
     @staticmethod
@@ -551,18 +555,20 @@ class Promoters(DatabaseOperations):
         return e_value
 
     @staticmethod
-    def e_value_normalizer(e_value, celltype_number, m, b):
+    def e_value_normalizer(e_value_raw, celltype_number, number_of_re):
         """
         Normalizes the e-value due to disparity in number of celltypes
-        :param e_value: value to normalize
+        :param e_value_raw: value to normalize
         :param celltype_number: number of cell types in data set
-        :param m: slope
-        :param b: interception at origin
+        :param number_of_re: number of RE in sample
         :return: normalized e-value
         """
-        e_value = (e_value / ((m * celltype_number) + b)) * 100
-        if e_value < 100:
-            return e_value
+        coefs = {"a": -164054.1, "b": 0.9998811, "c": 0.000006088948, "d": 1.00051, "m": 0.9527, "e": -0.1131}
+        e_value_expected = (coefs["m"] * number_of_re + coefs["e"]) * celltype_number ** (
+        coefs["d"] + ((coefs["a"] - coefs["d"]) / (1 + (number_of_re / coefs["c"]) ** coefs["b"])))
+        e_value_norm = (e_value_raw / e_value_expected) * 100
+        if e_value_norm < 100:
+            return e_value_norm
         else:
             return 100
 
@@ -575,7 +581,7 @@ class Promoters(DatabaseOperations):
             if Util.assess_vencode_one_zero_boolean(sample):  # assess if VEnCode
                 return sample
 
-    def logging_proms(self, params):
+    def logging_proms(self, locals_):
         # Get function name:
         current_frame = inspect.currentframe()
         caller_frame = inspect.getouterframes(current_frame, 2)
@@ -584,14 +590,14 @@ class Promoters(DatabaseOperations):
         folder = "/Logs/"
         parent_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..")) + folder
         Util.check_if_and_makedir(parent_path)
-        file_name = Util.check_if_and_makefile(parent_path, func, file_type=".log")
+        file_directory = Util.check_if_and_makefile(func, path=parent_path, file_type=".log")
         # Config and start logging
-        logging.basicConfig(filename=parent_path + file_name, level=logging.DEBUG,
+        logging.basicConfig(filename=file_directory, level=logging.DEBUG,
                             format="{asctime} - {levelname} - {message}", filemode='w', style="{")
         logger = logging.getLogger(__name__)
         # Get parameters in string:
-        del params["self"]
-        first_log = " ".join([str(x) + "-" + str(y) for x, y in params.items()])
+        del locals_["self"]
+        first_log = " ".join([str(x) + "-" + str(y) for x, y in locals_.items()])
         logger.info(first_log)
         logger.setLevel(self.log_level)
         return logger
@@ -727,15 +733,19 @@ class Promoters(DatabaseOperations):
         Util.write_one_value_dict_to_csv(file_name + ".csv", ven_diagram_1, folder)
 
     def ven_diagram_interception(self, vens_to_test, sampling_number, number_donors, combinations_number=4,
-                                 expression=1, threshold=90):
-        for code_1 in self.codes:  # cycle through cell types to get the number of vencodes at the interception of donors/replicates.
-            codes_1 = self.codes[code_1]  # get all the donors/replicates for this cell type in a list
+                                 expression=1, threshold=90, custom_celltypes=()):
+        if custom_celltypes:
+            celltypes_analysis = custom_celltypes
+        else:
+            celltypes_analysis = self.codes
+        for celltype in celltypes_analysis:  # cycle through cell types to get the number of vencodes at the interception of donors/replicates.
+            codes_1 = self.codes[celltype]  # get all the donors/replicates for this cell type in a list
             number = 0
-            ven_diagram_1 = {}
+            ven_diagram_1 = defaultdict(list)
             while number < sampling_number:  # limit VEnCode testing to sampling_number
                 number += 1
-                codes = np.random.choice(codes_1, number_donors,
-                                         replace=False)  # redundant, unless for statistics, using random sampling method.
+                # codes = np.random.choice(codes_1, number_donors, replace=False)
+                codes = codes_1
                 ven_diagram = {}
                 for code in codes:  # start cycling each donor/replicate.
                     print("Sample:", code, sep="\n", end="\n\n")
@@ -774,14 +784,15 @@ class Promoters(DatabaseOperations):
                             break
                     ven_diagram[code] = (sum(ven_diagram[code]) / n) * 100  # sum the appended values and normalize.
                     print(n)
-                codes_string = ''.join(codes.tolist())
-                ven_diagram_1[codes_string] = np.mean(list(ven_diagram.values()))
+                codes_string = '-'.join(codes)
+                ven_diagram_1[codes_string].append(np.mean(list(ven_diagram.values())))
             print(ven_diagram_1)
-            folder = "/Figure 3-b2/cell lines/"
+            folder = "/Figure 3-b2/"
             if not os.path.exists(folder):
                 os.makedirs(folder)
-            file_name = u"/interception of {}".format(code_1)
+            file_name = u"/interception of {}".format(celltype.replace(":", "-"))
             Util.write_one_value_dict_to_csv(file_name + ".csv", ven_diagram_1, folder)
+            Util.write_dict_to_csv(file_name + "_2.csv", ven_diagram_1, folder, path="parent")
 
     def inter_donor_percentage_difference(self, vens_to_test, sampling_number, number_donors, combinations_number=4,
                                           expression=1, threshold=90, single_file=False):
@@ -859,7 +870,7 @@ class Promoters(DatabaseOperations):
             if single_file:
                 folder = "/Figure 3-b2/cell lines/"
                 Util.check_if_and_makedir(folder)
-                file_name = Util.check_if_and_makefile(folder, u"/interception of {}".format(celltype))
+                file_name = Util.check_if_and_makefile(folder + u"/interception of {}".format(celltype))
                 Util.write_one_value_dict_to_csv(file_name, interception_codes, folder)
                 logger.info("File generated: {}".format(file_name))
             else:
@@ -1030,54 +1041,123 @@ class Promoters(DatabaseOperations):
             to_csv = self.data.loc[list(vencode_to_write)]
             to_csv = to_csv.applymap(
                 lambda x: 0 if x == 0 else 1)  # change expression to 1s and 0s for quickness
-            file_name = Util.file_directory_handler("{}_ven_enh_1.csv".format(celltype), "/VenCodes/", path="parent")
+            file_name = Util.file_directory_handler("{}_ven_enh_1.csv".format(celltype), folder="/VenCodes/",
+                                                    path="parent")
             with open(file_name, 'a') as f:
                 to_csv.to_csv(f, sep=";")
         file_name_e_values = "{}_ven_test_1_evalues.csv".format(celltype)
         Util.write_dict_to_csv(file_name_e_values, vencodes_final_dict, "/VenCodes/", path="parent")
         return
 
+    def at_least_one_vencode_improved(self, combinations_number=tuple(range(1, 11)), expression=1, threshold=90,
+                                      stop=5):
+        """
+        Writes a file containing information about VEnCode accessibility for each celltype, where 1 represents a
+        VEnCode. e.g.:
+                k=  |1|2|3|4|
+        Astrocytes: |0|0|1|1|
+        Meaning: Astrocytes have VEnCodes when k>=3.
+
+        :param combinations_number: Number of combinations to search for VEnCodes. List
+        :param expression: Minimum RE expression to qualify for VEnCode for each celltype. Int
+        :param threshold: Starting threshold of sparseness. Int
+        :param stop: Number of nodes to test at each level. Int
+        """
+        logger = self.logging_proms(locals())
+        data_copy = self.data.copy()
+        results_dict = defaultdict(list)
+        if self.conservative:
+            self.data = self.merge_donors_into_celltypes()
+        for celltype in self.celltype:
+            Util.multi_log(logger, "Starting:", celltype)
+            if self.conservative:
+                data_celltype = self.data[celltype]
+                self.data.drop(celltype, axis=1, inplace=True)
+                self.data = pd.concat([self.data, data_copy[self.codes[celltype]]], axis=1)
+            data = self.filter_prep_sort_drop_codes(self.codes[celltype], expression, threshold)
+            for k in combinations_number:
+                breaks = {}  # this next section creates a dictionary to update with how many times each node is cycled
+                for item in range(1, k):
+                    breaks["breaker_" + str(item)] = 0
+                skip = []
+                vencodes_from_nodes = self.node_based_vencode_getter(data,
+                                                                     combinations_number=k, skip=skip,
+                                                                     breaks=breaks, stop=stop)
+                if not vencodes_from_nodes:
+                    results_dict[celltype].append(0)
+                else:
+                    for v in range(k, len(combinations_number) + 1):
+                        results_dict[celltype].append(1)
+                    break
+            if self.conservative:  # to save RAM space, we spend a bit more time returning self.data to its original.
+                self.data.drop(data_copy[self.codes[celltype]], axis=1, inplace=True)
+                self.data = pd.concat([self.data, data_celltype], axis=1)
+            Util.multi_log(logger, celltype, results_dict[celltype])
+        results_directory = Util.check_if_and_makefile(r"/VEnCode Search/All CellTps VEnC search",
+                                                       path_type="parent")
+        Util.write_dict_to_csv(results_directory, results_dict, deprecated=False)
+
     def intra_individual_robustness(self, combinations_number, vens_to_take, reps=1, threshold=90, expression=1,
                                     get_vencodes=False):
+        """
+
+        :param combinations_number: Number of combinations to search for VEnCodes. List
+        :param vens_to_take:
+        :param reps:
+        :param threshold: Starting threshold of sparseness. Int
+        :param expression: Minimum RE expression to qualify for VEnCode for each celltype. Int
+        :param get_vencodes:
+        """
         final = {}
         final_vencodes = {}
         base_threshold = threshold
+        data_copy = self.data.copy()
+        if self.conservative:
+            self.data = self.merge_donors_into_celltypes()
         # Starting loop through all cell types:
         for cell in self.codes:
             threshold = base_threshold
             codes = self.codes[cell]
             print("Cell types to get VEnCodes:", *codes, sep="\n", end="\n\n")
+            if self.conservative:
+                data_celltype = self.data[cell]
+                self.data.drop(cell, axis=1, inplace=True)
+                self.data = pd.concat([self.data, data_copy[self.codes[cell]]], axis=1)
             filter_1 = Util.df_filter_by_expression_and_percentile(self.data, codes, expression, 1)
-            false_negatives = []
+            e_values_list = []
             counter = 0
-            while len(false_negatives) < vens_to_take:
-                filter_2, threshold = Util.df_filter_by_percentile(filter_1, codes, threshold, combinations_number)
+            while len(e_values_list) < vens_to_take:
+                filter_2, threshold = Util.df_filter_by_percentile(filter_1, codes, threshold)
                 if get_vencodes:
-                    false_negative, vencodes = Util.vencode_percent_sampling_monte_carlo(codes, filter_2,
-                                                                                         combinations_number,
-                                                                                         vens_to_take, reps,
-                                                                                         vencodes=threshold,
-                                                                                         stop_at=250000)
+                    e_value_raw, vencodes = Util.vencode_percent_sampling_monte_carlo(codes, filter_2,
+                                                                                      combinations_number,
+                                                                                      vens_to_take, reps,
+                                                                                      vencodes=threshold,
+                                                                                      stop_at=250000)
                     final_vencodes.update(vencodes)
                 else:
-                    false_negative = Util.vencode_percent_sampling_monte_carlo(codes, filter_2, combinations_number,
-                                                                               vens_to_take,
-                                                                               reps, vencodes=get_vencodes,
-                                                                               stop_at=250000)
+                    e_value_raw = Util.vencode_percent_sampling_monte_carlo(codes, filter_2, combinations_number,
+                                                                            vens_to_take,
+                                                                            reps, vencodes=get_vencodes,
+                                                                            stop_at=250000)
                 try:
-                    for item in false_negative:
-                        false_negatives.append(item)
+                    for item in e_value_raw:
+                        e_value_norm = self.e_value_normalizer(item, filter_2.shape[1], combinations_number)
+                        e_values_list.append(e_value_norm)
                 except:
                     pass
                 threshold -= 5
                 counter += 1
                 if threshold < 50 or counter == 3:
-                    if len(false_negatives) == vens_to_take:
+                    if len(e_values_list) == vens_to_take:
                         break
-                    for i in range(len(false_negatives), vens_to_take):
-                        false_negatives.append("-")
+                    for i in range(len(e_values_list), vens_to_take):
+                        e_values_list.append("-")
                     break
-            final[cell] = false_negatives
+            final[cell] = e_values_list
+            if self.conservative:  # to save RAM space, we spend a bit more time returning self.data to its original.
+                self.data.drop(data_copy[self.codes[cell]], axis=1, inplace=True)
+                self.data = pd.concat([self.data, data_celltype], axis=1)
 
         folder = "/Figure 2/"
         if get_vencodes:
@@ -1085,7 +1165,6 @@ class Promoters(DatabaseOperations):
             Util.write_dict_to_csv(file_name, final_vencodes, folder, path="parent")
         file_name = u"/VEnCode E-values {} samples {} VEnCodes.csv".format(len(self.codes), vens_to_take)
         Util.write_dict_to_csv(file_name, final, folder, path="parent")
-        return
 
     # Tests:
 

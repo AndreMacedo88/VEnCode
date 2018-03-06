@@ -9,14 +9,16 @@ from Utils import Util
 import Classes
 
 if __name__ == "__main__":
-    celltype_number = [20, 80, 100, 154, 200, 250, 350, 450, 550, 650, 750]
-    promoter_number = range(3, 6)  # number of promoters ranging from x to y
+    celltype_number = [20, 80, 100, 154, 200, 250, 350, 450, 550, 650, 800, 1000]
+    promoter_number = range(1, 11)  # number of promoters ranging from x to y
     e_values = pd.DataFrame(index=promoter_number, columns=celltype_number)
     for i in celltype_number:
+        print("Starting number of cell types: {}".format(i))
         for z in promoter_number:
+            print("Starting number of promoters: {}".format(z))
             data = pd.DataFrame(np.zeros(shape=(z, i)), dtype=np.int8)
             e_value = Classes.Promoters.e_value_calculator(data, reps=1000)
             e_values.loc[z, i] = e_value
-    file_name = Util.file_directory_handler("Table for e_value statistics_quick.csv", "/Files/", path="parent")
+    file_name = Util.file_directory_handler("Table for e_value statistics_final.csv", "/Files/", path="parent")
     with open(file_name, 'w') as f:
         e_values.to_csv(f, sep=";")

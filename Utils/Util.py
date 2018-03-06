@@ -744,18 +744,21 @@ def write_list_to_csv(file_name, list_data, folder, path="parent"):
             myfile.write('\n')
 
 
-def write_dict_to_csv(file_name, dict_data, folder, path="normal"):
+def write_dict_to_csv(file_name, dict_data, folder=None, path="normal", deprecated=True):
     """ Starting with a dictionary having key, value pairs where value is a list or similar, writes the dictionary
     to a file named 'file_name'. Remember to include file extension in 'file_name'."""
-    path_working = path_handler(path)
-    try:
-        new_file = path_working + folder + file_name
-    except Exception as ex:
-        template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-        message = template.format(type(ex).__name__, ex.args)
-        print(message)
-        raise
-    check_if_and_makedir(path_working + folder)
+    if deprecated:
+        path_working = path_handler(path)
+        try:
+            new_file = path_working + folder + file_name
+        except Exception as ex:
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args)
+            print(message)
+            raise
+        check_if_and_makedir(path_working + folder)
+    else:
+        new_file = file_name
     keys = sorted(dict_data.keys())
     with open(new_file, 'w') as csv_file:
         writer = csv.writer(csv_file, delimiter=";", lineterminator='\n')
@@ -808,16 +811,20 @@ def write_dict_2_to_csv(file_name, dict_data, folder, path="normal"):
     return
 
 
-def file_directory_handler(file_name, folder, path="normal"):
+def file_directory_handler(file_name, folder=None, path="normal"):
     path_working = path_handler(path)
     try:
         new_file = path_working + folder + file_name
+        directory = path_working + folder
+    except TypeError:
+        new_file = path_working + file_name
+        directory = path_working
     except Exception as ex:
         template = "An exception of type {0} occurred. Arguments:\n{1!r}"
         message = template.format(type(ex).__name__, ex.args)
         print(message)
         raise
-    check_if_and_makedir(path_working + folder)
+    check_if_and_makedir(directory)
     return new_file
 
 
@@ -861,18 +868,18 @@ def check_if_and_makedir(folder):
         return
 
 
-def check_if_and_makefile(path, filename, file_type=".csv", to_return="file"):
+def check_if_and_makefile(filename, path=None, file_type=".csv", path_type="normal"):
+    if path is None:
+        file_directory = file_directory_handler(filename, path=path_type)
+    else:
+        file_directory = path + filename
     for i in range(1, 1000):
-        file = filename + "-" + str(i) + file_type
-        file_path = path + file
-        if os.path.exists(file_path):
+        file_directory_updated = file_directory + "-" + str(i) + file_type
+        if os.path.exists(file_directory_updated):
             continue
         else:
             break
-    if to_return == "file":
-        return file
-    elif to_return == "path":
-        return file_path
+    return file_directory_updated
 
 
 def get_path(path_type):
