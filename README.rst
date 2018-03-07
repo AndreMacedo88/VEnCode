@@ -21,15 +21,15 @@ Additionally, you will have to download the unannotated TSS files from `FANTOM5 
 
 Installing
 ^^^^^^^^^^
-1- Make sure you have the prerequisites;
-2- Fork this project;
-3- Put the TSS files in a folder called "Files" just outside your local forked repository.
+1. Make sure you have the prerequisites;
+2. Fork this project;
+3. Put the TSS files in a folder called "Files" just outside your local forked repository.
 
 Deployment
 -----------------
 Import objects from .py files (Classes.py, Plots.py) using, for example:
 
-.. code:: python
+.. highlight:: python
     from VEnCode import Classes
 
 to use in your own methods.
