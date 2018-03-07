@@ -29,8 +29,7 @@ Deployment
 -----------------
 Import objects from .py files (Classes.py, Plots.py) using, for example:
 
-.. highlight:: python
-    from VEnCode import Classes
+``from VEnCode import Classes``
 
 to use in your own methods.
 Note: You can see examples of most functions and objects being used by going to the "Scripts" folder. Old scripts can be found in somewhat obsolete files such as "main_fantom.py", even though this file still has some relevant functions for some publication panels/figures.
