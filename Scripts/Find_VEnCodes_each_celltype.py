@@ -18,6 +18,6 @@ initialize_promoters = Classes.Promoters(promoter_file_name, complete_primary_ce
                                          not_include=complete_primary_non_include_list,
                                          partial_exclude=complete_primary_jit_exclude_list,
                                          sample_types="primary cells", second_parser=None,
-                                         conservative=True, log_level="info")
+                                         conservative=False, log_level="info")
 
-initialize_promoters.at_least_one_vencode_improved(stop=3)
+initialize_promoters.find_vencodes_each_celltype(stop=5)

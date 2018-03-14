@@ -9,7 +9,7 @@ from Common_variables import promoter_file_name, enhancer_file_name, enhancer_na
     complete_primary_non_include_list, complete_primary_jit_exclude_list
 
 
-class Setup():
+class Setup:
     """
     Sets the variables and other
     """

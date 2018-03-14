@@ -34,15 +34,6 @@ class DatabaseOperations:
         self.raw_data = pd.read_csv(self.parent_path + self.file, sep="\t", index_col=0, skiprows=skiprows,
                                     nrows=nrows, engine="python")
 
-    @classmethod
-    def database(cls, *args, database_type="promoters"):
-        if database_type == "promoters":
-            pass
-        elif database_type == "enhancers":
-            pass
-        else:
-            raise TypeError
-
     @staticmethod
     def sample_category_selector(sample_types_file, types, path="parent", get="index"):
         """
@@ -466,7 +457,8 @@ class Promoters(DatabaseOperations):
 
     # Algorithms
 
-    def node_based_vencode_getter(self, data_frame, promoter=False, combinations_number=4, counter=1, skip=(),
+    @staticmethod
+    def node_based_vencode_getter(data_frame, promoter=False, combinations_number=4, counter=1, skip=(),
                                   breaks=None, stop=3):
         """
 
@@ -474,6 +466,7 @@ class Promoters(DatabaseOperations):
         :param promoter: Previous promoter name(founder node if first time calling this function). str type
         :param combinations_number: Number of combinations of promoters to find VEnCodes. int type
         :param counter: Counter is equal to the depth of the current node. int type
+        :param skip: the promoters to skip when finding a VEnCode. type: tuple or list
         :param breaks: Dictionary containing keys for the different levels of breaks (one per each combination number)
         and values corresponding to how many times each combination already cycled. dict type
         :param stop: integer representing the number of promoters to test per node level
@@ -500,7 +493,7 @@ class Promoters(DatabaseOperations):
             vencode_promoters_list.append(vencode_list)
             return vencode_promoters_list  # found at least one VEnCode so it can return a successful answer
         else:  # if in previous node could not get a definite VEnCode, re-start search with next node
-            promoters = data_frame.index.values  # get a list (not really "list" type) of all the promoters, to cycle
+            promoters = data_frame.index.values  # get an array of all the promoters, to cycle
             counter = counter  # counter is defined with previous counter for recursive use of this function
             counter_thresholds = [i for i in range(2, (combinations_number + 1))]  # set maximum number for counter
             # loop the next area until number of nodes in combination exceeds num of desired proms in comb for VEnCode
@@ -509,16 +502,17 @@ class Promoters(DatabaseOperations):
                 promoters_in_use = (prom for prom in promoters if prom not in skip)
                 for prom in promoters_in_use:  # cycle the promoters
                     # region "early quit if loop is taking too long"
-                    if counter in counter_thresholds:
+                    if breaks is not None and counter in counter_thresholds:
                         breaker_index = str(counter_thresholds.index(counter) + 1)
                         breaks["breaker_" + breaker_index] += 1
                         if breaks["breaker_" + breaker_index] > stop:  # here, we only test x promoters per node level
                             breaks["breaker_" + breaker_index] = 0
                             return []
                     # endregion "early quit if loop is taking too long"
-                    promoter_next = self.node_based_vencode_getter(data_frame, prom,
-                                                                   combinations_number=combinations_number, skip=skip,
-                                                                   counter=counter, breaks=breaks)
+                    promoter_next = Promoters.node_based_vencode_getter(data_frame, prom,
+                                                                        combinations_number=combinations_number,
+                                                                        skip=skip, counter=counter, breaks=breaks,
+                                                                        stop=stop)
                     if promoter_next:
                         vencode_promoters_list.append(promoter_next)
                         return vencode_promoters_list
@@ -565,7 +559,7 @@ class Promoters(DatabaseOperations):
         """
         coefs = {"a": -164054.1, "b": 0.9998811, "c": 0.000006088948, "d": 1.00051, "m": 0.9527, "e": -0.1131}
         e_value_expected = (coefs["m"] * number_of_re + coefs["e"]) * celltype_number ** (
-        coefs["d"] + ((coefs["a"] - coefs["d"]) / (1 + (number_of_re / coefs["c"]) ** coefs["b"])))
+            coefs["d"] + ((coefs["a"] - coefs["d"]) / (1 + (number_of_re / coefs["c"]) ** coefs["b"])))
         e_value_norm = (e_value_raw / e_value_expected) * 100
         if e_value_norm < 100:
             return e_value_norm
@@ -1049,8 +1043,8 @@ class Promoters(DatabaseOperations):
         Util.write_dict_to_csv(file_name_e_values, vencodes_final_dict, "/VenCodes/", path="parent")
         return
 
-    def at_least_one_vencode_improved(self, combinations_number=tuple(range(1, 11)), expression=1, threshold=90,
-                                      stop=5):
+    def find_vencodes_each_celltype(self, combinations_number=tuple(range(1, 11)), expression=1, threshold=90,
+                                    stop=5):
         """
         Writes a file containing information about VEnCode accessibility for each celltype, where 1 represents a
         VEnCode. e.g.:
@@ -1210,6 +1204,7 @@ class Promoters(DatabaseOperations):
     def celltypes_to_csv(self, file_name, folder_name):
         cell_list = list(self.codes.keys())
         Util.write_list_to_csv(file_name, cell_list, folder_name, path="parent")
+
 
 class Enhancers(DatabaseOperations):
     """ A class describing the methods for the enhancers database """

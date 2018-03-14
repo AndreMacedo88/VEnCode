@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-""" defs.py: Functions module for the VEnCode project """
+""" Utils.py: Functions module for the VEnCode project """
 import csv
 import os
 import logging
