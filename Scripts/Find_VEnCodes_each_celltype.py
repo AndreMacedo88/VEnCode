@@ -6,6 +6,7 @@ At least one VEnCode.py: Functions for finding which cell types have at least on
 """
 import sys
 import os
+
 sys.path.append(os.path.abspath(os.path.join('..', '')))
 
 import Classes
@@ -18,6 +19,7 @@ initialize_promoters = Classes.Promoters(promoter_file_name, complete_primary_ce
                                          not_include=complete_primary_non_include_list,
                                          partial_exclude=complete_primary_jit_exclude_list,
                                          sample_types="primary cells", second_parser=None,
-                                         conservative=False, log_level="info")
+                                         conservative=True, log_level="info")
 
-initialize_promoters.find_vencodes_each_celltype(stop=5)
+initialize_promoters.find_vencodes_each_celltype(stop=5, combinations_number=[1, 2, 3, 4, 5], method="sampling",
+                                                 n_samples=10000)

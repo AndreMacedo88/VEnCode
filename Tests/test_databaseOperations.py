@@ -93,7 +93,7 @@ class NodeBasedVencodeGetterTest(unittest.TestCase):
         result = [["three"]]
         self.assertEqual(result, self.one, msg="Result not expected")
 
-    def test_one_multi(self):
+    def test_one_many(self):
         pdutil.multi_set_data_frame(self.data, (("three", "col1"), ("three", "col3")), 0)
         df = pd.DataFrame.from_dict({"six": [0, 0, 0, 0]}, orient="index")
         df.columns = self.data.columns
@@ -115,7 +115,7 @@ class NodeBasedVencodeGetterTest(unittest.TestCase):
         result = [["one", ["four"]]]
         self.assertEqual(result, self.two, msg="Result not expected")
 
-    def test_two_multiple(self):
+    def test_two_many(self):
         self.data.at["one", "col1"] = 1
         self.data.at["two", "col1"] = 0
         self.two = Classes.Promoters.node_based_vencode_getter(self.data, combinations_number=4)
@@ -202,6 +202,32 @@ class NodeBasedVencodeGetterTest(unittest.TestCase):
     def test_multiple_vencodes(self):
         pass
 
+
+class SamplingMethodVencodeGetter(unittest.TestCase):
+    def setUp(self):
+        """First, define initial shared data"""
+        data_pre = {"names": ["one", "two", "three", "four", "five"],
+                    "col1": [0, 1, 1, 0, 1], "col2": [0, 1, 0, 1, 1], "col3": [0, 0, 1, 1, 0],
+                    "col4": [0, 1, 0, 0, 1]}
+        self.data = pd.DataFrame(data=data_pre).set_index("names")
+
+    def test_one(self):
+        self.one = Classes.Promoters.sampling_method_vencode_getter(self.data,
+                                                                    combinations_number=1).index.values.tolist()
+        result = ["one"]
+        self.assertCountEqual(result, self.one, msg="Result not expected")
+
+    def test_two(self):
+        self.data.at["one", "col1"] = 1
+        self.two = Classes.Promoters.sampling_method_vencode_getter(self.data,
+                                                                    combinations_number=2).index.values.tolist()
+        result = ["one", "four"]
+        self.assertCountEqual(result, self.two, msg="Result not expected")
+
+
+class PrepSortTest(unittest.TestCase):
+    def setUp(self):
+        pass
 
 if __name__ == '__main__':  # run tests if called from command-line
     unittest.main()

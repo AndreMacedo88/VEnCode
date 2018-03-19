@@ -567,13 +567,23 @@ class Promoters(DatabaseOperations):
             return 100
 
     @staticmethod
-    def get_vencode_sampling(data, combinations_number=4, to_drop=None, n_samples=100000):
+    def sampling_method_vencode_getter(data, combinations_number=4, to_drop=None, n_samples=100000, n_vencodes=1):
+        """
+        Function that searches for a VEnCode in data by the sampling method. Please note that it retrieves a DataFrame
+        containing the entire sample. This is the reason why it only retrieves one VEnCode.
+        :param data:
+        :param combinations_number:
+        :param to_drop:
+        :param n_samples:
+        :return: a Pandas DataFrame with the sample that is a VEnCode.
+        """
         for i in range(n_samples):
             sample = data.sample(n=combinations_number)  # take a sample of n promoters
             if to_drop is not None:
                 sample = sample.drop(to_drop, axis=1)  # remove it from the data to access VEn
             if Util.assess_vencode_one_zero_boolean(sample):  # assess if VEnCode
-                return sample
+                return sample  # TODO: as of now if only gets the first vencode by sampling, try to use n_vencodes
+        return None
 
     def logging_proms(self, locals_):
         # Get function name:
@@ -1004,7 +1014,7 @@ class Promoters(DatabaseOperations):
                 except ValueError:
                     pass
         if random_ven:
-            vencode_from_sample = self.get_vencode_sampling(data)
+            vencode_from_sample = self.sampling_method_vencode_getter(data)
             if vencode_from_sample is not None:
                 e_value_sampling = self.e_value_calculator(vencode_from_sample)
                 e_value_sampling = self.e_value_normalizer(e_value_sampling, data.shape[1], 0.689168, 48.71315)
@@ -1013,7 +1023,7 @@ class Promoters(DatabaseOperations):
             else:
                 logger.info("Random sampling the data yielded no VEnCodes")
         if random_unfiltered_ven:
-            vencode_from_sample = self.get_vencode_sampling(self.data, to_drop=self.codes[celltype])
+            vencode_from_sample = self.sampling_method_vencode_getter(self.data, to_drop=self.codes[celltype])
             if vencode_from_sample is not None:
                 e_value_sampling = self.e_value_calculator(vencode_from_sample)
                 e_value_sampling = self.e_value_normalizer(e_value_sampling, self.data.shape[1], 0.689168, 48.71315)
@@ -1044,7 +1054,7 @@ class Promoters(DatabaseOperations):
         return
 
     def find_vencodes_each_celltype(self, combinations_number=tuple(range(1, 11)), expression=1, threshold=90,
-                                    stop=5):
+                                    method="sampling", n_samples=200000, stop=5):
         """
         Writes a file containing information about VEnCode accessibility for each celltype, where 1 represents a
         VEnCode. e.g.:
@@ -1055,7 +1065,9 @@ class Promoters(DatabaseOperations):
         :param combinations_number: Number of combinations to search for VEnCodes. List
         :param expression: Minimum RE expression to qualify for VEnCode for each celltype. Int
         :param threshold: Starting threshold of sparseness. Int
-        :param stop: Number of nodes to test at each level. Int
+        :param method: method of searching for VEnCodes. str
+        :param stop: Number of nodes to test at each level. Used in heuristic method. Int
+        :param n_samples: Number of samples to test for VEnCode. Used in sampling method. Int
         """
         logger = self.logging_proms(locals())
         data_copy = self.data.copy()
@@ -1070,17 +1082,25 @@ class Promoters(DatabaseOperations):
                 self.data = pd.concat([self.data, data_copy[self.codes[celltype]]], axis=1)
             data = self.filter_prep_sort_drop_codes(self.codes[celltype], expression, threshold)
             for k in combinations_number:
-                breaks = {}  # this next section creates a dictionary to update with how many times each node is cycled
-                for item in range(1, k):
-                    breaks["breaker_" + str(item)] = 0
-                skip = []
-                vencodes_from_nodes = self.node_based_vencode_getter(data,
-                                                                     combinations_number=k, skip=skip,
-                                                                     breaks=breaks, stop=stop)
+                if method == "heuristic":
+                    breaks = {}  # this next section creates a dictionary to update with how many times each node is cycled
+                    for item in range(1, k):
+                        breaks["breaker_" + str(item)] = 0
+                    skip = []
+                    vencodes_from_nodes = self.node_based_vencode_getter(data,
+                                                                         combinations_number=k, skip=skip,
+                                                                         breaks=breaks, stop=stop)
+                elif method == "sampling":
+                    vencodes_from_nodes = self.sampling_method_vencode_getter(data, combinations_number=k,
+                                                                              n_samples=n_samples)
+                    if isinstance(vencodes_from_nodes, pd.DataFrame):
+                        vencodes_from_nodes = True
+                else:
+                    raise NameError("method name to get VEnCodes not recognized: ", method)
                 if not vencodes_from_nodes:
                     results_dict[celltype].append(0)
                 else:
-                    for v in range(k, len(combinations_number) + 1):
+                    for v in range((k - combinations_number[0]), len(combinations_number)):
                         results_dict[celltype].append(1)
                     break
             if self.conservative:  # to save RAM space, we spend a bit more time returning self.data to its original.
