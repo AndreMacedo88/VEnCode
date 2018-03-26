@@ -15,6 +15,7 @@ import pandas as pd
 from scipy.special import comb
 
 from Utils import Util
+from Utils.Decorators import profile_func
 
 
 class DatabaseOperations:
@@ -567,7 +568,7 @@ class Promoters(DatabaseOperations):
             return 100
 
     @staticmethod
-    def sampling_method_vencode_getter(data, combinations_number=4, to_drop=None, n_samples=100000, n_vencodes=1):
+    def sampling_method_vencode_getter(data, combinations_number=4, to_drop=None, n_samples=100000, threshold=0):
         """
         Function that searches for a VEnCode in data by the sampling method. Please note that it retrieves a DataFrame
         containing the entire sample. This is the reason why it only retrieves one VEnCode.
@@ -575,13 +576,14 @@ class Promoters(DatabaseOperations):
         :param combinations_number:
         :param to_drop:
         :param n_samples:
+        :param threshold: minimum expression threshold that counts to consider a promoter inactive.
         :return: a Pandas DataFrame with the sample that is a VEnCode.
         """
         for i in range(n_samples):
             sample = data.sample(n=combinations_number)  # take a sample of n promoters
             if to_drop is not None:
                 sample = sample.drop(to_drop, axis=1)  # remove it from the data to access VEn
-            if Util.assess_vencode_one_zero_boolean(sample):  # assess if VEnCode
+            if Util.assess_vencode_one_zero_boolean(sample, threshold=threshold):  # assess if VEnCode
                 return sample  # TODO: as of now if only gets the first vencode by sampling, try to use n_vencodes
         return None
 
@@ -1053,7 +1055,8 @@ class Promoters(DatabaseOperations):
         Util.write_dict_to_csv(file_name_e_values, vencodes_final_dict, "/VenCodes/", path="parent")
         return
 
-    def find_vencodes_each_celltype(self, combinations_number=tuple(range(1, 11)), expression=1, threshold=90,
+    def find_vencodes_each_celltype(self, combinations_number=tuple(range(1, 11)), threshold_activity=1,
+                                    threshold_sparseness=90, threshold_inactivity=0,
                                     method="sampling", n_samples=200000, stop=5):
         """
         Writes a file containing information about VEnCode accessibility for each celltype, where 1 represents a
@@ -1063,8 +1066,9 @@ class Promoters(DatabaseOperations):
         Meaning: Astrocytes have VEnCodes when k>=3.
 
         :param combinations_number: Number of combinations to search for VEnCodes. List
-        :param expression: Minimum RE expression to qualify for VEnCode for each celltype. Int
-        :param threshold: Starting threshold of sparseness. Int
+        :param threshold_activity: Minimum RE expression to qualify as active in cell types to get VEnCode. Int
+        :param threshold_sparseness: Starting threshold of sparseness. Int
+        :param threshold_inactivity: minimum RE expression to consider as inactive in all ctps not to get VEnCode. Int
         :param method: method of searching for VEnCodes. str
         :param stop: Number of nodes to test at each level. Used in heuristic method. Int
         :param n_samples: Number of samples to test for VEnCode. Used in sampling method. Int
@@ -1080,10 +1084,11 @@ class Promoters(DatabaseOperations):
                 data_celltype = self.data[celltype]
                 self.data.drop(celltype, axis=1, inplace=True)
                 self.data = pd.concat([self.data, data_copy[self.codes[celltype]]], axis=1)
-            data = self.filter_prep_sort_drop_codes(self.codes[celltype], expression, threshold)
+            data = self.filter_prep_sort_drop_codes(self.codes[celltype], threshold_activity, threshold_sparseness)
             for k in combinations_number:
                 if method == "heuristic":
-                    breaks = {}  # this next section creates a dictionary to update with how many times each node is cycled
+                    # this next section creates a dictionary to update with how many times each node is cycled
+                    breaks = {}
                     for item in range(1, k):
                         breaks["breaker_" + str(item)] = 0
                     skip = []
@@ -1092,7 +1097,8 @@ class Promoters(DatabaseOperations):
                                                                          breaks=breaks, stop=stop)
                 elif method == "sampling":
                     vencodes_from_nodes = self.sampling_method_vencode_getter(data, combinations_number=k,
-                                                                              n_samples=n_samples)
+                                                                              n_samples=n_samples,
+                                                                              threshold=threshold_inactivity)
                     if isinstance(vencodes_from_nodes, pd.DataFrame):
                         vencodes_from_nodes = True
                 else:

@@ -220,12 +220,17 @@ def vencode_percent_sampling_monte_carlo(codes, filters, combinations_number, ve
 # region Other VEnCode functions
 
 
-def assess_vencode_one_zero_boolean(sample):
+def assess_vencode_one_zero_boolean(sample, threshold=0):
     """
     Returns True if sample represents a VEnCodes for a celltype not in "sample". It assumes VEnCodes when all
     other celltypes have at least one promoter not expressing. It's the quickest VEnCode counting algorithm.
     """
-    assess_if_vencode = np.any(sample == 0, axis=0)  # list of True if column has any 0
+    if threshold == 0:
+        assess_if_vencode = np.any(sample == 0, axis=0)  # list of True if column has any 0
+    elif threshold > 0:
+        assess_if_vencode = np.any(sample <= threshold, axis=0)
+    else:
+        raise Exception("Threshold for VEnCode assessment is not valid.")
     return all(assess_if_vencode)  # if all columns are True (contain at least one 0), then is VEn
 
 

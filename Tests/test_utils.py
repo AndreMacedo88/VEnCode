@@ -3,6 +3,7 @@ import pandas as pd
 import pandas.util.testing as pdt
 import numpy as np
 from Utils import Util
+from Utils import pandas_utils as pdutil
 
 
 class FilterByExpressionAndPercentileTest(unittest.TestCase):
@@ -19,8 +20,45 @@ class FilterByExpressionAndPercentileTest(unittest.TestCase):
         prediction = (199, 154)
         result = Util.df_filter_by_expression_and_percentile(self.data, "90", 1, 2, threshold=90)
         print(result)
-        self.assertEqual(prediction, result.shape)
+        self.assertEqual(prediction, result.shape, msg="Result not expected")
 
+
+class AssessVencodeOneZeroBooleanTest(unittest.TestCase):
+    def setUp(self):
+        """ Define some samples to assess if VEnCode. """
+        data_pre = {"names": ["one", "two", "three", "four"],
+                    "col1": [0, 1, 1, 0], "col2": [0, 1, 0, 1], "col3": [0, 0, 1, 1],
+                    "col4": [0, 1, 0, 0]}
+        self.test_pandas_df = pd.DataFrame(data=data_pre).set_index("names").astype("float")
+
+    def test_threshold_zero_success(self):
+        test = Util.assess_vencode_one_zero_boolean(self.test_pandas_df, threshold=0)
+        self.assertTrue(test, msg="Result not expected")
+
+    def test_threshold_zero_fail(self):
+        pdutil.multi_set_data_frame(self.test_pandas_df, (("one", "col1"), ("four", "col1")), 1)
+        test = Util.assess_vencode_one_zero_boolean(self.test_pandas_df, threshold=0)
+        self.assertFalse(test, msg="Result not expected")
+
+    def test_threshold_zero_one_success(self):
+        pdutil.multi_set_data_frame(self.test_pandas_df, (("one", "col1"), ("four", "col1")), 0.1)
+        test = Util.assess_vencode_one_zero_boolean(self.test_pandas_df, threshold=0.1)
+        self.assertTrue(test, msg="Result not expected")
+
+    def test_threshold_zero_one_fail(self):
+        pdutil.multi_set_data_frame(self.test_pandas_df, (("one", "col1"), ("four", "col1")), 1)
+        test = Util.assess_vencode_one_zero_boolean(self.test_pandas_df, threshold=0.1)
+        self.assertFalse(test, msg="Result not expected")
+
+    def test_threshold_zero_zero_one_success(self):
+        pdutil.multi_set_data_frame(self.test_pandas_df, (("one", "col1"), ("four", "col1")), 0.01)
+        test = Util.assess_vencode_one_zero_boolean(self.test_pandas_df, threshold=0.01)
+        self.assertTrue(test, msg="Result not expected")
+
+    def test_threshold_zero_zero_one_fail(self):
+        pdutil.multi_set_data_frame(self.test_pandas_df, (("one", "col1"), ("four", "col1")), 0.1)
+        test = Util.assess_vencode_one_zero_boolean(self.test_pandas_df, threshold=0.01)
+        self.assertFalse(test, msg="Result not expected")
 
 class TestCFNL:
     """ Tests function combinations_from_nested_lists"""
