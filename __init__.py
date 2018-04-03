@@ -1,1 +1,1 @@
-from Classes import DatabaseOperations
+from classes import DatabaseOperations

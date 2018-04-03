@@ -1,9 +1,9 @@
 import unittest
 import pandas as pd
 
-from Utils import pandas_utils as pdutil
-from .context import Classes
-from Common_variables import promoter_file_name, enhancer_file_name, enhancer_names_db, complete_primary_cell_list, \
+from utils import pandas_utils as pdutil
+from .context import classes
+from common_variables import promoter_file_name, enhancer_file_name, enhancer_names_db, complete_primary_cell_list, \
     complete_primary_exclude_list, \
     complete_primary_non_include_list, complete_primary_jit_exclude_list
 
@@ -24,26 +24,26 @@ class EvalueNormalizerTest(unittest.TestCase):
 
         def small_database(n=80, k=4):
             """tests a small sized db"""
-            self.excess.append(Classes.Promoters.e_value_normalizer(1000, n, k))
-            self.near_maximum.append(Classes.Promoters.e_value_normalizer(98, n, k))
-            self.zero.append(Classes.Promoters.e_value_normalizer(0, n, k))
+            self.excess.append(classes.Promoters.e_value_normalizer(1000, n, k))
+            self.near_maximum.append(classes.Promoters.e_value_normalizer(98, n, k))
+            self.zero.append(classes.Promoters.e_value_normalizer(0, n, k))
 
         def standard_database(n=154, k=4):
             """tests a standard sized db"""
-            self.excess.append(Classes.Promoters.e_value_normalizer(1000, n, k))
-            self.near_maximum.append(Classes.Promoters.e_value_normalizer(160, n, k))
-            self.zero.append(Classes.Promoters.e_value_normalizer(0, n, k))
+            self.excess.append(classes.Promoters.e_value_normalizer(1000, n, k))
+            self.near_maximum.append(classes.Promoters.e_value_normalizer(160, n, k))
+            self.zero.append(classes.Promoters.e_value_normalizer(0, n, k))
 
         def large_database(n=800, k=8):
             """tests a large sized db"""
-            self.excess.append(Classes.Promoters.e_value_normalizer(3000, n, k))
-            self.near_maximum.append(Classes.Promoters.e_value_normalizer(2620, n, k))
-            self.zero.append(Classes.Promoters.e_value_normalizer(0, n, k))
+            self.excess.append(classes.Promoters.e_value_normalizer(3000, n, k))
+            self.near_maximum.append(classes.Promoters.e_value_normalizer(2620, n, k))
+            self.zero.append(classes.Promoters.e_value_normalizer(0, n, k))
 
         def database_cut_half():
             """tests a database when it's half full row- or column-wise"""
-            cut_rows = Classes.Promoters.e_value_normalizer(25.3866, 200, 4)
-            cut_cols = Classes.Promoters.e_value_normalizer(117.1372, 200, 4)
+            cut_rows = classes.Promoters.e_value_normalizer(25.3866, 200, 4)
+            cut_cols = classes.Promoters.e_value_normalizer(117.1372, 200, 4)
             self.fifty_percent = (cut_rows, cut_cols)
 
         small_database(), standard_database(), large_database(), database_cut_half()
@@ -82,14 +82,14 @@ class NodeBasedVencodeGetterTest(unittest.TestCase):
             self.breaks["breaker_" + str(item)] = 0
 
     def test_one_first(self):
-        self.one = Classes.Promoters.node_based_vencode_getter(self.data, combinations_number=4)
+        self.one = classes.Promoters.node_based_vencode_getter(self.data, combinations_number=4)
         result = [["one"]]
         self.assertEqual(result, self.one, msg="Result not expected")
 
     def test_one_not_first(self):
         self.data.at["one", "col1"] = 1
         pdutil.multi_set_data_frame(self.data, (("three", "col1"), ("three", "col3")), 0)
-        self.one = Classes.Promoters.node_based_vencode_getter(self.data, combinations_number=4)
+        self.one = classes.Promoters.node_based_vencode_getter(self.data, combinations_number=4)
         result = [["three"]]
         self.assertEqual(result, self.one, msg="Result not expected")
 
@@ -98,39 +98,39 @@ class NodeBasedVencodeGetterTest(unittest.TestCase):
         df = pd.DataFrame.from_dict({"six": [0, 0, 0, 0]}, orient="index")
         df.columns = self.data.columns
         self.data = pd.concat([self.data, df])
-        self.one = Classes.Promoters.node_based_vencode_getter(self.data, combinations_number=4)
+        self.one = classes.Promoters.node_based_vencode_getter(self.data, combinations_number=4)
         result = [["one", "three", "six"]]
         self.assertEqual(result, self.one, msg="Result not expected")
 
     def test_two_contiguous(self):
         pdutil.multi_set_data_frame(self.data, (("one", "col1"), ("four", "col1")), 1)
         self.data.at["two", "col1"] = 0
-        self.two = Classes.Promoters.node_based_vencode_getter(self.data, combinations_number=4)
+        self.two = classes.Promoters.node_based_vencode_getter(self.data, combinations_number=4)
         result = [["one", ["two"]]]
         self.assertEqual(result, self.two, msg="Result not expected")
 
     def test_two_non_contiguous(self):
         self.data.at["one", "col1"] = 1
-        self.two = Classes.Promoters.node_based_vencode_getter(self.data, combinations_number=4)
+        self.two = classes.Promoters.node_based_vencode_getter(self.data, combinations_number=4)
         result = [["one", ["four"]]]
         self.assertEqual(result, self.two, msg="Result not expected")
 
     def test_two_many(self):
         self.data.at["one", "col1"] = 1
         self.data.at["two", "col1"] = 0
-        self.two = Classes.Promoters.node_based_vencode_getter(self.data, combinations_number=4)
+        self.two = classes.Promoters.node_based_vencode_getter(self.data, combinations_number=4)
         result = [["one", ["two", "four"]]]
         self.assertEqual(result, self.two, msg="Result not expected")
 
     def test_three_contiguous(self):
         pdutil.multi_set_data_frame(self.data, (("one", "col2"), ("one", "col3")), 1)
-        self.three = Classes.Promoters.node_based_vencode_getter(self.data, combinations_number=4)
+        self.three = classes.Promoters.node_based_vencode_getter(self.data, combinations_number=4)
         result = [['one', ['two', ['three']]]]
         self.assertEqual(result, self.three, msg="Result not expected")
 
     def test_three_non_contiguous(self):
         pdutil.multi_set_data_frame(self.data, (("one", "col1"), ("one", "col4"), ("four", "col4")), 1)
-        self.three = Classes.Promoters.node_based_vencode_getter(self.data, combinations_number=4)
+        self.three = classes.Promoters.node_based_vencode_getter(self.data, combinations_number=4)
         result = [['one', ['two', ['three', ['four']]]]]
         self.assertEqual(result, self.three, msg="Result not expected")
         """
@@ -140,20 +140,20 @@ class NodeBasedVencodeGetterTest(unittest.TestCase):
         combinations of up to 4. If we set the search for "k" up to 3, we then get the solution:
         [['one', ['three', ['four']]]]
         """
-        self.three_new = Classes.Promoters.node_based_vencode_getter(self.data, combinations_number=3)
+        self.three_new = classes.Promoters.node_based_vencode_getter(self.data, combinations_number=3)
         result = [['one', ['three', ['four']]]]
         self.assertEqual(result, self.three_new, msg="Result not expected")
 
     def test_four_contiguous(self):
         pdutil.multi_set_data_frame(self.data, (("one", "col1"), ("one", "col4"), ("four", "col4")), 1)
-        self.four = Classes.Promoters.node_based_vencode_getter(self.data, combinations_number=4)
+        self.four = classes.Promoters.node_based_vencode_getter(self.data, combinations_number=4)
         result = [['one', ['two', ['three', ['four']]]]]
         self.assertEqual(result, self.four, msg="Result not expected")
 
     def test_four_non_contiguous(self):
         pdutil.multi_set_data_frame(self.data, (("one", "col1"), ("one", "col4"), ("four", "col4"),
                                                 ("two", "col3"), ("one", "col3")), 1)
-        self.four = Classes.Promoters.node_based_vencode_getter(self.data, combinations_number=4)
+        self.four = classes.Promoters.node_based_vencode_getter(self.data, combinations_number=4)
         result = [['one', ['three', ['four', ['five']]]]]
         self.assertEqual(result, self.four, msg="Result not expected")
 
@@ -167,7 +167,7 @@ class NodeBasedVencodeGetterTest(unittest.TestCase):
         pdutil.multi_set_data_frame(self.data, (("one", "col1"), ("one", "col2"), ("one", "col3")), 1)
         self.data.at["five", "col2"] = 0
         result = [['two', ['three', ['four']]]]
-        self.with_breaks = Classes.Promoters.node_based_vencode_getter(self.data, combinations_number=3,
+        self.with_breaks = classes.Promoters.node_based_vencode_getter(self.data, combinations_number=3,
                                                                        breaks=self.breaks, stop=2)
         self.assertEqual(result, self.with_breaks, msg="Result not expected")
 
@@ -177,7 +177,7 @@ class NodeBasedVencodeGetterTest(unittest.TestCase):
         We use the same set up as test_three_non_contiguous.
         """
         pdutil.multi_set_data_frame(self.data, (("one", "col1"), ("one", "col4"), ("four", "col4")), 1)
-        self.three = Classes.Promoters.node_based_vencode_getter(self.data, combinations_number=4, skip=["two"])
+        self.three = classes.Promoters.node_based_vencode_getter(self.data, combinations_number=4, skip=["two"])
         result = [['one', ['three', ['four']]]]
         self.assertEqual(result, self.three, msg="Result not expected")
 
@@ -190,9 +190,9 @@ class NodeBasedVencodeGetterTest(unittest.TestCase):
         self.data.at["five", "col2"] = 0
         result = [['two', ['three', ['four']]]]
         result_2 = []
-        three = Classes.Promoters.node_based_vencode_getter(self.data, combinations_number=3, skip=["one"],
+        three = classes.Promoters.node_based_vencode_getter(self.data, combinations_number=3, skip=["one"],
                                                             breaks=self.breaks, stop=1)
-        three_2 = Classes.Promoters.node_based_vencode_getter(self.data, combinations_number=3, skip=["two"],
+        three_2 = classes.Promoters.node_based_vencode_getter(self.data, combinations_number=3, skip=["two"],
                                                               breaks=self.breaks, stop=2)
         to_assert = ((result, three), (result_2, three_2))
         for i in to_assert:
@@ -212,14 +212,14 @@ class SamplingMethodVencodeGetter(unittest.TestCase):
         self.data = pd.DataFrame(data=data_pre).set_index("names")
 
     def test_one(self):
-        self.one = Classes.Promoters.sampling_method_vencode_getter(self.data,
+        self.one = classes.Promoters.sampling_method_vencode_getter(self.data,
                                                                     combinations_number=1).index.values.tolist()
         result = ["one"]
         self.assertCountEqual(result, self.one, msg="Result not expected")
 
     def test_two(self):
         self.data.at["one", "col1"] = 1
-        self.two = Classes.Promoters.sampling_method_vencode_getter(self.data,
+        self.two = classes.Promoters.sampling_method_vencode_getter(self.data,
                                                                     combinations_number=2).index.values.tolist()
         result = ["one", "four"]
         self.assertCountEqual(result, self.two, msg="Result not expected")
@@ -228,6 +228,7 @@ class SamplingMethodVencodeGetter(unittest.TestCase):
 class PrepSortTest(unittest.TestCase):
     def setUp(self):
         pass
+
 
 if __name__ == '__main__':  # run tests if called from command-line
     unittest.main()

@@ -3,8 +3,8 @@
 
 """inter_robustness.py: Functions for generating inter robustness data """
 
-import Classes
-from Common_variables import promoter_file_name, enhancer_file_name, enhancer_names_db, complete_primary_cell_list, \
+import classes
+from common_variables import promoter_file_name, enhancer_file_name, enhancer_names_db, complete_primary_cell_list, \
     complete_primary_exclude_list, complete_primary_non_include_list, complete_primary_jit_exclude_list, \
     three_donors_cell_list, four_donors_cell_list
 
@@ -16,7 +16,7 @@ lines_3donors = ['acute myeloid leukemia (FAB M2) cell line', 'acute myeloid leu
 
 
 def healthy_lines():
-    initialize_promoters = Classes.Promoters(promoter_file_name,
+    initialize_promoters = classes.Promoters(promoter_file_name,
                                              three_donors_cell_list,
                                              celltype_exclude=complete_primary_exclude_list,
                                              not_include=complete_primary_non_include_list,
@@ -33,7 +33,7 @@ def healthy_lines():
 def cancer_lines():
     for line in lines_3donors:
         complete_primary_cell_list.append(line)
-        initialize = Classes.Promoters(promoter_file_name,
+        initialize = classes.Promoters(promoter_file_name,
                                        complete_primary_cell_list,
                                        celltype_exclude=complete_primary_exclude_list,
                                        not_include=complete_primary_non_include_list,

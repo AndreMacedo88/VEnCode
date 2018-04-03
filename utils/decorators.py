@@ -2,7 +2,7 @@
 # -*- coding: UTF-8 -*-
 
 """
-Decorators.py: Utility functions for Decorating other functions.
+decorators.py: Utility functions for Decorating other functions.
 """
 import os
 from functools import wraps

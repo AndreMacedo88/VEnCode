@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-""" Classes.py: Classes module for the VEnCode project """
+""" classes.py: Classes module for the VEnCode project """
 
 import inspect
 import itertools as iter
@@ -13,9 +13,10 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 from scipy.special import comb
+from tqdm import tqdm
 
-from Utils import Util
-from Utils.Decorators import profile_func
+from utils import util
+from utils.decorators import profile_func
 
 
 class DatabaseOperations:
@@ -130,14 +131,14 @@ class DatabaseOperations:
             combinations_number_list = range(1, combinations_number + 1)
         else:
             combinations_number_list = combinations_number
-        filter_2 = Util.df_filter_by_expression_and_percentile(data, codes, expression, 2, threshold)
+        filter_2 = util.df_filter_by_expression_and_percentile(data, codes, expression, 2, threshold)
         if include_problems:
-            k_ven_percent, problems = Util.vencode_percent_sampling(codes, celltype, filter_2,
+            k_ven_percent, problems = util.vencode_percent_sampling(codes, celltype, filter_2,
                                                                     combinations_number_list,
                                                                     samples_to_take,
                                                                     reps, include_problems=include_problems)
         else:
-            k_ven_percent = Util.vencode_percent_sampling(codes, celltype, filter_2, combinations_number_list,
+            k_ven_percent = util.vencode_percent_sampling(codes, celltype, filter_2, combinations_number_list,
                                                           samples_to_take,
                                                           reps, include_problems=include_problems)
         # Saving to csv or plotting:
@@ -147,14 +148,14 @@ class DatabaseOperations:
                 samples_to_take, file_type, celltype, reps, expression)
             title = "Probability of VEnCode from sample of size k \n {0:s} expression >= {1:d}".format(
                 celltype, expression)
-            Util.write_dict_to_csv(file_name + ".csv", k_ven_percent, folder)
-            fig, path = Util.errorbar_plot(k_ven_percent, folder, file_name, label=celltype, title=title)
+            util.write_dict_to_csv(file_name + ".csv", k_ven_percent, folder)
+            fig, path = util.errorbar_plot(k_ven_percent, folder, file_name, label=celltype, title=title)
             fig.savefig(path)
         if include_problems:
             logging.info("{}: {}".format(celltype, problems))
             new_file_name = u"/Probs for {} - {}x {} samples of k-{}".format(celltype, reps, samples_to_take,
                                                                              combinations_number)
-            Util.write_dict_to_csv(new_file_name + ".csv", problems, folder, path="parent")
+            util.write_dict_to_csv(new_file_name + ".csv", problems, folder, path="parent")
         return k_ven_percent
 
     def not_include_code_getter(self, not_include, df):
@@ -176,17 +177,17 @@ class DatabaseOperations:
             print("", "Starting {}".format(celltype), sep="-> ")
             logging.info("Starting %s", celltype)
             codes = class_instance.codes.get(celltype)
-            filter_2 = Util.df_filter_by_expression_and_percentile(class_instance.data, codes, expression, 2,
+            filter_2 = util.df_filter_by_expression_and_percentile(class_instance.data, codes, expression, 2,
                                                                    threshold)
             filter_2 = filter_2.applymap(lambda x: 0 if x == 0 else 1)  # change expression to 1 and 0 for quickness
-            nodes = Util.node_calculator(filter_2.drop(codes, axis=1))  # the time consumer!
+            nodes = util.node_calculator(filter_2.drop(codes, axis=1))  # the time consumer!
             if multi:
                 for number in range(2, combinations_number + 1):
                     try:
                         calculated_vencodes[number]
                     except KeyError:
                         calculated_vencodes[number] = []
-                    ven_combinations = Util.number_of_combination_from_nodes(nodes, len(filter_2.index), number)
+                    ven_combinations = util.number_of_combination_from_nodes(nodes, len(filter_2.index), number)
                     logging.info("Number of VEnCodes found: %s for k=%s", ven_combinations, number)
                     if mode == "count":
                         calculated_vencodes[number].append(ven_combinations)
@@ -194,7 +195,7 @@ class DatabaseOperations:
                         total_comb = comb(len(filter_2.index), combinations_number, exact=False)
                         calculated_vencodes[number] = ven_combinations / total_comb * 100
             else:
-                ven_combinations = Util.number_of_combination_from_nodes(nodes, len(filter_2.index),
+                ven_combinations = util.number_of_combination_from_nodes(nodes, len(filter_2.index),
                                                                          combinations_number)
                 logging.info("Number of VEnCodes found: %s for k=%s", ven_combinations, combinations_number)
                 if mode == "count":
@@ -222,11 +223,11 @@ class DatabaseOperations:
             except AttributeError:
                 data_frame = class_instance.data
             try:
-                filter_2 = Util.df_filter_by_expression_and_percentile(data_frame, codes, expression, 2,
+                filter_2 = util.df_filter_by_expression_and_percentile(data_frame, codes, expression, 2,
                                                                        threshold)  # apply efficiency filters
             except KeyError:
                 data_frame = data_frame.join(class_instance.codes_df[codes])
-                filter_2 = Util.df_filter_by_expression_and_percentile(data_frame, codes, expression, 2, threshold)
+                filter_2 = util.df_filter_by_expression_and_percentile(data_frame, codes, expression, 2, threshold)
                 filter_2.drop(codes, axis=1, inplace=True)
             filter_2 = filter_2.applymap(lambda x: 0 if x == 0 else 1)  # change expression to 1s and 0s for quickness
             filter_2["sum"] = filter_2.sum(axis=1)  # create a extra column with the sum of 1s for each row (promoter)
@@ -378,7 +379,7 @@ class Promoters(DatabaseOperations):
             if to_dict:
                 code_dict = {}
             for item in celltype:
-                codes_df = Util.df_regex_searcher(item, db)
+                codes_df = util.df_regex_searcher(item, db)
                 codes.append(codes_df.columns.values)
                 if to_dict:
                     code_dict[item] = [code for sublist in codes for code in sublist]
@@ -386,7 +387,7 @@ class Promoters(DatabaseOperations):
             if not to_dict:
                 codes = [item for sublist in codes for item in sublist]
         else:
-            codes_df = Util.df_regex_searcher(celltype, db)
+            codes_df = util.df_regex_searcher(celltype, db)
             codes = list(codes_df.columns.values)
             code_dict = {celltype: codes}
         if not_include is not None:
@@ -399,7 +400,7 @@ class Promoters(DatabaseOperations):
                     not_codes = self.not_include_code_getter(values, codes_df)
                     codes[key] = list(set(code_dict[key]) - set(not_codes))
             else:
-                not_codes_df = Util.df_regex_searcher(not_include, codes_df)
+                not_codes_df = util.df_regex_searcher(not_include, codes_df)
                 not_codes = not_codes_df.columns.values
                 if not codes:
                     codes = [item for sublist in code_dict.values() for item in sublist]
@@ -429,24 +430,32 @@ class Promoters(DatabaseOperations):
 
     # Promoter specific util methods
 
-    def filter_prep_sort_drop_codes(self, codes, expression, threshold):
+    def filter_prep_sort_drop_codes(self, codes, threshold_activity, threshold_sparseness, threshold_inactivity=0):
         """
 
-        :param codes:
-        :param expression:
-        :param threshold:
-        :return:
+        :param codes: Codes of the cell type to get VEnCode for.
+        :param threshold_activity: minimum expression threshold that counts to consider a promoter active
+        :param threshold_sparseness:
+        :param threshold_inactivity: minimum expression threshold that counts to consider a promoter inactive
+        :return: DataFrame without the cell type of interest, filtered by wanted-celltype threshold of expression,
+        non-wanted cell type threshold of expression and sparseness. Also, the data has been converted to 1s and 0s.
         """
         try:
-            data_filtered = Util.df_filter_by_expression_and_percentile(self.data, codes, expression, 2,
-                                                                        threshold)  # apply efficiency filters
+            data_filtered = util.df_filter_by_expression_and_percentile(self.data, codes, threshold_activity, 2,
+                                                                        threshold_sparseness)
         except KeyError:
             data_frame = pd.concat([self.data, self.codes_df], axis=1)
-            data_filtered = Util.df_filter_by_expression_and_percentile(data_frame, codes, expression, 2, threshold)
-        data_filtered = data_filtered.applymap(
-            lambda x: 0 if x == 0 else 1)  # change expression to 1s and 0s for quickness
-        data_filtered = self.prep_sort(data_filtered)
-        data_final = data_filtered.drop(codes, axis=1)
+            data_filtered = util.df_filter_by_expression_and_percentile(data_frame, codes, threshold_activity, 2,
+                                                                        threshold_sparseness)
+        data_filtered = data_filtered.drop(codes, axis=1)
+        # change expression to 1s and 0s for quickness:
+        if threshold_inactivity == 0:
+            data_filtered = data_filtered.applymap(lambda x: 0 if x == 0 else 1)
+        elif threshold_inactivity > 0:
+            data_filtered = data_filtered.applymap(lambda x: 0 if x <= threshold_inactivity else 1)
+        else:
+            raise ValueError("Threshold for non-wanted cell type expression is not valid.")
+        data_final = self.prep_sort(data_filtered)
         return data_final
 
     @staticmethod
@@ -546,7 +555,7 @@ class Promoters(DatabaseOperations):
     def e_value_calculator(vencode_data, reps=100):
         """ Preps the data to be used in Monte Carlo simulation. """
         col_list = vencode_data.columns.values.tolist()
-        e_value = Util.vencode_mc_simulation(vencode_data, col_list, reps=reps)
+        e_value = util.vencode_mc_simulation(vencode_data, col_list, reps=reps)
         return e_value
 
     @staticmethod
@@ -583,7 +592,7 @@ class Promoters(DatabaseOperations):
             sample = data.sample(n=combinations_number)  # take a sample of n promoters
             if to_drop is not None:
                 sample = sample.drop(to_drop, axis=1)  # remove it from the data to access VEn
-            if Util.assess_vencode_one_zero_boolean(sample, threshold=threshold):  # assess if VEnCode
+            if util.assess_vencode_one_zero_boolean(sample, threshold=threshold):  # assess if VEnCode
                 return sample  # TODO: as of now if only gets the first vencode by sampling, try to use n_vencodes
         return None
 
@@ -595,8 +604,8 @@ class Promoters(DatabaseOperations):
         # Prepare directory:
         folder = "/Logs/"
         parent_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..")) + folder
-        Util.check_if_and_makedir(parent_path)
-        file_directory = Util.check_if_and_makefile(func, path=parent_path, file_type=".log")
+        util.check_if_and_makedir(parent_path)
+        file_directory = util.check_if_and_makefile(func, path=parent_path, file_type=".log")
         # Config and start logging
         logging.basicConfig(filename=file_directory, level=logging.DEBUG,
                             format="{asctime} - {levelname} - {message}", filemode='w', style="{")
@@ -621,7 +630,7 @@ class Promoters(DatabaseOperations):
             donors_data = self.data[codes_2]
             data_2 = self.data.drop(codes_2, axis=1)
             print("donors to exclude:", *codes_2, sep="\n", end="\n\n")
-            filter_2 = Util.df_filter_by_expression_and_percentile(data_2, code, expression, 2, threshold)
+            filter_2 = util.df_filter_by_expression_and_percentile(data_2, code, expression, 2, threshold)
             ven_diagram = {"None": []}  # create the final dict to later append VEnCode counts:
             for r in reversed(range(1, (len(codes_2) + 1))):  # create dict keys up front because of append
                 for z in iter.combinations(codes_2, r):
@@ -677,13 +686,13 @@ class Promoters(DatabaseOperations):
                 os.makedirs(folder)
             position = codes.index(code) + 1
             file_name = u"/Donor{} - {}".format(position, self.celltype)
-            Util.write_one_value_dict_to_csv(file_name + ".csv", ven_diagram, folder)
+            util.write_one_value_dict_to_csv(file_name + ".csv", ven_diagram, folder)
 
     def statistics_ven_diagram(self, vens_to_test, sampling_number, number_donors, combinations_number=4,
                                expression=1, threshold=90):
         """ To use to generate statistics based on random sampling the data for functions ven_diagram and, especially,
         ven_diagram_interception """
-        codes_1 = Util.possible_dict_to_list(self.codes)
+        codes_1 = util.possible_dict_to_list(self.codes)
         number = 0
         ven_diagram_1 = {}
         while number < sampling_number:
@@ -696,7 +705,7 @@ class Promoters(DatabaseOperations):
                 donors_data = self.data[codes_2]
                 data_2 = self.data.drop(codes_2, axis=1)
                 print("Samples to exclude:", *codes_2, sep="\n", end="\n\n")
-                filter_2 = Util.df_filter_by_expression_and_percentile(data_2, code, expression, 2, threshold)
+                filter_2 = util.df_filter_by_expression_and_percentile(data_2, code, expression, 2, threshold)
                 ven_diagram[code] = []
                 n = 0
                 stop_counter = 0
@@ -736,7 +745,7 @@ class Promoters(DatabaseOperations):
             file_name = u"/stats for {} celltype".format(self.celltype)
         else:
             file_name = u"/stats for {} celltypes".format(len(self.codes))
-        Util.write_one_value_dict_to_csv(file_name + ".csv", ven_diagram_1, folder)
+        util.write_one_value_dict_to_csv(file_name + ".csv", ven_diagram_1, folder)
 
     def ven_diagram_interception(self, vens_to_test, sampling_number, number_donors, combinations_number=4,
                                  expression=1, threshold=90, custom_celltypes=()):
@@ -759,7 +768,7 @@ class Promoters(DatabaseOperations):
                     donors_data = self.data[codes_2]  # subset of the data for not chosen donors/reps
                     data_2 = self.data.drop(codes_2, axis=1)  # subset of data excluding not chosen donors/reps
                     print("Samples to exclude:", *codes_2, sep="\n", end="\n\n")
-                    filter_2 = Util.df_filter_by_expression_and_percentile(data_2, code, expression, 2,
+                    filter_2 = util.df_filter_by_expression_and_percentile(data_2, code, expression, 2,
                                                                            threshold)  # apply filters
                     ven_diagram[code] = []
                     n = 0
@@ -797,8 +806,8 @@ class Promoters(DatabaseOperations):
             if not os.path.exists(folder):
                 os.makedirs(folder)
             file_name = u"/interception of {}".format(celltype.replace(":", "-"))
-            Util.write_one_value_dict_to_csv(file_name + ".csv", ven_diagram_1, folder)
-            Util.write_dict_to_csv(file_name + "_2.csv", ven_diagram_1, folder, path="parent")
+            util.write_one_value_dict_to_csv(file_name + ".csv", ven_diagram_1, folder)
+            util.write_dict_to_csv(file_name + "_2.csv", ven_diagram_1, folder, path="parent")
 
     def inter_donor_percentage_difference(self, vens_to_test, sampling_number, number_donors, combinations_number=4,
                                           expression=1, threshold=90, single_file=False):
@@ -824,7 +833,7 @@ class Promoters(DatabaseOperations):
                         data_with_code = self.data.drop(codes_others,
                                                         axis=1)  # subset of data excluding not chosen donors/reps
                         logger.info("Samples to exclude: {}".format(codes_others))
-                        data_filtered = Util.df_filter_by_expression_and_percentile(data_with_code, code,
+                        data_filtered = util.df_filter_by_expression_and_percentile(data_with_code, code,
                                                                                     expression, 2,
                                                                                     threshold)  # apply filters
                         interception_ven = {str(code): []}
@@ -834,7 +843,7 @@ class Promoters(DatabaseOperations):
                             stop_counter += 1
                             sample = data_filtered.sample(n=combinations_number)  # take a sample of n promoters
                             sample_dropped = sample.drop(code, axis=1).values  # remove it from the data to access VEn
-                            if Util.assess_vencode_one_zero_boolean(sample_dropped):  # assess if VEnCode
+                            if util.assess_vencode_one_zero_boolean(sample_dropped):  # assess if VEnCode
                                 n += 1
                                 sample_donors_data = data_others.loc[
                                     sample.index.values]  # subset of not chosen donors/reps containing only the sampled promoters
@@ -875,16 +884,16 @@ class Promoters(DatabaseOperations):
                 logger.info("Data for rep {} - {}".format(counter_samples, interception_codes))
             if single_file:
                 folder = "/Figure 3-b2/cell lines/"
-                Util.check_if_and_makedir(folder)
-                file_name = Util.check_if_and_makefile(folder + u"/interception of {}".format(celltype))
-                Util.write_one_value_dict_to_csv(file_name, interception_codes, folder)
+                util.check_if_and_makedir(folder)
+                file_name = util.check_if_and_makefile(folder + u"/interception of {}".format(celltype))
+                util.write_one_value_dict_to_csv(file_name, interception_codes, folder)
                 logger.info("File generated: {}".format(file_name))
             else:
                 interception_together.update(interception_codes)
         folder = "/Figure 3-b2/cell lines/"
-        Util.check_if_and_makedir(folder)
+        util.check_if_and_makedir(folder)
         file_name = u"/interception of {} donors in {} celltypes".format(number_donors, len(self.codes)) + ".csv"
-        Util.write_one_value_dict_to_csv(file_name, interception_together, folder)
+        util.write_one_value_dict_to_csv(file_name, interception_together, folder)
         logger.info("File generated: {}".format(file_name))
 
     def get_vencodes(self, combinations_number=4, p=None, n=None, write_file=False):
@@ -896,22 +905,22 @@ class Promoters(DatabaseOperations):
             code = codes[0]
             others_df = None
             try:
-                filter_1 = Util.df_filter_by_expression(self.data, codes, 1)
+                filter_1 = util.df_filter_by_expression(self.data, codes, 1)
             except KeyError:
                 self.data = self.data.join(self.codes_df[codes])
-                filter_1 = Util.df_filter_by_expression(self.data, codes, 1)
+                filter_1 = util.df_filter_by_expression(self.data, codes, 1)
                 del self.data[codes]
             threshold = 100
             while threshold > 0:
-                with_percentage_of_zeros, column_name = Util.df_percentile_calculator(filter_1, codes,
+                with_percentage_of_zeros, column_name = util.df_percentile_calculator(filter_1, codes,
                                                                                       threshold)
-                filter_2 = Util.df_filter_by_column_value(with_percentage_of_zeros, column_name)
+                filter_2 = util.df_filter_by_column_value(with_percentage_of_zeros, column_name)
                 if p is not None:
                     sorted_1 = filter_2.nlargest(p, codes)
                 else:
                     sorted_1 = filter_2.sort(codes.tolist(), ascending=False)
                 print("starting %s -> threshold = %s" % (code, threshold))
-                success = Util.reform_vencode_n_combinations_of_k(threshold, sorted_1.drop(column_name, axis=1),
+                success = util.reform_vencode_n_combinations_of_k(threshold, sorted_1.drop(column_name, axis=1),
                                                                   code, self.celltype, "Promoters",
                                                                   combinations_number,
                                                                   n, others_df, write_file)
@@ -923,12 +932,12 @@ class Promoters(DatabaseOperations):
             code = codes[0]
             codes_2 = np.array(codes).tolist()
             codes_2.remove(code)
-            filter_1 = Util.df_filter_by_expression(self.data, codes, 1)
+            filter_1 = util.df_filter_by_expression(self.data, codes, 1)
             threshold = 100
             while threshold > 0:
-                with_percentage_of_zeros, column_name = Util.df_percentile_calculator(filter_1, codes,
+                with_percentage_of_zeros, column_name = util.df_percentile_calculator(filter_1, codes,
                                                                                       threshold)
-                filter_2 = Util.df_filter_by_column_value(with_percentage_of_zeros, column_name)
+                filter_2 = util.df_filter_by_column_value(with_percentage_of_zeros, column_name)
                 if p is not None:
                     sorted_1 = filter_2.nlargest(p, codes)
                 else:
@@ -936,7 +945,7 @@ class Promoters(DatabaseOperations):
                 codes_2_df = sorted_1[codes_2]
                 cropped = sorted_1.drop(codes_2, axis=1)
                 print("Starting %s -> threshold = %s" % (self.celltype, threshold))
-                success = Util.reform_vencode_n_combinations_of_k(threshold, cropped.drop(column_name, axis=1),
+                success = util.reform_vencode_n_combinations_of_k(threshold, cropped.drop(column_name, axis=1),
                                                                   code, self.celltype, "Promoters",
                                                                   combinations_number,
                                                                   n, codes_2_df, write_file)
@@ -991,10 +1000,10 @@ class Promoters(DatabaseOperations):
             logger.info(value)
             promoters_copy = promoters
             counter = 0
-            for i in Util.combinations_from_nested_lists(value):
-                Util.multi_log(logger, "Founder:", i)
+            for i in util.combinations_from_nested_lists(value):
+                util.multi_log(logger, "Founder:", i)
                 vencode = self.fill_vencode_list(promoters_copy, list(i), 4)
-                Util.multi_log(logger, "Filled:", vencode)
+                util.multi_log(logger, "Filled:", vencode)
                 promoters_copy = [item for item in promoters_copy if item not in i]  # delete promoters "i"
                 e_value = self.e_value_calculator(data.loc[vencode])
                 e_value = self.e_value_normalizer(e_value, data.shape[1], 0.689168,
@@ -1033,26 +1042,26 @@ class Promoters(DatabaseOperations):
                 vencodes_final_list.append(vencode_from_sample.index.values.tolist())
             else:
                 logger.info("Random sampling the unsorted data yielded no VEnCodes")
-        Util.multi_log(logger, "VEnCodes with e-values:", vencodes_evaluated)
+        util.multi_log(logger, "VEnCodes with e-values:", vencodes_evaluated)
         while len(vencodes_final_list) < number_vencodes:
-            top_valued_vencode = Util.key_with_max_val(vencodes_evaluated)
+            top_valued_vencode = util.key_with_max_val(vencodes_evaluated)
             vencodes_final_dict[top_valued_vencode] = vencodes_evaluated[top_valued_vencode]
             vencodes_evaluated.pop(top_valued_vencode)
             vencodes_final_list.append(top_valued_vencode)
             if not vencodes_evaluated:
                 break
-        Util.multi_log(logger, vencodes_final_dict)
+        util.multi_log(logger, vencodes_final_dict)
         # plotting:
         for vencode_to_write in vencodes_final_dict.keys():
             to_csv = self.data.loc[list(vencode_to_write)]
             to_csv = to_csv.applymap(
                 lambda x: 0 if x == 0 else 1)  # change expression to 1s and 0s for quickness
-            file_name = Util.file_directory_handler("{}_ven_enh_1.csv".format(celltype), folder="/VenCodes/",
+            file_name = util.file_directory_handler("{}_ven_enh_1.csv".format(celltype), folder="/VenCodes/",
                                                     path="parent")
             with open(file_name, 'a') as f:
                 to_csv.to_csv(f, sep=";")
         file_name_e_values = "{}_ven_test_1_evalues.csv".format(celltype)
-        Util.write_dict_to_csv(file_name_e_values, vencodes_final_dict, "/VenCodes/", path="parent")
+        util.write_dict_to_csv(file_name_e_values, vencodes_final_dict, "/VenCodes/", path="parent")
         return
 
     def find_vencodes_each_celltype(self, combinations_number=tuple(range(1, 11)), threshold_activity=1,
@@ -1078,13 +1087,14 @@ class Promoters(DatabaseOperations):
         results_dict = defaultdict(list)
         if self.conservative:
             self.data = self.merge_donors_into_celltypes()
-        for celltype in self.celltype:
-            Util.multi_log(logger, "Starting:", celltype)
+        for celltype in tqdm(self.celltype, desc="Celltypes"):
+            util.multi_log(logger, "Starting:", celltype)
             if self.conservative:
                 data_celltype = self.data[celltype]
                 self.data.drop(celltype, axis=1, inplace=True)
                 self.data = pd.concat([self.data, data_copy[self.codes[celltype]]], axis=1)
-            data = self.filter_prep_sort_drop_codes(self.codes[celltype], threshold_activity, threshold_sparseness)
+            data = self.filter_prep_sort_drop_codes(self.codes[celltype], threshold_activity, threshold_sparseness,
+                                                    threshold_inactivity=threshold_inactivity)
             for k in combinations_number:
                 if method == "heuristic":
                     # this next section creates a dictionary to update with how many times each node is cycled
@@ -1097,8 +1107,7 @@ class Promoters(DatabaseOperations):
                                                                          breaks=breaks, stop=stop)
                 elif method == "sampling":
                     vencodes_from_nodes = self.sampling_method_vencode_getter(data, combinations_number=k,
-                                                                              n_samples=n_samples,
-                                                                              threshold=threshold_inactivity)
+                                                                              n_samples=n_samples)
                     if isinstance(vencodes_from_nodes, pd.DataFrame):
                         vencodes_from_nodes = True
                 else:
@@ -1112,10 +1121,10 @@ class Promoters(DatabaseOperations):
             if self.conservative:  # to save RAM space, we spend a bit more time returning self.data to its original.
                 self.data.drop(data_copy[self.codes[celltype]], axis=1, inplace=True)
                 self.data = pd.concat([self.data, data_celltype], axis=1)
-            Util.multi_log(logger, celltype, results_dict[celltype])
-        results_directory = Util.check_if_and_makefile(r"/VEnCode Search/All CellTps VEnC search",
+            util.multi_log(logger, celltype, results_dict[celltype])
+        results_directory = util.check_if_and_makefile(r"/VEnCode Search/All CellTps VEnC search",
                                                        path_type="parent")
-        Util.write_dict_to_csv(results_directory, results_dict, deprecated=False)
+        util.write_dict_to_csv(results_directory, results_dict, deprecated=False)
 
     def intra_individual_robustness(self, combinations_number, vens_to_take, reps=1, threshold=90, expression=1,
                                     get_vencodes=False):
@@ -1143,20 +1152,20 @@ class Promoters(DatabaseOperations):
                 data_celltype = self.data[cell]
                 self.data.drop(cell, axis=1, inplace=True)
                 self.data = pd.concat([self.data, data_copy[self.codes[cell]]], axis=1)
-            filter_1 = Util.df_filter_by_expression_and_percentile(self.data, codes, expression, 1)
+            filter_1 = util.df_filter_by_expression_and_percentile(self.data, codes, expression, 1)
             e_values_list = []
             counter = 0
             while len(e_values_list) < vens_to_take:
-                filter_2, threshold = Util.df_filter_by_percentile(filter_1, codes, threshold)
+                filter_2, threshold = util.df_filter_by_percentile(filter_1, codes, threshold)
                 if get_vencodes:
-                    e_value_raw, vencodes = Util.vencode_percent_sampling_monte_carlo(codes, filter_2,
+                    e_value_raw, vencodes = util.vencode_percent_sampling_monte_carlo(codes, filter_2,
                                                                                       combinations_number,
                                                                                       vens_to_take, reps,
                                                                                       vencodes=threshold,
                                                                                       stop_at=250000)
                     final_vencodes.update(vencodes)
                 else:
-                    e_value_raw = Util.vencode_percent_sampling_monte_carlo(codes, filter_2, combinations_number,
+                    e_value_raw = util.vencode_percent_sampling_monte_carlo(codes, filter_2, combinations_number,
                                                                             vens_to_take,
                                                                             reps, vencodes=get_vencodes,
                                                                             stop_at=250000)
@@ -1182,9 +1191,9 @@ class Promoters(DatabaseOperations):
         folder = "/Figure 2/"
         if get_vencodes:
             file_name = u"/VEnCodes {} samples {} VEnCodes.csv".format(len(self.codes), vens_to_take)
-            Util.write_dict_to_csv(file_name, final_vencodes, folder, path="parent")
+            util.write_dict_to_csv(file_name, final_vencodes, folder, path="parent")
         file_name = u"/VEnCode E-values {} samples {} VEnCodes.csv".format(len(self.codes), vens_to_take)
-        Util.write_dict_to_csv(file_name, final, folder, path="parent")
+        util.write_dict_to_csv(file_name, final, folder, path="parent")
 
     # Tests:
 
@@ -1222,14 +1231,14 @@ class Promoters(DatabaseOperations):
 
     def codes_to_csv(self, file_name, type, folder_name):
         if type == "dict":
-            Util.write_dict_to_csv(file_name, self.codes, folder_name, path="parent")
+            util.write_dict_to_csv(file_name, self.codes, folder_name, path="parent")
         if type == "list":
-            codes_list = Util.possible_dict_to_list(self.codes)
-            Util.write_list_to_csv(file_name, codes_list, folder_name, path="parent")
+            codes_list = util.possible_dict_to_list(self.codes)
+            util.write_list_to_csv(file_name, codes_list, folder_name, path="parent")
 
     def celltypes_to_csv(self, file_name, folder_name):
         cell_list = list(self.codes.keys())
-        Util.write_list_to_csv(file_name, cell_list, folder_name, path="parent")
+        util.write_list_to_csv(file_name, cell_list, folder_name, path="parent")
 
 
 class Enhancers(DatabaseOperations):

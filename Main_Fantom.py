@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from scipy.special import comb
 
-from Utils import Util
+from utils import util
 
 
 # generating VenCodes:
@@ -18,19 +18,19 @@ from Utils import Util
 def enhancers_improved_vencodes(names_db, file, celltype, p=None, k=4, n=None, write_file=False):
     parent_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..")) + "/Files/"
     raw_data = pd.read_csv(parent_path + file, sep="\t", index_col=0)
-    codes = Util.fantom_code_selector("Enhancers", names_db, celltype)
+    codes = util.fantom_code_selector("Enhancers", names_db, celltype)
     if len(codes) == 1:
-        filter_1 = Util.df_filter_by_expression(raw_data, codes, 1)
+        filter_1 = util.df_filter_by_expression(raw_data, codes, 1)
         print(filter_1.shape[0])
         threshold = 80
-        with_percentage_of_zeros, column_name = Util.df_percentile_calculator(filter_1, codes, threshold)
-        filter_2 = Util.df_filter_by_column_value(with_percentage_of_zeros, column_name)
+        with_percentage_of_zeros, column_name = util.df_percentile_calculator(filter_1, codes, threshold)
+        filter_2 = util.df_filter_by_column_value(with_percentage_of_zeros, column_name)
         if p is not None:
             sorted_1 = filter_2.nlargest(p, codes)
         else:
             sorted_1 = filter_2.sort(codes.tolist(), ascending=False)
         print("starting %s -> threshold = %s" % (codes, threshold))
-        Util.reform_vencode_n_combinations_of_k(threshold, sorted_1.drop(column_name, 1),
+        util.reform_vencode_n_combinations_of_k(threshold, sorted_1.drop(column_name, 1),
                                                 codes, celltype, "Enhancers", k, n, write_file=write_file)
     else:
         for i in range(0, len(codes)):
@@ -40,9 +40,9 @@ def enhancers_improved_vencodes(names_db, file, celltype, p=None, k=4, n=None, w
             codes_2.remove(code)
             cropped = filter_1.drop(codes_2, axis=1)
             print(cropped.shape)
-            with_sum = Util.other_lines_sum_generator(cropped, code)
+            with_sum = util.other_lines_sum_generator(cropped, code)
             p_probes_sorted_df = with_sum.nsmallest(p, "sum")
-            Util.reform_vencode_n_combinations_of_k(p_probes_sorted_df.drop("sum", 1), code, "Enhancers", k, n,
+            util.reform_vencode_n_combinations_of_k(p_probes_sorted_df.drop("sum", 1), code, "Enhancers", k, n,
                                                     write_file)
     return
 
@@ -52,22 +52,22 @@ def promoters_improved_vencodes(file, celltype, p=None, k=4, n=None, write_file=
     raw_data = pd.read_csv("./Files/" + file, sep="\t", index_col=0,
                            skiprows=1831)  # , nrows=3000 nrows=x if we want to load only a few rows
     data = raw_data.drop(raw_data.index[[0, 1]])
-    codes = Util.fantom_code_selector("Promoters", data, celltype)
+    codes = util.fantom_code_selector("Promoters", data, celltype)
     print(codes)
     if len(codes) == 1:
         code = codes[0]
         others_df = None
-        filter_1 = Util.df_filter_by_expression(data, codes, 1)
+        filter_1 = util.df_filter_by_expression(data, codes, 1)
         threshold = 100
         while threshold > 0:
-            with_percentage_of_zeros, column_name = Util.df_percentile_calculator(filter_1, codes, threshold)
-            filter_2 = Util.df_filter_by_column_value(with_percentage_of_zeros, column_name)
+            with_percentage_of_zeros, column_name = util.df_percentile_calculator(filter_1, codes, threshold)
+            filter_2 = util.df_filter_by_column_value(with_percentage_of_zeros, column_name)
             if p is not None:
                 sorted_1 = filter_2.nlargest(p, codes)
             else:
                 sorted_1 = filter_2.sort(codes.tolist(), ascending=False)
             print("starting %s -> threshold = %s" % (code, threshold))
-            success = Util.reform_vencode_n_combinations_of_k(threshold, sorted_1.drop(column_name, axis=1),
+            success = util.reform_vencode_n_combinations_of_k(threshold, sorted_1.drop(column_name, axis=1),
                                                               code, celltype, "Promoters", k, n, others_df, write_file)
             if not success:
                 threshold -= 10
@@ -77,11 +77,11 @@ def promoters_improved_vencodes(file, celltype, p=None, k=4, n=None, write_file=
         code = codes[0]
         codes_2 = np.array(codes).tolist()
         codes_2.remove(code)
-        filter_1 = Util.df_filter_by_expression(data, codes, 1)
+        filter_1 = util.df_filter_by_expression(data, codes, 1)
         threshold = 100
         while threshold > 0:
-            with_percentage_of_zeros, column_name = Util.df_percentile_calculator(filter_1, codes, threshold)
-            filter_2 = Util.df_filter_by_column_value(with_percentage_of_zeros, column_name)
+            with_percentage_of_zeros, column_name = util.df_percentile_calculator(filter_1, codes, threshold)
+            filter_2 = util.df_filter_by_column_value(with_percentage_of_zeros, column_name)
             if p is not None:
                 sorted_1 = filter_2.nlargest(p, codes)
             else:
@@ -89,7 +89,7 @@ def promoters_improved_vencodes(file, celltype, p=None, k=4, n=None, write_file=
             codes_2_df = sorted_1[codes_2]
             cropped = sorted_1.drop(codes_2, axis=1)
             print("Starting %s -> threshold = %s" % (celltype, threshold))
-            success = Util.reform_vencode_n_combinations_of_k(threshold, cropped.drop(column_name, axis=1),
+            success = util.reform_vencode_n_combinations_of_k(threshold, cropped.drop(column_name, axis=1),
                                                               code, celltype, "Promoters", k, n, codes_2_df, write_file)
             if not success:
                 threshold -= 10
@@ -107,7 +107,7 @@ def multiple_ven_robustness_test(file, file_type, celltype, combinations_number,
     raw_data = pd.read_csv("./Files/" + file, sep="\t", index_col=0,
                            skiprows=1831)  # nrows=x if we want to load only a few rows
     data = raw_data.drop(raw_data.index[[0, 1]])
-    codes = Util.fantom_code_selector(file_type, data, celltype)
+    codes = util.fantom_code_selector(file_type, data, celltype)
     print(codes)
     code = codes[0]
     codes_2 = np.array(codes).tolist()
@@ -147,8 +147,8 @@ def multiple_ven_robustness_test(file, file_type, celltype, combinations_number,
     file_name = u"/Percentage VenCodes of at least {3:d} non-specific zeros from {1:s} and celltype {2:s} with {4:d}x {0:d} samples of k".format(
         samples_to_take, file_type, celltype, zeros, reps)
     title = "Probability of VEnCode from random sample of size k"
-    Util.write_dict_to_csv(file_name + ".csv", k_ven_percent, folder)
-    fig, path = Util.errorbar_plot(k_ven_percent, folder, file_name, label=celltype, title=title)
+    util.write_dict_to_csv(file_name + ".csv", k_ven_percent, folder)
+    fig, path = util.errorbar_plot(k_ven_percent, folder, file_name, label=celltype, title=title)
     fig.savefig(path)
     plt.close(fig)
     print("Process finished in %s seconds" % (time.time() - start_time))
@@ -160,17 +160,17 @@ def ven_robustness_test(file, file_type, celltype, combinations_number, samples_
     raw_data = pd.read_csv("./Files/" + file, sep="\t", index_col=0,
                            skiprows=1831)  # nrows=x if we want to load only a few rows
     data = raw_data.drop(raw_data.index[[0, 1]])
-    codes = Util.fantom_code_selector(file_type, data, celltype)
+    codes = util.fantom_code_selector(file_type, data, celltype)
     print(codes)
-    filter_1 = Util.df_filter_by_expression_and_percentile(data, codes, expression, 1)
-    k_ven_percent = Util.vencode_percent_sampling(codes, celltype, filter_1, combinations_number, samples_to_take,
+    filter_1 = util.df_filter_by_expression_and_percentile(data, codes, expression, 1)
+    k_ven_percent = util.vencode_percent_sampling(codes, celltype, filter_1, combinations_number, samples_to_take,
                                                   reps)
     folder = "/Percentage/"
     file_name = u"/Percentage VenCodes of at least 1 non-specific zeros from {1:s} and celltype {2:s} with {3:d}x {0:d} samples of k".format(
         samples_to_take, file_type, celltype, reps)
     title = "Probability of VEnCode from random sample of size k"
-    Util.write_dict_to_csv(file_name + ".csv", k_ven_percent, folder)
-    fig, path = Util.errorbar_plot(k_ven_percent, folder, file_name, label=celltype, title=title)
+    util.write_dict_to_csv(file_name + ".csv", k_ven_percent, folder)
+    fig, path = util.errorbar_plot(k_ven_percent, folder, file_name, label=celltype, title=title)
     fig.savefig(path)
     plt.close(fig)
     print("Process Quick finished in %s seconds" % (time.time() - start_time))
@@ -185,19 +185,19 @@ def sorted_ven_robustness_test(file, file_type, celltype, combinations_number, s
         raw_data = pd.read_csv("./Files/" + file, sep="\t", index_col=0,
                                skiprows=1831)  # nrows=x if we want to load only a few rows
         data_1 = raw_data.drop(raw_data.index[[0, 1]])
-        universal_rna = Util.fantom_code_selector(file_type, data_1, "universal", not_include=None)
+        universal_rna = util.fantom_code_selector(file_type, data_1, "universal", not_include=None)
         data_1.drop(universal_rna, axis=1, inplace=True)
-        to_keep = Util.fantom_sample_category_selector("sample types - FANTOM5.csv", sample_types)
+        to_keep = util.fantom_sample_category_selector("sample types - FANTOM5.csv", sample_types)
         data = pd.DataFrame(index=data_1.index.values)
         for sample in to_keep:
             data_temp = data_1.filter(regex=sample)
             data = data.join(data_temp)
     else:
         data = init_data
-    codes = Util.fantom_code_selector(file_type, data, celltype, not_include=not_include)
+    codes = util.fantom_code_selector(file_type, data, celltype, not_include=not_include)
     print("Cell types to get VEnCodes:", *codes, sep="\n", end="\n\n")
     if celltype_exclude is not None:
-        codes_exclude = Util.fantom_code_selector(file_type, data, celltype_exclude)
+        codes_exclude = util.fantom_code_selector(file_type, data, celltype_exclude)
         try:
             for code in codes:
                 codes_exclude = [x for x in codes_exclude if x != code]
@@ -213,8 +213,9 @@ def sorted_ven_robustness_test(file, file_type, celltype, combinations_number, s
         k_ven_percent = {}
         for item in expression:
             print("Starting: Expression >= {0}".format(item))
-            filter_2 = Util.df_filter_by_expression_and_percentile(data, codes, item, 2, threshold)
-            k_ven_percent_2, problems = Util.vencode_percent_sampling(codes, celltype, filter_2, combinations_number_list,
+            filter_2 = util.df_filter_by_expression_and_percentile(data, codes, item, 2, threshold)
+            k_ven_percent_2, problems = util.vencode_percent_sampling(codes, celltype, filter_2,
+                                                                      combinations_number_list,
                                                                       samples_to_take, reps, include_problems=include_problems)
             k_ven_percent[item] = k_ven_percent_2
         folder = "/Percentage/"
@@ -230,11 +231,11 @@ def sorted_ven_robustness_test(file, file_type, celltype, combinations_number, s
                 file_name += " - excluding {0}".format(celltype_exclude)
                 title += " - excluding {0}".format(celltype_exclude)
         # Defs.write_dict_to_csv(file_name + ".csv", k_ven_percent, folder, multi_express=True)
-        fig, path = Util.errorbar_plot(k_ven_percent, folder, file_name, label=celltype, title=title, multiple=True)
+        fig, path = util.errorbar_plot(k_ven_percent, folder, file_name, label=celltype, title=title, multiple=True)
         fig.savefig(path)
     else:
-        filter_2 = Util.df_filter_by_expression_and_percentile(data, codes, expression, 2, threshold)
-        k_ven_percent, problems = Util.vencode_percent_sampling(codes, celltype, filter_2, combinations_number_list,
+        filter_2 = util.df_filter_by_expression_and_percentile(data, codes, expression, 2, threshold)
+        k_ven_percent, problems = util.vencode_percent_sampling(codes, celltype, filter_2, combinations_number_list,
                                                                 samples_to_take,
                                                                 reps, include_problems=include_problems)
         folder = "/Percentage/"
@@ -252,13 +253,13 @@ def sorted_ven_robustness_test(file, file_type, celltype, combinations_number, s
         if not multi_plot:  # multi_plot is there in case this function is used to generate other plots after.
             if optional_folder is not None:
                 folder = optional_folder
-            Util.write_dict_to_csv(file_name + ".csv", k_ven_percent, folder)
-            fig, path = Util.errorbar_plot(k_ven_percent, folder, file_name, label=celltype, title=title)
+            util.write_dict_to_csv(file_name + ".csv", k_ven_percent, folder)
+            fig, path = util.errorbar_plot(k_ven_percent, folder, file_name, label=celltype, title=title)
             fig.savefig(path)
         if include_problems:
             logging.info("{}: {}".format(celltype, problems))
             new_file_name = u"/Problems for {} - {}x {} samples of k".format(celltype, reps, samples_to_take)
-            Util.write_dict_to_csv(new_file_name + ".csv", problems, folder)
+            util.write_dict_to_csv(new_file_name + ".csv", problems, folder)
     if not multi_plot:
         plt.close(fig)
     if init_data is None:
@@ -283,16 +284,16 @@ def figure_1(file, file_type, cell_list, combinations_number, samples_to_take, r
     raw_data = pd.read_csv("./Files/" + file, sep="\t", index_col=0,
                            skiprows=1831, nrows=1000)  # nrows=x if we want to load only a few rows
     data_1 = raw_data.drop(raw_data.index[[0, 1]])
-    universal_rna = Util.fantom_code_selector(file_type, data_1, "universal", not_include=None)
+    universal_rna = util.fantom_code_selector(file_type, data_1, "universal", not_include=None)
     data_1.drop(universal_rna, axis=1, inplace=True)
-    to_keep = Util.fantom_sample_category_selector("sample types - FANTOM5.csv", sample_types)
+    to_keep = util.fantom_sample_category_selector("sample types - FANTOM5.csv", sample_types)
     data = pd.DataFrame(index=data_1.index.values)
     for sample in to_keep:
         data_temp = data_1.filter(regex=sample)
         data = data.join(data_temp)
     # Exclude some specific, on-demand, celltypes from the data straight away:
     if isinstance(celltype_exclude, list):
-        codes_exclude = Util.fantom_code_selector(file_type, data, celltype_exclude)
+        codes_exclude = util.fantom_code_selector(file_type, data, celltype_exclude)
         print("Cell types to exclude:", *codes_exclude, sep="\n", end="\n\n")
         data.drop(codes_exclude, axis=1, inplace=True)
     new_ven = {}
@@ -332,13 +333,13 @@ def figure_1(file, file_type, cell_list, combinations_number, samples_to_take, r
     file_name_dotplot = u"/Perc VenC of 1 zero_dotplot - k={} - {} {}".format(combinations_number, len(cell_list),
                                                                               sample_types)
     title = "Probability of VEnCode from random promoters sample of size k"
-    Util.write_dict_to_csv(file_name + ".csv", new_ven_2, folder)
-    Util.write_dict_to_csv(file_name_dotplot + ".csv", new_ven, folder)
+    util.write_dict_to_csv(file_name + ".csv", new_ven_2, folder)
+    util.write_dict_to_csv(file_name_dotplot + ".csv", new_ven, folder)
     label = "Average of {} cell types".format(len(cell_list))
-    fig, path = Util.errorbar_plot(new_ven_2, folder, file_name, label, title=title, multiple=False)
+    fig, path = util.errorbar_plot(new_ven_2, folder, file_name, label, title=title, multiple=False)
     fig.savefig(path)
     plt.close(fig)
-    fig_2, path_2 = Util.box_plotting_from_dict(new_ven, file_name_dotplot, folder, title)
+    fig_2, path_2 = util.box_plotting_from_dict(new_ven, file_name_dotplot, folder, title)
     fig_2.savefig(path_2, bbox_inches='tight')
     plt.close(fig_2)
     # finish:
@@ -363,9 +364,9 @@ def figure_2(file, file_type, cell_list, combinations_number, vens_to_take, reps
         raw_data = pd.read_csv("./Files/" + file, sep="\t", index_col=0,
                                skiprows=1831, nrows=1000)  # nrows=x if we want to load only a few rows
         data_1 = raw_data.drop(raw_data.index[[0, 1]])
-        universal_rna = Util.fantom_code_selector(file_type, data_1, "universal", not_include=None)
+        universal_rna = util.fantom_code_selector(file_type, data_1, "universal", not_include=None)
         data_1.drop(universal_rna, axis=1, inplace=True)
-        to_keep = Util.fantom_sample_category_selector("sample types - FANTOM5.csv", sample_types)
+        to_keep = util.fantom_sample_category_selector("sample types - FANTOM5.csv", sample_types)
         data = pd.DataFrame(index=data_1.index.values)
         for sample in to_keep:
             data_temp = data_1.filter(regex=sample)
@@ -374,7 +375,7 @@ def figure_2(file, file_type, cell_list, combinations_number, vens_to_take, reps
         data = init_data
     # Exclude some specific, on-demand, celltypes from the data straight away:
     if isinstance(celltype_exclude, list):
-        codes_exclude = Util.fantom_code_selector(file_type, data, celltype_exclude)
+        codes_exclude = util.fantom_code_selector(file_type, data, celltype_exclude)
         print("Cell types to exclude:", *codes_exclude, sep="\n", end="\n\n")
         data.drop(codes_exclude, axis=1, inplace=True)
     final = {}
@@ -385,11 +386,11 @@ def figure_2(file, file_type, cell_list, combinations_number, vens_to_take, reps
             not_celltype = not_include.get(celltype)
         else:
             not_celltype = None
-        codes = Util.fantom_code_selector(file_type, data, celltype, not_include=not_celltype)
+        codes = util.fantom_code_selector(file_type, data, celltype, not_include=not_celltype)
         print("Cell types to get VEnCodes:", *codes, sep="\n", end="\n\n")
         if isinstance(celltype_exclude, dict):
             celltype_to_exclude = celltype_exclude.get(celltype)
-            codes_exclude = Util.fantom_code_selector(file_type, data, celltype_to_exclude)
+            codes_exclude = util.fantom_code_selector(file_type, data, celltype_to_exclude)
             try:
                 for code in codes:
                     codes_exclude = [x for x in codes_exclude if x != code]
@@ -397,20 +398,21 @@ def figure_2(file, file_type, cell_list, combinations_number, vens_to_take, reps
                 pass
             print("Cell types to exclude:", *codes_exclude, sep="\n", end="\n\n")
             data.drop(codes_exclude, axis=1, inplace=True)
-        filter_2 = Util.df_filter_by_expression_and_percentile(data, codes, expression, 2, threshold)
+        filter_2 = util.df_filter_by_expression_and_percentile(data, codes, expression, 2, threshold)
         if get_vencodes:
-            false_negatives, vencodes = Util.vencode_percent_sampling_monte_carlo(codes, filter_2, combinations_number,
+            false_negatives, vencodes = util.vencode_percent_sampling_monte_carlo(codes, filter_2, combinations_number,
                                                                                   vens_to_take, reps, vencodes=get_vencodes)
         else:
-            false_negatives = Util.vencode_percent_sampling_monte_carlo(codes, filter_2, combinations_number, vens_to_take,
+            false_negatives = util.vencode_percent_sampling_monte_carlo(codes, filter_2, combinations_number,
+                                                                        vens_to_take,
                                                                         reps, vencodes=get_vencodes)
         final[celltype] = false_negatives
     print(final)
     folder = "/Figure 2/{}/".format(file_type)
     file_name = u"/VEnCode E-values {} samples {} VEnCodes".format(len(cell_list), vens_to_take)
     title = "VEnCode quality\n"
-    Util.write_dict_to_csv(file_name + ".csv", final, folder)
-    fig_2, path_2 = Util.box_plotting_from_dict(final, file_name, folder, title, keys_horizontal=True)
+    util.write_dict_to_csv(file_name + ".csv", final, folder)
+    fig_2, path_2 = util.box_plotting_from_dict(final, file_name, folder, title, keys_horizontal=True)
     fig_2.savefig(path_2, bbox_inches='tight')
     plt.close(fig_2)
     #     fig, path = Defs.errorbar_plot(k_ven_percent, folder, file_name, label=celltype, title=title)
@@ -428,14 +430,14 @@ def figure_3(file, file_type, celltype, vens_to_take, combinations_number=4, sam
     raw_data = pd.read_csv("./Files/" + file, sep="\t", index_col=0,
                            skiprows=1831)  # nrows=x if we want to load only a few rows
     data_1 = raw_data.drop(raw_data.index[[0, 1]])
-    universal_rna = Util.fantom_code_selector(file_type, data_1, "universal", not_include=None)
+    universal_rna = util.fantom_code_selector(file_type, data_1, "universal", not_include=None)
     data_1.drop(universal_rna, axis=1, inplace=True)
-    to_keep = Util.fantom_sample_category_selector("sample types - FANTOM5.csv", sample_types)
+    to_keep = util.fantom_sample_category_selector("sample types - FANTOM5.csv", sample_types)
     data = pd.DataFrame(index=data_1.index.values)
     for sample in to_keep:
         data_temp = data_1.filter(regex=sample)
         data = data.join(data_temp)
-    codes = Util.fantom_code_selector(file_type, data, celltype, not_include=not_include)
+    codes = util.fantom_code_selector(file_type, data, celltype, not_include=not_include)
     try:
         if not codes.tolist():
             raise Exception("No codes for {}!".format(celltype))
@@ -444,7 +446,7 @@ def figure_3(file, file_type, celltype, vens_to_take, combinations_number=4, sam
             raise Exception("No codes for {}!".format(celltype))
     print("Cell types to get VEnCodes:", *codes, sep="\n", end="\n\n")
     if celltype_exclude is not None:
-        codes_exclude = Util.fantom_code_selector(file_type, data, celltype_exclude)
+        codes_exclude = util.fantom_code_selector(file_type, data, celltype_exclude)
         try:
             for code in codes:
                 codes_exclude = [x for x in codes_exclude if x != code]
@@ -466,7 +468,7 @@ def figure_3(file, file_type, celltype, vens_to_take, combinations_number=4, sam
             data_2 = data.drop(codes_2, axis=1)
             print("donors to exclude:", *codes_2, sep="\n", end="\n\n")
 
-            filter_2 = Util.df_filter_by_expression_and_percentile(data_2, code, expression, 2, threshold)
+            filter_2 = util.df_filter_by_expression_and_percentile(data_2, code, expression, 2, threshold)
             n = 0
             partial_perc_not_ven = []
             while n < vens_to_take:
@@ -496,7 +498,7 @@ def figure_3(file, file_type, celltype, vens_to_take, combinations_number=4, sam
             os.makedirs("./Figure 3/{}/Codes/".format(file_type))
         folder = "/Figure 3/{}/Codes/".format(file_type)
         file_name = u"/{} Donors".format(i)
-        Util.write_dict_2_to_csv(file_name + ".csv", partial_dict, folder)
+        util.write_dict_2_to_csv(file_name + ".csv", partial_dict, folder)
 
         final_dict[i] = total_perc_not_ven
     print(final_dict)
@@ -504,7 +506,7 @@ def figure_3(file, file_type, celltype, vens_to_take, combinations_number=4, sam
         os.makedirs("./Figure 3/{}/".format(file_type))
     folder = "/Figure 3/{}/".format(file_type)
     file_name = u"/{} Donor not VEnCodes perc - {} VEnCodes".format(celltype, vens_to_take)
-    Util.write_dict_2_to_csv(file_name + ".csv", final_dict, folder)
+    util.write_dict_2_to_csv(file_name + ".csv", final_dict, folder)
     print("Process Quick finished in %s seconds" % (time.time() - start_time))
     return
 
@@ -515,14 +517,14 @@ def figure_3_b(file, file_type, celltype, vens_to_take, combinations_number=4, s
     raw_data = pd.read_csv("./Files/" + file, sep="\t", index_col=0,
                            skiprows=1831, nrows=3000)  # nrows=x if we want to load only a few rows
     data_1 = raw_data.drop(raw_data.index[[0, 1]])
-    universal_rna = Util.fantom_code_selector(file_type, data_1, "universal", not_include=None)
+    universal_rna = util.fantom_code_selector(file_type, data_1, "universal", not_include=None)
     data_1.drop(universal_rna, axis=1, inplace=True)
-    to_keep = Util.fantom_sample_category_selector("sample types - FANTOM5.csv", sample_types)
+    to_keep = util.fantom_sample_category_selector("sample types - FANTOM5.csv", sample_types)
     data = pd.DataFrame(index=data_1.index.values)
     for sample in to_keep:
         data_temp = data_1.filter(regex=sample)
         data = data.join(data_temp)
-    codes = Util.fantom_code_selector(file_type, data, celltype, not_include=not_include)
+    codes = util.fantom_code_selector(file_type, data, celltype, not_include=not_include)
     try:
         if not codes.tolist():
             raise Exception("No codes for {}!".format(celltype))
@@ -531,7 +533,7 @@ def figure_3_b(file, file_type, celltype, vens_to_take, combinations_number=4, s
             raise Exception("No codes for {}!".format(celltype))
     print("Cell types to get VEnCodes:", *codes, sep="\n", end="\n\n")
     if celltype_exclude is not None:
-        codes_exclude = Util.fantom_code_selector(file_type, data, celltype_exclude)
+        codes_exclude = util.fantom_code_selector(file_type, data, celltype_exclude)
         try:
             for code in codes:
                 codes_exclude = [x for x in codes_exclude if x != code]
@@ -549,7 +551,7 @@ def figure_3_b(file, file_type, celltype, vens_to_take, combinations_number=4, s
         data_2 = data.drop(codes_2, axis=1)
         print("donors to exclude:", *codes_2, sep="\n", end="\n\n")
 
-        filter_2 = Util.df_filter_by_expression_and_percentile(data_2, code, expression, 2, threshold)
+        filter_2 = util.df_filter_by_expression_and_percentile(data_2, code, expression, 2, threshold)
 
         partial_perc_not_ven = {}
         for i in range(1, (len(codes_2) + 1)):
@@ -584,7 +586,7 @@ def figure_3_b(file, file_type, celltype, vens_to_take, combinations_number=4, s
         find = code.find("donor")
         substring = code[find:(find + 6)]
         file_name = u"/VEnCode for {} - {}".format(substring, celltype)
-        Util.write_one_value_dict_to_csv(file_name + ".csv", partial_perc_not_ven, folder)
+        util.write_one_value_dict_to_csv(file_name + ".csv", partial_perc_not_ven, folder)
 
         # code_in_string = ' '.join(code)
         # partial_dict[code_in_string] = partial_perc_not_ven
@@ -602,14 +604,14 @@ def figure_3_b2(file, file_type, celltype, vens_to_take, combinations_number=4, 
     raw_data = pd.read_csv("./Files/" + file, sep="\t", index_col=0,
                            skiprows=1831)  # nrows=x if we want to load only a few rows
     data_1 = raw_data.drop(raw_data.index[[0, 1]])
-    universal_rna = Util.fantom_code_selector(file_type, data_1, "universal", not_include=None)
+    universal_rna = util.fantom_code_selector(file_type, data_1, "universal", not_include=None)
     data_1.drop(universal_rna, axis=1, inplace=True)
-    to_keep = Util.fantom_sample_category_selector("sample types - FANTOM5.csv", sample_types)
+    to_keep = util.fantom_sample_category_selector("sample types - FANTOM5.csv", sample_types)
     data = pd.DataFrame(index=data_1.index.values)
     for sample in to_keep:
         data_temp = data_1.filter(regex=sample)
         data = data.join(data_temp)
-    codes = Util.fantom_code_selector(file_type, data, celltype, not_include=not_include)
+    codes = util.fantom_code_selector(file_type, data, celltype, not_include=not_include)
     try:
         if not codes.tolist():
             raise Exception("No codes for {}!".format(celltype))
@@ -618,7 +620,7 @@ def figure_3_b2(file, file_type, celltype, vens_to_take, combinations_number=4, 
             raise Exception("No codes for {}!".format(celltype))
     print("Cell types to get VEnCodes:", *codes, sep="\n", end="\n\n")
     if celltype_exclude is not None:
-        codes_exclude = Util.fantom_code_selector(file_type, data, celltype_exclude)
+        codes_exclude = util.fantom_code_selector(file_type, data, celltype_exclude)
         try:
             for code in codes:
                 codes_exclude = [x for x in codes_exclude if x != code]
@@ -635,7 +637,7 @@ def figure_3_b2(file, file_type, celltype, vens_to_take, combinations_number=4, 
         donors_data = data[codes_2]
         data_2 = data.drop(codes_2, axis=1)
         print("donors to exclude:", *codes_2, sep="\n", end="\n\n")
-        filter_2 = Util.df_filter_by_expression_and_percentile(data_2, code, expression, 2, threshold)
+        filter_2 = util.df_filter_by_expression_and_percentile(data_2, code, expression, 2, threshold)
 
         ven_diagram = {}
         for r in reversed(range(1, (len(codes_2) + 1))):
@@ -689,7 +691,7 @@ def figure_3_b2(file, file_type, celltype, vens_to_take, combinations_number=4, 
         find = code.find("donor")
         substring = code[find:(find + 6)]
         file_name = u"/VEnCode for {} - {}".format(substring, celltype)
-        Util.write_one_value_dict_to_csv(file_name + ".csv", ven_diagram, folder)
+        util.write_one_value_dict_to_csv(file_name + ".csv", ven_diagram, folder)
 
         # code_in_string = ' '.join(code)
         # partial_dict[code_in_string] = partial_perc_not_ven
@@ -719,16 +721,16 @@ def ven_perc_per_celltype(file, file_type, cell_list, combinations_number, sampl
     raw_data = pd.read_csv("./Files/" + file, sep="\t", index_col=0,
                            skiprows=1831, nrows=1000)  # nrows=x if we want to load only a few rows
     data_1 = raw_data.drop(raw_data.index[[0, 1]])
-    universal_rna = Util.fantom_code_selector(file_type, data_1, "universal", not_include=None)
+    universal_rna = util.fantom_code_selector(file_type, data_1, "universal", not_include=None)
     data_1.drop(universal_rna, axis=1, inplace=True)
-    to_keep = Util.fantom_sample_category_selector("sample types - FANTOM5.csv", sample_types)
+    to_keep = util.fantom_sample_category_selector("sample types - FANTOM5.csv", sample_types)
     data = pd.DataFrame(index=data_1.index.values)
     for sample in to_keep:
         data_temp = data_1.filter(regex=sample)
         data = data.join(data_temp)
     # Exclude some specific, on-demand, celltypes from the data straight away:
     if isinstance(celltype_exclude, list):
-        codes_exclude = Util.fantom_code_selector(file_type, data, celltype_exclude)
+        codes_exclude = util.fantom_code_selector(file_type, data, celltype_exclude)
         print("Cell types to exclude:", *codes_exclude, sep="\n", end="\n\n")
         data.drop(codes_exclude, axis=1, inplace=True)
     # Starting loop through all cell types:
@@ -741,10 +743,10 @@ def ven_perc_per_celltype(file, file_type, cell_list, combinations_number, sampl
             not_celltype = not_include.get(celltype)
         else:
             not_celltype = None
-        codes = Util.fantom_code_selector(file_type, data, celltype, not_include=not_celltype)
+        codes = util.fantom_code_selector(file_type, data, celltype, not_include=not_celltype)
         print("Cell types to get VEnCodes:", *codes, sep="\n", end="\n\n")
         # Applying filters:
-        filters = Util.df_filter_by_expression_and_percentile(data, codes, expression, 2, threshold)
+        filters = util.df_filter_by_expression_and_percentile(data, codes, expression, 2, threshold)
         # Getting VEnCode percentages:
         try:
             ven = {}
@@ -755,7 +757,7 @@ def ven_perc_per_celltype(file, file_type, cell_list, combinations_number, sampl
                         break
                     sample = filters.sample(n=combinations_number)
                     sample_dropped = sample.drop(codes, axis=1).values
-                    c = Util.assess_vencode_one_zero(c, sample_dropped)
+                    c = util.assess_vencode_one_zero(c, sample_dropped)
                 ven[i] = (c / samples_to_take) * 100  # could be a list but dicts are faster
                 print("Finished rep {0} in celltype = {1}".format(i, celltype))
             ven_values = list(ven.values())
@@ -770,8 +772,8 @@ def ven_perc_per_celltype(file, file_type, cell_list, combinations_number, sampl
     file_name_dotplot = u"/Perc VenC dotplot - k={} - {} {}".format(combinations_number, len(cell_list),
                                                                     sample_types)
     title = "Probability of VEnCode from {} promoters sample of size {}".format(combinations_number, reps)
-    Util.write_dict_to_csv(file_name_dotplot + ".csv", ven_percent, folder)
-    fig, path = Util.box_plotting_from_dict(ven_percent, file_name_dotplot, folder, title)
+    util.write_dict_to_csv(file_name_dotplot + ".csv", ven_percent, folder)
+    fig, path = util.box_plotting_from_dict(ven_percent, file_name_dotplot, folder, title)
     fig.savefig(path, bbox_inches='tight')
     plt.close(fig)
     # finish:
