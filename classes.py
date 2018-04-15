@@ -15,8 +15,10 @@ import pandas as pd
 from scipy.special import comb
 from tqdm import tqdm
 
-from utils import util
-from utils.decorators import profile_func
+import utils.directory_handlers as dhs
+import utils.writing_files as writing_files
+import utils.util as util
+import utils.exception_handlers as ehs
 
 
 class DatabaseOperations:
@@ -148,14 +150,14 @@ class DatabaseOperations:
                 samples_to_take, file_type, celltype, reps, expression)
             title = "Probability of VEnCode from sample of size k \n {0:s} expression >= {1:d}".format(
                 celltype, expression)
-            util.write_dict_to_csv(file_name + ".csv", k_ven_percent, folder)
+            writing_files.write_dict_to_csv(file_name + ".csv", k_ven_percent, folder)
             fig, path = util.errorbar_plot(k_ven_percent, folder, file_name, label=celltype, title=title)
             fig.savefig(path)
         if include_problems:
             logging.info("{}: {}".format(celltype, problems))
             new_file_name = u"/Probs for {} - {}x {} samples of k-{}".format(celltype, reps, samples_to_take,
                                                                              combinations_number)
-            util.write_dict_to_csv(new_file_name + ".csv", problems, folder, path="parent")
+            writing_files.write_dict_to_csv(new_file_name + ".csv", problems, folder, path="parent")
         return k_ven_percent
 
     def not_include_code_getter(self, not_include, df):
@@ -581,7 +583,7 @@ class Promoters(DatabaseOperations):
         """
         Function that searches for a VEnCode in data by the sampling method. Please note that it retrieves a DataFrame
         containing the entire sample. This is the reason why it only retrieves one VEnCode.
-        :param data:
+        :param data: Data set to search for VEnCodes
         :param combinations_number:
         :param to_drop:
         :param n_samples:
@@ -596,6 +598,70 @@ class Promoters(DatabaseOperations):
                 return sample  # TODO: as of now if only gets the first vencode by sampling, try to use n_vencodes
         return None
 
+    @staticmethod
+    def heuristic_method_vencode_getter(data, combinations_number=4, number_vencodes=10, logger=logging):
+        """
+        Function that searches for a VEnCode in data by the heuristic method. It also gives the e-values straight away.
+        :param data: Data set to search for VEnCodes
+        :param combinations_number:
+        :param number_vencodes:
+        :param logger:
+        :return:
+        """
+        breaks = {}  # this next section creates a dictionary to update with how many times each node is cycled
+        for item in range(1, combinations_number):
+            breaks["breaker_" + str(item)] = 0
+        skip = []
+        vencodes_dict = {}
+        for number in range(number_vencodes):
+            vencodes_from_nodes = Promoters.node_based_vencode_getter(data,
+                                                                      combinations_number=combinations_number,
+                                                                      skip=skip,
+                                                                      breaks=breaks)
+            if not vencodes_from_nodes:
+                break
+            for key, value in breaks.items():
+                breaks[key] = 0
+            vencodes_incomplete = [item for sublist in vencodes_from_nodes for item in sublist]
+            vencodes_dict[number] = vencodes_incomplete
+            if not any(isinstance(z, list) for z in vencodes_incomplete):
+                for item in vencodes_incomplete:
+                    skip.append(item)
+            else:
+                skip.append(vencodes_incomplete[0])
+        promoters = data.index.values.tolist()
+        vencodes_evaluated = {}
+        logger.debug(vencodes_dict)
+        for key, value in vencodes_dict.items():
+            logger.debug("Key number {}".format(key))
+            logger.debug(value)
+            promoters_copy = promoters
+            counter = 0
+            for i in util.combinations_from_nested_lists(value):
+                util.multi_log(logger, "Founder:", i, level="debug")
+                vencode = Promoters.fill_vencode_list(promoters_copy, list(i), 4)
+                util.multi_log(logger, "Filled:", vencode, level="debug")
+                promoters_copy = [item for item in promoters_copy if item not in i]  # delete promoters "i"
+                e_value = Promoters.e_value_calculator(data.loc[vencode])
+                e_value = Promoters.e_value_normalizer(e_value, data.shape[1], combinations_number)
+                vencodes_evaluated[tuple(vencode)] = e_value
+                counter += 1
+                if counter == number_vencodes:  # sometimes the number of combinations may be too big.
+                    logger.info("Break. Only get {} VEnCodes".format(number_vencodes))
+                    break
+            if not any(isinstance(item, list) for item in value):
+                for j in value:
+                    try:
+                        promoters.remove(j)
+                    except ValueError:
+                        pass
+            else:
+                try:
+                    promoters.remove(value[0])
+                except ValueError:
+                    pass
+            return vencodes_evaluated
+
     def logging_proms(self, locals_):
         # Get function name:
         current_frame = inspect.currentframe()
@@ -604,8 +670,8 @@ class Promoters(DatabaseOperations):
         # Prepare directory:
         folder = "/Logs/"
         parent_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..")) + folder
-        util.check_if_and_makedir(parent_path)
-        file_directory = util.check_if_and_makefile(func, path=parent_path, file_type=".log")
+        dhs.check_if_and_makedir(parent_path)
+        file_directory = dhs.check_if_and_makefile(func, path=parent_path, file_type=".log")
         # Config and start logging
         logging.basicConfig(filename=file_directory, level=logging.DEBUG,
                             format="{asctime} - {levelname} - {message}", filemode='w', style="{")
@@ -686,7 +752,7 @@ class Promoters(DatabaseOperations):
                 os.makedirs(folder)
             position = codes.index(code) + 1
             file_name = u"/Donor{} - {}".format(position, self.celltype)
-            util.write_one_value_dict_to_csv(file_name + ".csv", ven_diagram, folder)
+            writing_files.write_one_value_dict_to_csv(file_name + ".csv", ven_diagram, folder)
 
     def statistics_ven_diagram(self, vens_to_test, sampling_number, number_donors, combinations_number=4,
                                expression=1, threshold=90):
@@ -745,7 +811,7 @@ class Promoters(DatabaseOperations):
             file_name = u"/stats for {} celltype".format(self.celltype)
         else:
             file_name = u"/stats for {} celltypes".format(len(self.codes))
-        util.write_one_value_dict_to_csv(file_name + ".csv", ven_diagram_1, folder)
+        writing_files.write_one_value_dict_to_csv(file_name + ".csv", ven_diagram_1, folder)
 
     def ven_diagram_interception(self, vens_to_test, sampling_number, number_donors, combinations_number=4,
                                  expression=1, threshold=90, custom_celltypes=()):
@@ -806,8 +872,8 @@ class Promoters(DatabaseOperations):
             if not os.path.exists(folder):
                 os.makedirs(folder)
             file_name = u"/interception of {}".format(celltype.replace(":", "-"))
-            util.write_one_value_dict_to_csv(file_name + ".csv", ven_diagram_1, folder)
-            util.write_dict_to_csv(file_name + "_2.csv", ven_diagram_1, folder, path="parent")
+            writing_files.write_one_value_dict_to_csv(file_name + ".csv", ven_diagram_1, folder)
+            writing_files.write_dict_to_csv(file_name + "_2.csv", ven_diagram_1, folder, path="parent")
 
     def inter_donor_percentage_difference(self, vens_to_test, sampling_number, number_donors, combinations_number=4,
                                           expression=1, threshold=90, single_file=False):
@@ -884,16 +950,17 @@ class Promoters(DatabaseOperations):
                 logger.info("Data for rep {} - {}".format(counter_samples, interception_codes))
             if single_file:
                 folder = "/Figure 3-b2/cell lines/"
-                util.check_if_and_makedir(folder)
-                file_name = util.check_if_and_makefile(folder + u"/interception of {}".format(celltype))
-                util.write_one_value_dict_to_csv(file_name, interception_codes, folder)
+                dhs.check_if_and_makedir(folder)
+                file_name = dhs.check_if_and_makefile(
+                    folder + u"/interception of {}".format(celltype))
+                writing_files.write_one_value_dict_to_csv(file_name, interception_codes, folder)
                 logger.info("File generated: {}".format(file_name))
             else:
                 interception_together.update(interception_codes)
         folder = "/Figure 3-b2/cell lines/"
-        util.check_if_and_makedir(folder)
+        dhs.check_if_and_makedir(folder)
         file_name = u"/interception of {} donors in {} celltypes".format(number_donors, len(self.codes)) + ".csv"
-        util.write_one_value_dict_to_csv(file_name, interception_together, folder)
+        writing_files.write_one_value_dict_to_csv(file_name, interception_together, folder)
         logger.info("File generated: {}".format(file_name))
 
     def get_vencodes(self, combinations_number=4, p=None, n=None, write_file=False):
@@ -954,76 +1021,96 @@ class Promoters(DatabaseOperations):
                 if success:
                     threshold = 0
 
-    def best_vencode_generator(self, celltype, combinations_number=4, expression=1, threshold=90, number_vencodes=8,
-                               random_ven=True, random_unfiltered_ven=False):
+    def vencode_generator(self, celltype, algorithm="heuristic", combinations_number=4, threshold_activity=1,
+                          threshold_sparseness=90, threshold_inactivity=0, number_vencodes=8, sampling_samples=10000,
+                          ):
         """
         Generates a number of vencodes, deemed the best according to E-value.
-        :param celltype: cell type to get VEnCodes for.
-        :param combinations_number: number of REs comprising the VEnCodes.
-        :param expression: minimum expression level for the celltype to develop VEnCodes.
-        :param threshold: threshold of sparseness to filter the data set with, before VEnCode selection.
-        :param number_vencodes: number of VEnCodes to get.
-        :param random_ven: to add some heterogeneity to the retrieved VEnCodes, include vencode from random sampling
+        :param celltype: cell type to get VEnCodes for. Str
+        :param algorithm: method to get VEnCodes. Currently supporting "sampling", "heuristic", or "both".
+        :param combinations_number: number of REs comprising the VEnCodes. Int
+        :param threshold_activity: minimum expression level for the celltype to develop VEnCodes. Int
+        :param threshold_sparseness: threshold of sparseness to filter the data set with, before VEnCode selection. Int
+        :param threshold_inactivity: minimum RE expression to consider as inactive in all ctps not to get VEnCode. Int
+        :param number_vencodes: number of VEnCodes to get. Int
+        :return: Expression data for all VEnCodes. list/dict of pd.DataFrame object
+        """
+        logger = self.logging_proms(locals())
+        algorithm = algorithm.casefold()
+        while True:
+            try:
+                assert algorithm in ("heuristic", "sampling", "both")
+            except AssertionError:
+                algorithm = ehs.argument_exception("algorithm", logger=logger)
+            else:
+                break
+        if algorithm == "both": algorithm = ["heuristic", "sampling"]
+        if self.conservative:
+            self.data = self.merge_donors_into_celltypes(exclude=celltype)
+        data = self.filter_prep_sort_drop_codes(self.codes[celltype], threshold_activity, threshold_sparseness,
+                                                threshold_inactivity=threshold_inactivity)
+        vencodes_final_list = []
+        vencodes_heuristic_final = {}
+        vencodes_sampling_final = {}
+        if "heuristic" in algorithm:
+            vencodes_heuristic = self.heuristic_method_vencode_getter(data=data,
+                                                                      combinations_number=combinations_number,
+                                                                      number_vencodes=number_vencodes,
+                                                                      logger=logger)
+            while len(vencodes_final_list) < number_vencodes:
+                top_valued_vencode = util.key_with_max_val(vencodes_heuristic)
+                vencodes_heuristic_final[top_valued_vencode] = vencodes_heuristic[top_valued_vencode]
+                vencodes_heuristic.pop(top_valued_vencode)
+                vencodes_final_list.append(top_valued_vencode)
+                if not vencodes_heuristic:
+                    break
+            util.multi_log(logger, "VEnCodes from sampling algorithm: ", vencodes_heuristic_final)
+        else:
+            pass
+        if "sampling" in algorithm:
+            for i in range(number_vencodes):
+                while True:
+                    vencode_sampling = self.sampling_method_vencode_getter(data, combinations_number=combinations_number,
+                                                                           n_samples=sampling_samples)
+                    promoters = tuple(vencode_sampling.index.tolist())
+                    if promoters in vencodes_sampling_final.keys():
+                        continue
+                    e_value = Promoters.e_value_calculator(vencode_sampling)
+                    e_value = Promoters.e_value_normalizer(e_value, data.shape[1], combinations_number)
+                    vencodes_sampling_final[promoters] = e_value
+                    break
+            util.multi_log(logger, "VEnCodes from sampling algorithm: ", vencodes_sampling_final)
+        else:
+            pass
+        if "sampling" in algorithm and "heuristic" in algorithm:
+            vencodes = {}
+            for item in (["heuristic", vencodes_heuristic_final], ["sampling", vencodes_sampling_final]):
+                vencodes[item[0]] = item[1]
+            return vencodes
+
+    def best_vencode_generator(self, celltype, combinations_number=4, threshold_activity=1, threshold_sparseness=90,
+                               threshold_inactivity=0, number_vencodes=8, random_ven=True, random_unfiltered_ven=False):
+        """
+        Generates a number of vencodes, deemed the best according to E-value.
+        :param celltype: cell type to get VEnCodes for. Str
+        :param combinations_number: number of REs comprising the VEnCodes. Int
+        :param threshold_activity: minimum expression level for the celltype to develop VEnCodes. Int
+        :param threshold_sparseness: threshold of sparseness to filter the data set with, before VEnCode selection. Int
+        :param threshold_inactivity: minimum RE expression to consider as inactive in all ctps not to get VEnCode. Int
+        :param number_vencodes: number of VEnCodes to get. Int
+        :param random_ven: add some heterogeneity to the retrieved VEnCodes, include vencode from random sampling. Bool
+        :param random_unfiltered_ven: True to add a random VEnCode from a raw data set before filters. Bool
         :return: None
         """
         logger = self.logging_proms(locals())
         if self.conservative:
             self.data = self.merge_donors_into_celltypes(exclude=celltype)
-        data = self.filter_prep_sort_drop_codes(self.codes[celltype], expression, threshold)
+        data = self.filter_prep_sort_drop_codes(self.codes[celltype], threshold_activity, threshold_sparseness,
+                                                threshold_inactivity=threshold_inactivity)
         vencodes_final_list = []
         vencodes_final_dict = {}
-        breaks = {}  # this next section creates a dictionary to update with how many times each node is cycled
-        for item in range(1, combinations_number):
-            breaks["breaker_" + str(item)] = 0
-        skip = []
-        vencodes_dict = {}
-        for number in range(round(number_vencodes / 2)):
-            vencodes_from_nodes = self.node_based_vencode_getter(data,
-                                                                 combinations_number=combinations_number, skip=skip,
-                                                                 breaks=breaks)
-            if not vencodes_from_nodes:
-                break
-            for key, value in breaks.items():
-                breaks[key] = 0
-            vencodes_incomplete = [item for sublist in vencodes_from_nodes for item in sublist]
-            vencodes_dict[number] = vencodes_incomplete
-            if not any(isinstance(z, list) for z in vencodes_incomplete):
-                for item in vencodes_incomplete:
-                    skip.append(item)
-            else:
-                skip.append(vencodes_incomplete[0])
-        promoters = data.index.values.tolist()
-        vencodes_evaluated = {}
-        logger.info(vencodes_dict)
-        for key, value in vencodes_dict.items():
-            logger.info("Key number {}".format(key))
-            logger.info(value)
-            promoters_copy = promoters
-            counter = 0
-            for i in util.combinations_from_nested_lists(value):
-                util.multi_log(logger, "Founder:", i)
-                vencode = self.fill_vencode_list(promoters_copy, list(i), 4)
-                util.multi_log(logger, "Filled:", vencode)
-                promoters_copy = [item for item in promoters_copy if item not in i]  # delete promoters "i"
-                e_value = self.e_value_calculator(data.loc[vencode])
-                e_value = self.e_value_normalizer(e_value, data.shape[1], 0.689168,
-                                                  48.71315)  # normalizing the e-values
-                vencodes_evaluated[tuple(vencode)] = e_value
-                counter += 1
-                if counter == 5:  # some times the number of combinations may be too big, let's get e_values for n.
-                    logger.info("Break. Only get {} VEnCodes".format(5))
-                    break
-            if not any(isinstance(item, list) for item in value):
-                for j in value:
-                    try:
-                        promoters.remove(j)
-                    except ValueError:
-                        pass
-            else:
-                try:
-                    promoters.remove(value[0])
-                except ValueError:
-                    pass
+        vencodes_evaluated = self.heuristic_method_vencode_getter(data, combinations_number=combinations_number,
+                                                                  number_vencodes=number_vencodes, logger=logger)
         if random_ven:
             vencode_from_sample = self.sampling_method_vencode_getter(data)
             if vencode_from_sample is not None:
@@ -1055,13 +1142,14 @@ class Promoters(DatabaseOperations):
         for vencode_to_write in vencodes_final_dict.keys():
             to_csv = self.data.loc[list(vencode_to_write)]
             to_csv = to_csv.applymap(
-                lambda x: 0 if x == 0 else 1)  # change expression to 1s and 0s for quickness
-            file_name = util.file_directory_handler("{}_ven_enh_1.csv".format(celltype), folder="/VenCodes/",
-                                                    path="parent")
+                lambda x: 0 if x == 0 else 1)  # change threshold_activity to 1s and 0s for quickness
+            file_name = dhs.file_directory_handler("{}_ven_enh_1.csv".format(celltype),
+                                                   folder="/VenCodes/",
+                                                   path="parent")
             with open(file_name, 'a') as f:
                 to_csv.to_csv(f, sep=";")
         file_name_e_values = "{}_ven_test_1_evalues.csv".format(celltype)
-        util.write_dict_to_csv(file_name_e_values, vencodes_final_dict, "/VenCodes/", path="parent")
+        writing_files.write_dict_to_csv(file_name_e_values, vencodes_final_dict, "/VenCodes/", path="parent")
         return
 
     def find_vencodes_each_celltype(self, combinations_number=tuple(range(1, 11)), threshold_activity=1,
@@ -1078,7 +1166,7 @@ class Promoters(DatabaseOperations):
         :param threshold_activity: Minimum RE expression to qualify as active in cell types to get VEnCode. Int
         :param threshold_sparseness: Starting threshold of sparseness. Int
         :param threshold_inactivity: minimum RE expression to consider as inactive in all ctps not to get VEnCode. Int
-        :param method: method of searching for VEnCodes. str
+        :param method: method of searching for VEnCodes. currently supported: sampling or heuristic. str
         :param stop: Number of nodes to test at each level. Used in heuristic method. Int
         :param n_samples: Number of samples to test for VEnCode. Used in sampling method. Int
         """
@@ -1096,23 +1184,23 @@ class Promoters(DatabaseOperations):
             data = self.filter_prep_sort_drop_codes(self.codes[celltype], threshold_activity, threshold_sparseness,
                                                     threshold_inactivity=threshold_inactivity)
             for k in combinations_number:
-                if method == "heuristic":
+                if method.casefold() == "heuristic":
                     # this next section creates a dictionary to update with how many times each node is cycled
                     breaks = {}
                     for item in range(1, k):
                         breaks["breaker_" + str(item)] = 0
                     skip = []
-                    vencodes_from_nodes = self.node_based_vencode_getter(data,
-                                                                         combinations_number=k, skip=skip,
-                                                                         breaks=breaks, stop=stop)
-                elif method == "sampling":
-                    vencodes_from_nodes = self.sampling_method_vencode_getter(data, combinations_number=k,
-                                                                              n_samples=n_samples)
-                    if isinstance(vencodes_from_nodes, pd.DataFrame):
-                        vencodes_from_nodes = True
+                    vencodes = self.node_based_vencode_getter(data,
+                                                              combinations_number=k, skip=skip,
+                                                              breaks=breaks, stop=stop)
+                elif method.casefold() == "sampling":
+                    vencodes = self.sampling_method_vencode_getter(data, combinations_number=k,
+                                                                   n_samples=n_samples)
+                    if isinstance(vencodes, pd.DataFrame):
+                        vencodes = True
                 else:
                     raise NameError("method name to get VEnCodes not recognized: ", method)
-                if not vencodes_from_nodes:
+                if not vencodes:
                     results_dict[celltype].append(0)
                 else:
                     for v in range((k - combinations_number[0]), len(combinations_number)):
@@ -1122,9 +1210,7 @@ class Promoters(DatabaseOperations):
                 self.data.drop(data_copy[self.codes[celltype]], axis=1, inplace=True)
                 self.data = pd.concat([self.data, data_celltype], axis=1)
             util.multi_log(logger, celltype, results_dict[celltype])
-        results_directory = util.check_if_and_makefile(r"/VEnCode Search/All CellTps VEnC search",
-                                                       path_type="parent")
-        util.write_dict_to_csv(results_directory, results_dict, deprecated=False)
+        return results_dict
 
     def intra_individual_robustness(self, combinations_number, vens_to_take, reps=1, threshold=90, expression=1,
                                     get_vencodes=False):
@@ -1191,9 +1277,9 @@ class Promoters(DatabaseOperations):
         folder = "/Figure 2/"
         if get_vencodes:
             file_name = u"/VEnCodes {} samples {} VEnCodes.csv".format(len(self.codes), vens_to_take)
-            util.write_dict_to_csv(file_name, final_vencodes, folder, path="parent")
+            writing_files.write_dict_to_csv(file_name, final_vencodes, folder, path="parent")
         file_name = u"/VEnCode E-values {} samples {} VEnCodes.csv".format(len(self.codes), vens_to_take)
-        util.write_dict_to_csv(file_name, final, folder, path="parent")
+        writing_files.write_dict_to_csv(file_name, final, folder, path="parent")
 
     # Tests:
 
@@ -1231,14 +1317,14 @@ class Promoters(DatabaseOperations):
 
     def codes_to_csv(self, file_name, type, folder_name):
         if type == "dict":
-            util.write_dict_to_csv(file_name, self.codes, folder_name, path="parent")
+            writing_files.write_dict_to_csv(file_name, self.codes, folder_name, path="parent")
         if type == "list":
             codes_list = util.possible_dict_to_list(self.codes)
-            util.write_list_to_csv(file_name, codes_list, folder_name, path="parent")
+            writing_files.write_list_to_csv(file_name, codes_list, folder_name, path="parent")
 
     def celltypes_to_csv(self, file_name, folder_name):
         cell_list = list(self.codes.keys())
-        util.write_list_to_csv(file_name, cell_list, folder_name, path="parent")
+        writing_files.write_list_to_csv(file_name, cell_list, folder_name, path="parent")
 
 
 class Enhancers(DatabaseOperations):

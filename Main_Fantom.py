@@ -1,3 +1,5 @@
+import utils.writing_files
+
 __author__ = 'Andre Macedo'
 import itertools as iter
 import logging
@@ -147,7 +149,7 @@ def multiple_ven_robustness_test(file, file_type, celltype, combinations_number,
     file_name = u"/Percentage VenCodes of at least {3:d} non-specific zeros from {1:s} and celltype {2:s} with {4:d}x {0:d} samples of k".format(
         samples_to_take, file_type, celltype, zeros, reps)
     title = "Probability of VEnCode from random sample of size k"
-    util.write_dict_to_csv(file_name + ".csv", k_ven_percent, folder)
+    utils.writing_files.write_dict_to_csv(file_name + ".csv", k_ven_percent, folder)
     fig, path = util.errorbar_plot(k_ven_percent, folder, file_name, label=celltype, title=title)
     fig.savefig(path)
     plt.close(fig)
@@ -169,7 +171,7 @@ def ven_robustness_test(file, file_type, celltype, combinations_number, samples_
     file_name = u"/Percentage VenCodes of at least 1 non-specific zeros from {1:s} and celltype {2:s} with {3:d}x {0:d} samples of k".format(
         samples_to_take, file_type, celltype, reps)
     title = "Probability of VEnCode from random sample of size k"
-    util.write_dict_to_csv(file_name + ".csv", k_ven_percent, folder)
+    utils.writing_files.write_dict_to_csv(file_name + ".csv", k_ven_percent, folder)
     fig, path = util.errorbar_plot(k_ven_percent, folder, file_name, label=celltype, title=title)
     fig.savefig(path)
     plt.close(fig)
@@ -253,13 +255,13 @@ def sorted_ven_robustness_test(file, file_type, celltype, combinations_number, s
         if not multi_plot:  # multi_plot is there in case this function is used to generate other plots after.
             if optional_folder is not None:
                 folder = optional_folder
-            util.write_dict_to_csv(file_name + ".csv", k_ven_percent, folder)
+            utils.writing_files.write_dict_to_csv(file_name + ".csv", k_ven_percent, folder)
             fig, path = util.errorbar_plot(k_ven_percent, folder, file_name, label=celltype, title=title)
             fig.savefig(path)
         if include_problems:
             logging.info("{}: {}".format(celltype, problems))
             new_file_name = u"/Problems for {} - {}x {} samples of k".format(celltype, reps, samples_to_take)
-            util.write_dict_to_csv(new_file_name + ".csv", problems, folder)
+            utils.writing_files.write_dict_to_csv(new_file_name + ".csv", problems, folder)
     if not multi_plot:
         plt.close(fig)
     if init_data is None:
@@ -333,8 +335,8 @@ def figure_1(file, file_type, cell_list, combinations_number, samples_to_take, r
     file_name_dotplot = u"/Perc VenC of 1 zero_dotplot - k={} - {} {}".format(combinations_number, len(cell_list),
                                                                               sample_types)
     title = "Probability of VEnCode from random promoters sample of size k"
-    util.write_dict_to_csv(file_name + ".csv", new_ven_2, folder)
-    util.write_dict_to_csv(file_name_dotplot + ".csv", new_ven, folder)
+    utils.writing_files.write_dict_to_csv(file_name + ".csv", new_ven_2, folder)
+    utils.writing_files.write_dict_to_csv(file_name_dotplot + ".csv", new_ven, folder)
     label = "Average of {} cell types".format(len(cell_list))
     fig, path = util.errorbar_plot(new_ven_2, folder, file_name, label, title=title, multiple=False)
     fig.savefig(path)
@@ -411,7 +413,7 @@ def figure_2(file, file_type, cell_list, combinations_number, vens_to_take, reps
     folder = "/Figure 2/{}/".format(file_type)
     file_name = u"/VEnCode E-values {} samples {} VEnCodes".format(len(cell_list), vens_to_take)
     title = "VEnCode quality\n"
-    util.write_dict_to_csv(file_name + ".csv", final, folder)
+    utils.writing_files.write_dict_to_csv(file_name + ".csv", final, folder)
     fig_2, path_2 = util.box_plotting_from_dict(final, file_name, folder, title, keys_horizontal=True)
     fig_2.savefig(path_2, bbox_inches='tight')
     plt.close(fig_2)
@@ -498,7 +500,7 @@ def figure_3(file, file_type, celltype, vens_to_take, combinations_number=4, sam
             os.makedirs("./Figure 3/{}/Codes/".format(file_type))
         folder = "/Figure 3/{}/Codes/".format(file_type)
         file_name = u"/{} Donors".format(i)
-        util.write_dict_2_to_csv(file_name + ".csv", partial_dict, folder)
+        utils.writing_files.write_dict_2_to_csv(file_name + ".csv", partial_dict, folder)
 
         final_dict[i] = total_perc_not_ven
     print(final_dict)
@@ -506,7 +508,7 @@ def figure_3(file, file_type, celltype, vens_to_take, combinations_number=4, sam
         os.makedirs("./Figure 3/{}/".format(file_type))
     folder = "/Figure 3/{}/".format(file_type)
     file_name = u"/{} Donor not VEnCodes perc - {} VEnCodes".format(celltype, vens_to_take)
-    util.write_dict_2_to_csv(file_name + ".csv", final_dict, folder)
+    utils.writing_files.write_dict_2_to_csv(file_name + ".csv", final_dict, folder)
     print("Process Quick finished in %s seconds" % (time.time() - start_time))
     return
 
@@ -586,7 +588,7 @@ def figure_3_b(file, file_type, celltype, vens_to_take, combinations_number=4, s
         find = code.find("donor")
         substring = code[find:(find + 6)]
         file_name = u"/VEnCode for {} - {}".format(substring, celltype)
-        util.write_one_value_dict_to_csv(file_name + ".csv", partial_perc_not_ven, folder)
+        utils.writing_files.write_one_value_dict_to_csv(file_name + ".csv", partial_perc_not_ven, folder)
 
         # code_in_string = ' '.join(code)
         # partial_dict[code_in_string] = partial_perc_not_ven
@@ -691,7 +693,7 @@ def figure_3_b2(file, file_type, celltype, vens_to_take, combinations_number=4, 
         find = code.find("donor")
         substring = code[find:(find + 6)]
         file_name = u"/VEnCode for {} - {}".format(substring, celltype)
-        util.write_one_value_dict_to_csv(file_name + ".csv", ven_diagram, folder)
+        utils.writing_files.write_one_value_dict_to_csv(file_name + ".csv", ven_diagram, folder)
 
         # code_in_string = ' '.join(code)
         # partial_dict[code_in_string] = partial_perc_not_ven
@@ -772,7 +774,7 @@ def ven_perc_per_celltype(file, file_type, cell_list, combinations_number, sampl
     file_name_dotplot = u"/Perc VenC dotplot - k={} - {} {}".format(combinations_number, len(cell_list),
                                                                     sample_types)
     title = "Probability of VEnCode from {} promoters sample of size {}".format(combinations_number, reps)
-    util.write_dict_to_csv(file_name_dotplot + ".csv", ven_percent, folder)
+    utils.writing_files.write_dict_to_csv(file_name_dotplot + ".csv", ven_percent, folder)
     fig, path = util.box_plotting_from_dict(ven_percent, file_name_dotplot, folder, title)
     fig.savefig(path, bbox_inches='tight')
     plt.close(fig)

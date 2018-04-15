@@ -4,7 +4,8 @@ import time
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from Utils import Util
+import utils.writing_files
+from utils import util
 
 
 # region "Figures for paper"
@@ -24,9 +25,9 @@ def figure_2(file, file_type, cell_list, combinations_number, vens_to_take, reps
         raw_data = pd.read_csv("./Files/" + file, sep="\t", index_col=0,
                                skiprows=1831, nrows=1000)  # nrows=x if we want to load only a few rows
         data_1 = raw_data.drop(raw_data.index[[0, 1]])
-        universal_rna = Util.fantom_code_selector(file_type, data_1, "universal", not_include=None)
+        universal_rna = util.fantom_code_selector(file_type, data_1, "universal", not_include=None)
         data_1.drop(universal_rna, axis=1, inplace=True)
-        to_keep = Util.fantom_sample_category_selector("sample types - FANTOM5.csv", sample_types)
+        to_keep = util.fantom_sample_category_selector("sample types - FANTOM5.csv", sample_types)
         data = pd.DataFrame(index=data_1.index.values)
         for sample in to_keep:
             data_temp = data_1.filter(regex=sample)
@@ -35,7 +36,7 @@ def figure_2(file, file_type, cell_list, combinations_number, vens_to_take, reps
         data = init_data
     # Exclude some specific, on-demand, celltypes from the data straight away:
     if isinstance(celltype_exclude, list):
-        codes_exclude = Util.fantom_code_selector(file_type, data, celltype_exclude)
+        codes_exclude = util.fantom_code_selector(file_type, data, celltype_exclude)
         print("Cell types to exclude:", *codes_exclude, sep="\n", end="\n\n")
         data.drop(codes_exclude, axis=1, inplace=True)
     final = {}
@@ -46,11 +47,11 @@ def figure_2(file, file_type, cell_list, combinations_number, vens_to_take, reps
             not_celltype = not_include.get(celltype)
         else:
             not_celltype = None
-        codes = Util.fantom_code_selector(file_type, data, celltype, not_include=not_celltype)
+        codes = util.fantom_code_selector(file_type, data, celltype, not_include=not_celltype)
         print("Cell types to get VEnCodes:", *codes, sep="\n", end="\n\n")
         if isinstance(celltype_exclude, dict):
             celltype_to_exclude = celltype_exclude.get(celltype)
-            codes_exclude = Util.fantom_code_selector(file_type, data, celltype_to_exclude)
+            codes_exclude = util.fantom_code_selector(file_type, data, celltype_to_exclude)
             try:
                 for code in codes:
                     codes_exclude = [x for x in codes_exclude if x != code]
@@ -58,20 +59,21 @@ def figure_2(file, file_type, cell_list, combinations_number, vens_to_take, reps
                 pass
             print("Cell types to exclude:", *codes_exclude, sep="\n", end="\n\n")
             data.drop(codes_exclude, axis=1, inplace=True)
-        filter_2 = Util.df_filter_by_expression_and_percentile(data, codes, expression, 2, threshold)
+        filter_2 = util.df_filter_by_expression_and_percentile(data, codes, expression, 2, threshold)
         if get_vencodes:
-            false_negatives, vencodes = Util.vencode_percent_sampling_monte_carlo(codes, filter_2, combinations_number,
+            false_negatives, vencodes = util.vencode_percent_sampling_monte_carlo(codes, filter_2, combinations_number,
                                                                                   vens_to_take, reps, vencodes=get_vencodes)
         else:
-            false_negatives = Util.vencode_percent_sampling_monte_carlo(codes, filter_2, combinations_number, vens_to_take,
+            false_negatives = util.vencode_percent_sampling_monte_carlo(codes, filter_2, combinations_number,
+                                                                        vens_to_take,
                                                                         reps, vencodes=get_vencodes)
         final[celltype] = false_negatives
     print(final)
     folder = "/Figure 2/{}/".format(file_type)
     file_name = u"/VEnCode E-values {} samples {} VEnCodes".format(len(cell_list), vens_to_take)
     title = "VEnCode quality\n"
-    Util.write_dict_to_csv(file_name + ".csv", final, folder)
-    fig_2, path_2 = Util.box_plotting_from_dict(final, file_name, folder, title, keys_horizontal=True)
+    utils.writing_files.write_dict_to_csv(file_name + ".csv", final, folder)
+    fig_2, path_2 = util.box_plotting_from_dict(final, file_name, folder, title, keys_horizontal=True)
     fig_2.savefig(path_2, bbox_inches='tight')
     plt.close(fig_2)
     #     fig, path = Defs.errorbar_plot(k_ven_percent, folder, file_name, label=celltype, title=title)
@@ -90,7 +92,7 @@ def figure_2(file, file_type, cell_list, combinations_number, vens_to_take, reps
 # endregion "Global TODOs"
 
 # region "Global Variables"
-# note: complete_primary_cell_list is OUTDATED. Check Figures_1.py file for updated version.
+# note: complete_primary_cell_list is OUTDATED. Check figures_1.py file for updated version.
 complete_primary_cell_list = ["Adipocyte - breast", "Adipocyte - omental", "Adipocyte - perirenal",
                               "Adipocyte - subcutaneous", "Alveolar Epithelial Cells", "Amniotic Epithelial Cells",
                               "amniotic membrane cells", "Anulus Pulposus Cell", "Astrocyte - cerebellum",

@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-import Classes
-from Common_variables import file_name, complete_cancer_cell_type, complete_primary_exclude_list, \
+import classes
+from common_variables import file_name, complete_cancer_cell_type, complete_primary_exclude_list, \
     complete_primary_non_include_list, complete_primary_jit_exclude_list
 
 # region Variables
@@ -11,7 +11,7 @@ case_studies = ["small cell lung carcinoma", "testicular germ cell embryonal car
 # endregion Variables
 
 if __name__ == "__main__":
-    initialize_promoters = Classes.Promoters(file_name,
+    initialize_promoters = classes.Promoters(file_name,
                                              case_studies[3],
                                              celltype_exclude=complete_primary_exclude_list,
                                              not_include=complete_primary_non_include_list,

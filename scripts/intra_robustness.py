@@ -3,8 +3,8 @@
 
 """intra_robustness.py: Functions for generating intra robustness data """
 
-import Classes
-from Common_variables import promoter_file_name, enhancer_file_name, enhancer_names_db, complete_primary_cell_list, \
+import classes
+from common_variables import promoter_file_name, enhancer_file_name, enhancer_names_db, complete_primary_cell_list, \
     complete_primary_exclude_list, \
     complete_primary_non_include_list, complete_primary_jit_exclude_list
 
@@ -23,7 +23,7 @@ class Setup:
 
 if __name__ == "__main__":
     Setup = Setup()
-    initialize_promoters = Classes.Promoters(promoter_file_name, Setup.cell_list,
+    initialize_promoters = classes.Promoters(promoter_file_name, Setup.cell_list,
                                              celltype_exclude=complete_primary_exclude_list,
                                              not_include=complete_primary_non_include_list,
                                              partial_exclude=complete_primary_jit_exclude_list,

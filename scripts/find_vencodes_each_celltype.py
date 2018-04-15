@@ -2,29 +2,38 @@
 # -*- coding: UTF-8 -*-
 
 """
-At least one VEnCode.py: Functions for finding which cell types have at least one VEnCode
+find_vencodes_each_celltype.py: Script to finding which cell types have at least one VEnCode
 """
 import sys
 import os
 
+import utils.directory_handlers as directory_handlers
+import utils.writing_files as writing_files
+
 sys.path.append(os.path.abspath(os.path.join('..', '')))
 
-import Classes
-from Common_variables import promoter_file_name, enhancer_file_name, enhancer_names_db, complete_primary_cell_list, \
+import classes
+from common_variables import promoter_file_name, enhancer_file_name, enhancer_names_db, complete_primary_cell_list, \
     complete_primary_exclude_list, \
     complete_primary_non_include_list, complete_primary_jit_exclude_list
 
 # Promoters
 
-initialize_promoters = Classes.Promoters(promoter_file_name, complete_primary_cell_list,
+initialize_promoters = classes.Promoters(promoter_file_name, complete_primary_cell_list,
                                          celltype_exclude=complete_primary_exclude_list,
                                          not_include=complete_primary_non_include_list,
                                          partial_exclude=complete_primary_jit_exclude_list,
                                          sample_types="primary cells", second_parser=None,
                                          conservative=True, log_level="info")
 
-initialize_promoters.find_vencodes_each_celltype(stop=5, combinations_number=[1, 2, 3, 4], method="sampling",
-                                                 n_samples=10000, threshold_inactivity=0.1)
+results = initialize_promoters.find_vencodes_each_celltype(stop=5, combinations_number=range(1, 8),
+                                                           method="heuristic",
+                                                           n_samples=10000, threshold_inactivity=0,
+                                                           threshold_activity=0.5)
+
+results_directory = directory_handlers.check_if_and_makefile(r"/VEnCode Search/All CellTps VEnC search",
+                                                             path_type="parent")
+writing_files.write_dict_to_csv(results_directory, results, deprecated=False)
 
 # Enhancers
 """

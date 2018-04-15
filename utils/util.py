@@ -1,27 +1,22 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-""" Utils.py: Functions module for the VEnCode project """
-import csv
-import os
-import logging
-import re
-import random
-import math
-import itertools as iter
-import time
-import statistics as stats
-
-from scipy.special import comb
-import numpy as np
+""" util.py: Functions module for the VEnCode project """
 import glob
-# import matplotlib as mpl
+import itertools as iter
+import logging
+import math
+import os
+import random
+import re
+import statistics as stats
+import time
 
-# mpl.use('agg')
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
+from scipy.special import comb
 
-# from scipy.interpolate import spline
 pd.options.mode.chained_assignment = None  # default='warn'
 
 
@@ -230,7 +225,7 @@ def assess_vencode_one_zero_boolean(sample, threshold=0):
     elif threshold > 0:
         assess_if_vencode = np.any(sample <= threshold, axis=0)
     else:
-        raise Exception("Threshold for VEnCode assessment is not valid.")
+        raise ValueError("Threshold for VEnCode assessment is not valid.")
     return all(assess_if_vencode)  # if all columns are True (contain at least one 0), then is VEn
 
 
@@ -412,13 +407,13 @@ def sorted_ven_robustness_test(file, file_type, celltype, combinations_number, s
         if not multi_plot:  # multi_plot is there in case this function is used to generate other plots after.
             if optional_folder is not None:
                 folder = optional_folder
-            write_dict_to_csv(file_name + ".csv", k_ven_percent, folder)
+            # writing_files.write_dict_to_csv(file_name + ".csv", k_ven_percent, folder) -Disabled because circular imp
             fig, path = errorbar_plot(k_ven_percent, folder, file_name, label=celltype, title=title)
             fig.savefig(path)
         if include_problems:
             logging.info("{}: {}".format(celltype, problems))
             new_file_name = u"/Problems for {} - {}x {} samples of k".format(celltype, reps, samples_to_take)
-            write_dict_to_csv(new_file_name + ".csv", problems, folder)
+            # writing_files.write_dict_to_csv(new_file_name + ".csv", problems, folder) -Disabled because circular imp
     if not multi_plot:
         plt.close(fig)
     if init_data is None:
@@ -485,7 +480,6 @@ def df_filter_by_expression_and_percentile(data, codes, expression, amount, thre
      filter by rows which the xth percentile (x == threshold) is 0.
     """
     filter_1 = df_filter_by_expression(data, codes, expression)
-    print("After filter 1: ", filter_1.shape[0])
     logging.info("After filter 1: %s promoters", filter_1.shape[0])
     if amount == 1:
         return filter_1
@@ -497,7 +491,6 @@ def df_filter_by_expression_and_percentile(data, codes, expression, amount, thre
             with_percentile, column_name = df_percentile_calculator(filter_1, codes, threshold)
             filter_2 = df_filter_by_column_value(with_percentile, column_name)
         if filter_2.shape[0] >= 50:
-            print("After filter 2: ", filter_2.shape[0], "at threshold", threshold)
             logging.info("After filter 2: %s promoters at threshold %s", filter_2.shape[0], threshold)
             filter_2.drop(column_name, axis=1, inplace=True)
             return filter_2
@@ -724,116 +717,6 @@ def errorbar_plot(input_data, folder, file_name, label=None, title=None, multipl
 
 # endregion
 
-# region Writing to .csv
-
-
-def write_list_to_csv(file_name, list_data, folder, path="parent"):
-    if path == "parent":
-        current_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    elif path == "normal":
-        current_path = os.getcwd()
-    else:
-        raise Exception("path name not recognized!")
-    try:
-        new_file = current_path + folder + file_name
-    except Exception as ex:
-        template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-        message = template.format(type(ex).__name__, ex.args)
-        print(message)
-        raise
-    if not os.path.exists(current_path + folder):
-        os.makedirs(current_path + folder)
-    with open(new_file, mode='wt', encoding='utf-8') as myfile:
-        for line in list_data:
-            myfile.write(line)
-            myfile.write('\n')
-
-
-def write_dict_to_csv(file_name, dict_data, folder=None, path="normal", deprecated=True):
-    """ Starting with a dictionary having key, value pairs where value is a list or similar, writes the dictionary
-    to a file named 'file_name'. Remember to include file extension in 'file_name'."""
-    if deprecated:
-        path_working = path_handler(path)
-        try:
-            new_file = path_working + folder + file_name
-        except Exception as ex:
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(ex).__name__, ex.args)
-            print(message)
-            raise
-        check_if_and_makedir(path_working + folder)
-    else:
-        new_file = file_name
-    keys = sorted(dict_data.keys())
-    with open(new_file, 'w') as csv_file:
-        writer = csv.writer(csv_file, delimiter=";", lineterminator='\n')
-        writer.writerow(keys)
-        try:
-            writer.writerows(zip(*[dict_data[key] for key in keys]))
-        except TypeError:
-            new = [dict_data[key] for key in keys]
-            writer.writerow(new)
-    return
-
-
-def write_one_value_dict_to_csv(file_name, dict_data, folder, path="parent"):
-    if path == "parent":
-        current_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    elif path == "normal":
-        current_path = os.getcwd()
-    else:
-        raise Exception("path name not recognized!")
-    try:
-        new_file = current_path + folder + file_name
-    except Exception as ex:
-        template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-        message = template.format(type(ex).__name__, ex.args)
-        print(message)
-        raise
-    with open(new_file, 'w') as csv_file:
-        writer = csv.writer(csv_file, delimiter=";", lineterminator='\n')
-        for key, value in dict_data.items():
-            writer.writerow([key, value])
-    return
-
-
-def write_dict_2_to_csv(file_name, dict_data, folder, path="normal"):
-    path_working = get_path(path)
-    try:
-        new_file = path_working + folder + file_name
-    except Exception as ex:
-        template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-        message = template.format(type(ex).__name__, ex.args)
-        print(message)
-        raise
-    check_if_and_makedir(path_working + folder)
-    keys = sorted(dict_data.keys())
-    rows = list(iter.zip_longest(*dict_data.values()))
-    with open(new_file, 'w') as csv_file:
-        writer = csv.writer(csv_file, delimiter=";", lineterminator='\n')
-        writer.writerow(keys)
-        writer.writerows(rows)
-    return
-
-
-def file_directory_handler(file_name, folder=None, path="normal"):
-    path_working = path_handler(path)
-    try:
-        new_file = path_working + folder + file_name
-        directory = path_working + folder
-    except TypeError:
-        new_file = path_working + file_name
-        directory = path_working
-    except Exception as ex:
-        template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-        message = template.format(type(ex).__name__, ex.args)
-        print(message)
-        raise
-    check_if_and_makedir(directory)
-    return new_file
-
-
-# endregion
 
 # region Other functions
 
@@ -867,58 +750,12 @@ def mean_and_stdev_generator(dict):
     return dictionary
 
 
-def check_if_and_makedir(folder):
-    if not os.path.exists(folder):
-        os.makedirs(folder)
-        return
-
-
-def check_if_and_makefile(filename, path=None, file_type=".csv", path_type="normal"):
-    if path is None:
-        file_directory = file_directory_handler(filename, path=path_type)
-    else:
-        file_directory = path + filename
-    for i in range(1, 1000):
-        file_directory_updated = file_directory + "-" + str(i) + file_type
-        if os.path.exists(file_directory_updated):
-            continue
-        else:
-            break
-    return file_directory_updated
-
-
-def get_path(path_type):
-    if path_type == "parent":
-        path_new = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    elif path_type == "normal":
-        path_new = os.getcwd()
-    elif path_type == "parent_parent":
-        path_new = os.path.dirname(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-    else:
-        raise Exception("path name not recognized!")
-    return path_new
-
-
 def file_names_to_list(folder, pattern="*.csv"):
     """ Returns a list with all files of a given file type (pattern) """
     current_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     file_path = current_path + folder + pattern
     file_list = glob.glob(file_path)
     return file_list
-
-
-def files_in_folder_to_csv(folder, file_name):
-    files = file_names_to_list(folder)
-    to_write = {}
-    for file in files:
-        with open(file) as f:
-            values = list()
-            for line in f:
-                (key, val) = line.rstrip("\n").split(";")
-                values.append(val)
-            key = file.split("\\")[-1].rstrip(".csv")
-            to_write[key] = values
-    write_dict_2_to_csv(file_name, to_write, folder, path="parent")
 
 
 def possible_dict_to_list(dict_possible):
@@ -979,21 +816,15 @@ def combinations_from_nested_lists(lst):
             yield i
 
 
-def path_handler(path_type):
-    """ Gets working path in your OS """
-    if path_type == "parent":
-        path_working = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    elif path_type == "normal":
-        path_working = os.getcwd()
-    else:
-        raise Exception("path name not recognized!")
-    return path_working
-
-
-def multi_log(handler, *args):
+def multi_log(handler, *args, level="info"):
     """ Log multiple arguments in one statement. """
     for arg in args:
-        handler.info(arg)
+        if level == "info":
+            handler.info(arg)
+        elif level == "debug":
+            handler.debug(arg)
+        else:
+            raise NameError("Argument level={} is not valid".format(level))
 
 
 def key_with_max_val(d):
