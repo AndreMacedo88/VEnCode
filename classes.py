@@ -30,7 +30,7 @@ class DatabaseOperations:
         self.celltype = celltype
         self.celltype_exclude = celltype_exclude
         self.not_include = not_include
-        self.log_level = self.set_log_level(log_level)
+        self.log_level = self._set_log_level(log_level)
         self.sample_types = sample_types
         self.second_parser = second_parser
         self.parent_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..")) + "/Files/"
@@ -100,7 +100,7 @@ class DatabaseOperations:
             raise Exception("Wrong codes type to test for the generation of codes!")
 
     @staticmethod
-    def set_log_level(level):
+    def _set_log_level(level):
         """
         Sets level for logging handler based on user input string.
         :param level: string representation of a logging level
@@ -1096,7 +1096,8 @@ class Promoters(DatabaseOperations):
     def best_vencode_generator(self, celltype, combinations_number=4, threshold_activity=1, threshold_sparseness=90,
                                threshold_inactivity=0, number_vencodes=8, random_ven=True, random_unfiltered_ven=False):
         """
-        Generates a number of vencodes, deemed the best according to E-value.
+        Generates a number of vencodes, deemed the best according to E-value, plus some random VEnCodes if set in
+        options.
         :param celltype: cell type to get VEnCodes for. Str
         :param combinations_number: number of REs comprising the VEnCodes. Int
         :param threshold_activity: minimum expression level for the celltype to develop VEnCodes. Int
@@ -1147,7 +1148,7 @@ class Promoters(DatabaseOperations):
         for vencode_to_write in vencodes_final_dict.keys():
             to_csv = self.data.loc[list(vencode_to_write)]
             to_csv = to_csv.applymap(
-                lambda x: 0 if x == 0 else 1)  # change threshold_activity to 1s and 0s for quickness
+                lambda x: 0 if x == 0 else 1)  # change expression to 1s and 0s if we don't want the actual numbers.
             file_name = dhs.file_directory_handler("{}_ven_enh_1.csv".format(celltype),
                                                    folder="/VenCodes/",
                                                    path="parent")
