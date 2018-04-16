@@ -14,9 +14,9 @@ from common_variables import promoter_file_name, enhancer_file_name, enhancer_na
     complete_primary_exclude_list, \
     complete_primary_non_include_list, complete_primary_jit_exclude_list
 
-rows_number = ihs.input_integers("Number of rows from the file to open: ")
+rows_number = ihs.input_integers("Number of rows from the file to open (put 'None' for full file): ")
 vencodes_number = ihs.input_integers("Number of VEnCodes to get: ")
-algorithm = ihs.input_string("Algorithm(s) to use: ")
+algorithm = ihs.input_string("Algorithm(s) to use (heuristic, sampling, both): ")
 
 initialize_promoters = classes.Promoters(promoter_file_name, complete_primary_cell_list,
                                          celltype_exclude=complete_primary_exclude_list,

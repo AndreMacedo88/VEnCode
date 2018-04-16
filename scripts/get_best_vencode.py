@@ -10,7 +10,7 @@ from common_variables import promoter_file_name, enhancer_file_name, enhancer_na
     complete_primary_non_include_list, complete_primary_jit_exclude_list
 
 vencodes_number = ih.input_integers("Number of VEnCodes to get: ")
-rows_number = ih.input_integers("Number of rows from the file to open: ")
+rows_number = ih.input_integers("Number of rows from the file to open (put 'None' for full file): ")
 
 # Promoters
 initialize_promoters = classes.Promoters(promoter_file_name, complete_primary_cell_list,

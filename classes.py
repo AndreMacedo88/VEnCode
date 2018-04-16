@@ -101,6 +101,11 @@ class DatabaseOperations:
 
     @staticmethod
     def set_log_level(level):
+        """
+        Sets level for logging handler based on user input string.
+        :param level: string representation of a logging level
+        :return: logging module level
+        """
         if level.lower() == "critical":
             level = logging.CRITICAL
         elif level.lower() == "error":
@@ -1115,7 +1120,7 @@ class Promoters(DatabaseOperations):
             vencode_from_sample = self.sampling_method_vencode_getter(data)
             if vencode_from_sample is not None:
                 e_value_sampling = self.e_value_calculator(vencode_from_sample)
-                e_value_sampling = self.e_value_normalizer(e_value_sampling, data.shape[1], 0.689168, 48.71315)
+                e_value_sampling = self.e_value_normalizer(e_value_sampling, data.shape[1], combinations_number)
                 vencodes_final_dict[tuple(vencode_from_sample.index.values)] = e_value_sampling
                 vencodes_final_list.append(vencode_from_sample.index.values.tolist())
             else:
@@ -1124,7 +1129,7 @@ class Promoters(DatabaseOperations):
             vencode_from_sample = self.sampling_method_vencode_getter(self.data, to_drop=self.codes[celltype])
             if vencode_from_sample is not None:
                 e_value_sampling = self.e_value_calculator(vencode_from_sample)
-                e_value_sampling = self.e_value_normalizer(e_value_sampling, self.data.shape[1], 0.689168, 48.71315)
+                e_value_sampling = self.e_value_normalizer(e_value_sampling, self.data.shape[1], combinations_number)
                 vencodes_final_dict[tuple(vencode_from_sample.index.values)] = e_value_sampling
                 vencodes_final_list.append(vencode_from_sample.index.values.tolist())
             else:

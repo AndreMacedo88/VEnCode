@@ -18,7 +18,7 @@ from common_variables import promoter_file_name, enhancer_file_name, enhancer_na
     complete_primary_non_include_list, complete_primary_jit_exclude_list
 
 # Promoters
-
+"""
 initialize_promoters = classes.Promoters(promoter_file_name, complete_primary_cell_list,
                                          celltype_exclude=complete_primary_exclude_list,
                                          not_include=complete_primary_non_include_list,
@@ -30,14 +30,11 @@ results = initialize_promoters.find_vencodes_each_celltype(stop=5, combinations_
                                                            method="heuristic",
                                                            n_samples=10000, threshold_inactivity=0,
                                                            threshold_activity=0.5)
-
-results_directory = directory_handlers.check_if_and_makefile(r"/VEnCode Search/All CellTps VEnC search",
-                                                             path_type="parent")
-writing_files.write_dict_to_csv(results_directory, results, deprecated=False)
+"""
 
 # Enhancers
-"""
-initialize_enhancers = Classes.Promoters(enhancer_file_name,
+
+initialize_enhancers = classes.Promoters(enhancer_file_name,
                                          ["CD34+ Progenitors"],
                                          celltype_exclude=complete_primary_exclude_list,
                                          not_include=complete_primary_non_include_list,
@@ -46,6 +43,10 @@ initialize_enhancers = Classes.Promoters(enhancer_file_name,
                                          conservative=False, log_level="info", enhancers=enhancer_names_db,
                                          skiprows=None)
 
-initialize_enhancers.find_vencodes_each_celltype(stop=5, combinations_number=[1, 2, 3, 4, 5], method="heuristic",
-                                                 n_samples=10000, expression=0.5)
-"""
+results = initialize_enhancers.find_vencodes_each_celltype(stop=5, combinations_number=[1, 2, 3, 4, 5],
+                                                           method="heuristic", n_samples=10000,
+                                                           threshold_inactivity=0, threshold_activity=0.5)
+
+results_directory = directory_handlers.check_if_and_makefile(r"/VEnCode Search/All CellTps VEnC search",
+                                                             path_type="parent")
+writing_files.write_dict_to_csv(results_directory, results, deprecated=False)
