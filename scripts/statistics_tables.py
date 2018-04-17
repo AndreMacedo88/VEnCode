@@ -20,6 +20,6 @@ if __name__ == "__main__":
             data = pd.DataFrame(np.zeros(shape=(z, i)), dtype=np.int8)
             e_value = classes.Promoters.e_value_calculator(data, reps=1000)
             e_values.loc[z, i] = e_value
-    file_name = utils.directory_handlers.file_directory_handler("Table for e_value statistics_final.csv", "/Files/", path="parent")
+    file_name = utils.directory_handlers.file_directory_handler("Table for e_value statistics_final.csv", "/Files/", path_type="parent")
     with open(file_name, 'w') as f:
         e_values.to_csv(f, sep=";")

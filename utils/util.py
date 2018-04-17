@@ -530,6 +530,13 @@ def df_regex_searcher(string, database):
     return regex_filtered_df
 
 
+def df_minimal_regex_searcher(string, database):
+    """ Returns a df containing only the columns which contain the string somewhere in its label """
+    expression = ".*" + string.replace(" ", ".*").replace("+", "\+") + ".*"
+    idx = database.columns.str.contains(expression, flags=re.IGNORECASE, regex=True, na=False)
+    regex_filtered_df = database.loc[:, idx]
+    return regex_filtered_df
+
 # endregion
 
 # region FANTOM5 database specific functions

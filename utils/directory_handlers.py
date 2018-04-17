@@ -2,14 +2,14 @@
 import os
 
 
-def file_directory_handler(file_name, folder=None, path="normal"):
-    path_working = path_handler(path)
+def file_directory_handler(file_name, folder=None, path_type="normal"):
+    path = path_handler(path_type)
     try:
-        new_file = path_working + folder + file_name
-        directory = path_working + folder
+        new_file = path + folder + file_name
+        directory = path + folder
     except TypeError:
-        new_file = path_working + file_name
-        directory = path_working
+        new_file = path + file_name
+        directory = path
     except Exception as ex:
         template = "An exception of type {0} occurred. Arguments:\n{1!r}"
         message = template.format(type(ex).__name__, ex.args)
@@ -27,9 +27,9 @@ def check_if_and_makedir(folder):
 
 def check_if_and_makefile(filename, path=None, file_type=".csv", path_type="normal"):
     if path is None:
-        file_directory = file_directory_handler(filename, path=path_type)
+        file_directory = file_directory_handler(filename, path_type=path_type)
     else:
-        file_directory = path + filename
+        file_directory = os.sep.join([path, filename])
     for i in range(1, 1000):
         file_directory_updated = file_directory + "-" + str(i) + file_type
         if os.path.exists(file_directory_updated):
@@ -45,18 +45,20 @@ def get_path(path_type):
     elif path_type == "normal":
         path_new = os.getcwd()
     elif path_type == "parent_parent":
-        path_new = os.path.dirname(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+        path_new = os.path.dirname(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
     else:
         raise Exception("path name not recognized!")
     return path_new
 
 
 def path_handler(path_type):
-    """ Gets working path in your OS """
+    """ Gets the desired path in your OS """
     if path_type == "parent":
-        path_working = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir))
+    elif path_type == "parent2":
+        path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, os.pardir))
     elif path_type == "normal":
-        path_working = os.getcwd()
+        path = os.getcwd()
     else:
         raise Exception("path name not recognized!")
-    return path_working
+    return path

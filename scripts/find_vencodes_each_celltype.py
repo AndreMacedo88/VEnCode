@@ -35,18 +35,18 @@ results = initialize_promoters.find_vencodes_each_celltype(stop=5, combinations_
 # Enhancers
 
 initialize_enhancers = classes.Promoters(enhancer_file_name,
-                                         ["CD34+ Progenitors"],
+                                         complete_primary_cell_list,
                                          celltype_exclude=complete_primary_exclude_list,
                                          not_include=complete_primary_non_include_list,
                                          partial_exclude=complete_primary_jit_exclude_list,
                                          sample_types="primary cells", second_parser=None,
-                                         conservative=False, log_level="info", enhancers=enhancer_names_db,
+                                         conservative=True, log_level="info", enhancers=enhancer_names_db,
                                          skiprows=None)
 
-results = initialize_enhancers.find_vencodes_each_celltype(stop=5, combinations_number=[1, 2, 3, 4, 5],
-                                                           method="heuristic", n_samples=10000,
+results = initialize_enhancers.find_vencodes_each_celltype(stop=5, combinations_number=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                                                           method="sampling", n_samples=10000,
                                                            threshold_inactivity=0, threshold_activity=0.5)
 
 results_directory = directory_handlers.check_if_and_makefile(r"/VEnCode Search/All CellTps VEnC search",
-                                                             path_type="parent")
+                                                             path_type="parent2")
 writing_files.write_dict_to_csv(results_directory, results, deprecated=False)

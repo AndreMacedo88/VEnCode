@@ -84,7 +84,7 @@ class DatabaseOperations:
         return regex_filtered
 
     @staticmethod
-    def test_codes(codes, celltype, codes_type="list"):
+    def _test_codes(codes, celltype, codes_type="list"):
         """ Tests if any codes were generated """
         if codes_type == "list":
             if not codes:
@@ -334,13 +334,13 @@ class Promoters(DatabaseOperations):
         if self.enhancers is not None:
             self.names_db = pd.read_csv(self.parent_path + enhancers, sep="\t", index_col=1, header=None,
                                         names=["celltypes"], engine="python")
-            crazy_dict = {}
+            column_names = {}
             for column_code in self.raw_data.columns:
-                crazy_dict[column_code] = self.names_db.loc[column_code, "celltypes"]
-            self.raw_data.rename(columns=crazy_dict, inplace=True)
+                column_names[column_code] = self.names_db.loc[column_code, "celltypes"]
+            self.raw_data.rename(columns=column_names, inplace=True)
         self.data = self._first_parser()
         self.codes = self._code_selector(self.data, self.celltype, not_include=self.not_include,
-                                         to_dict=True)
+                                         to_dict=True, regex=False if enhancers else True)
         self.conservative = conservative
         if self.second_parser is not None:
             temp_codes = [x for a in self.codes.values() for x in a]
@@ -371,7 +371,7 @@ class Promoters(DatabaseOperations):
                 try:
                     data_temp = data_1.loc[:, sample]
                 except KeyError:
-                    data_temp = data_1.loc[:, data_1.columns.str.contains(sample + ".*", regex=True)]
+                    data_temp = util.df_minimal_regex_searcher(sample, data_1)
             data = data.join(data_temp)
         # Exclude some specific, on-demand, cell-types from the data straight away:
         if self.celltype_exclude is not None:
@@ -379,14 +379,14 @@ class Promoters(DatabaseOperations):
             data.drop(codes_exclude, axis=1, inplace=True)
         return data
 
-    def _code_selector(self, db, celltype, not_include=None, to_dict=False):
+    def _code_selector(self, db, celltype, not_include=None, to_dict=False, regex=True):
         """ Selects codes from database using """
         if isinstance(celltype, list):
             codes = []
             if to_dict:
                 code_dict = {}
             for item in celltype:
-                codes_df = util.df_regex_searcher(item, db)
+                codes_df = util.df_regex_searcher(item, db) if regex else util.df_minimal_regex_searcher(item, db)
                 codes.append(codes_df.columns.values)
                 if to_dict:
                     code_dict[item] = [code for sublist in codes for code in sublist]
@@ -394,7 +394,7 @@ class Promoters(DatabaseOperations):
             if not to_dict:
                 codes = [item for sublist in codes for item in sublist]
         else:
-            codes_df = util.df_regex_searcher(celltype, db)
+            codes_df = util.df_regex_searcher(celltype, db) if regex else util.df_minimal_regex_searcher(celltype, db)
             codes = list(codes_df.columns.values)
             code_dict = {celltype: codes}
         if not_include is not None:
@@ -407,12 +407,13 @@ class Promoters(DatabaseOperations):
                     not_codes = self.not_include_code_getter(values, codes_df)
                     codes[key] = list(set(code_dict[key]) - set(not_codes))
             else:
-                not_codes_df = util.df_regex_searcher(not_include, codes_df)
+                not_codes_df = util.df_regex_searcher(not_include, codes_df) if regex else util.df_minimal_regex_searcher(
+                    not_include, codes_df)
                 not_codes = not_codes_df.columns.values
                 if not codes:
                     codes = [item for sublist in code_dict.values() for item in sublist]
                 codes = list(set(codes) - set(not_codes))
-        self.test_codes(codes, celltype)
+        self._test_codes(codes, celltype)
         return codes
 
     def merge_donors_into_celltypes(self, exclude=None):
@@ -454,7 +455,7 @@ class Promoters(DatabaseOperations):
             data_frame = pd.concat([self.data, self.codes_df], axis=1)
             data_filtered = util.df_filter_by_expression_and_percentile(data_frame, codes, threshold_activity, 2,
                                                                         threshold_sparseness)
-        data_filtered = data_filtered.drop(codes, axis=1)
+        data_filtered = data_filtered.drop(codes, axis=1, errors="ignore")
         # change expression to 1s and 0s for quickness:
         if threshold_inactivity == 0:
             data_filtered = data_filtered.applymap(lambda x: 0 if x == 0 else 1)
@@ -476,7 +477,7 @@ class Promoters(DatabaseOperations):
 
     @staticmethod
     def node_based_vencode_getter(data_frame, promoter=False, combinations_number=4, counter=1, skip=(),
-                                  breaks=None, stop=3):
+                                  breaks=None, stop=5):
         """
 
         :param data_frame: Data frame containing cage-seq expression profile for several celltypes. Dataframe object
@@ -596,7 +597,10 @@ class Promoters(DatabaseOperations):
         :return: a Pandas DataFrame with the sample that is a VEnCode.
         """
         for i in range(n_samples):
-            sample = data.sample(n=combinations_number)  # take a sample of n promoters
+            try:
+                sample = data.sample(n=combinations_number)  # take a sample of n promoters
+            except ValueError:  # Combinations_number could be larger than number of RE available. Then, no VEnCode.
+                break
             if to_drop is not None:
                 sample = sample.drop(to_drop, axis=1)  # remove it from the data to access VEn
             if util.assess_vencode_one_zero_boolean(sample, threshold=threshold):  # assess if VEnCode
@@ -604,7 +608,7 @@ class Promoters(DatabaseOperations):
         return None
 
     @staticmethod
-    def heuristic_method_vencode_getter(data, combinations_number=4, number_vencodes=10, logger=logging):
+    def heuristic_method_vencode_getter(data, combinations_number=4, number_vencodes=10, stop=5, logger=logging):
         """
         Function that searches for a VEnCode in data by the heuristic method. It also gives the e-values straight away.
         :param data: Data set to search for VEnCodes
@@ -622,7 +626,7 @@ class Promoters(DatabaseOperations):
             vencodes_from_nodes = Promoters.node_based_vencode_getter(data,
                                                                       combinations_number=combinations_number,
                                                                       skip=skip,
-                                                                      breaks=breaks)
+                                                                      breaks=breaks, stop=5)
             if not vencodes_from_nodes:
                 break
             for key, value in breaks.items():
@@ -1058,24 +1062,36 @@ class Promoters(DatabaseOperations):
         vencodes_heuristic_final = {}
         vencodes_sampling_final = {}
         if "heuristic" in algorithm:
-            vencodes_heuristic = self.heuristic_method_vencode_getter(data=data,
-                                                                      combinations_number=combinations_number,
-                                                                      number_vencodes=number_vencodes,
-                                                                      logger=logger)
-            while len(vencodes_final_list) < number_vencodes:
-                top_valued_vencode = util.key_with_max_val(vencodes_heuristic)
-                vencodes_heuristic_final[top_valued_vencode] = vencodes_heuristic[top_valued_vencode]
-                vencodes_heuristic.pop(top_valued_vencode)
-                vencodes_final_list.append(top_valued_vencode)
-                if not vencodes_heuristic:
+            data_copy = data.copy()
+            while True:
+                vencodes_heuristic = self.heuristic_method_vencode_getter(data=data_copy,
+                                                                          combinations_number=combinations_number,
+                                                                          number_vencodes=number_vencodes,
+                                                                          logger=logger)
+                while len(vencodes_final_list) < number_vencodes:
+                    top_valued_vencode = util.key_with_max_val(vencodes_heuristic)
+                    vencodes_heuristic_final[top_valued_vencode] = vencodes_heuristic[top_valued_vencode]
+                    vencodes_heuristic.pop(top_valued_vencode)
+                    vencodes_final_list.append(top_valued_vencode)
+                    if not vencodes_heuristic:
+                        break
+                if len(vencodes_final_list) == number_vencodes:  # make sure we retrieve the wanted number of vencodes
                     break
+                else:
+                    threshold_sparseness -= 10
+                    if threshold_sparseness < 0:
+                        break
+                    data_copy = self.filter_prep_sort_drop_codes(self.codes[celltype], threshold_activity,
+                                                                 threshold_sparseness,
+                                                                 threshold_inactivity=threshold_inactivity)
             util.multi_log(logger, "VEnCodes from sampling algorithm: ", vencodes_heuristic_final)
         else:
             pass
         if "sampling" in algorithm:
             for i in range(number_vencodes):
                 while True:
-                    vencode_sampling = self.sampling_method_vencode_getter(data, combinations_number=combinations_number,
+                    vencode_sampling = self.sampling_method_vencode_getter(data,
+                                                                           combinations_number=combinations_number,
                                                                            n_samples=sampling_samples)
                     promoters = tuple(vencode_sampling.index.tolist())
                     if promoters in vencodes_sampling_final.keys():
@@ -1151,7 +1167,7 @@ class Promoters(DatabaseOperations):
                 lambda x: 0 if x == 0 else 1)  # change expression to 1s and 0s if we don't want the actual numbers.
             file_name = dhs.file_directory_handler("{}_ven_enh_1.csv".format(celltype),
                                                    folder="/VenCodes/",
-                                                   path="parent")
+                                                   path_type="parent")
             with open(file_name, 'a') as f:
                 to_csv.to_csv(f, sep=";")
         file_name_e_values = "{}_ven_test_1_evalues.csv".format(celltype)
@@ -1437,5 +1453,5 @@ class Enhancers(DatabaseOperations):
                     values_codes = self.code_selector(not_include, custom=self.filtered_names_db)
                     not_include_codes = self.not_include_code_getter(values_codes, self.data)
                     codes = list(set(codes) - set(not_include_codes))
-        self.test_codes(codes, celltype, codes_type=type(codes).__name__)
+        self._test_codes(codes, celltype, codes_type=type(codes).__name__)
         return codes
