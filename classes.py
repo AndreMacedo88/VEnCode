@@ -25,7 +25,7 @@ class DatabaseOperations:
     """ A class with classes for each type of database and common methods to all """
 
     def __init__(self, file, celltype, celltype_exclude=None, not_include=None, sample_types="primary cells",
-                 skiprows=None, second_parser=None, nrows=None, log_level="DEBUG"):
+                 skiprows=None, second_parser=None, nrows=None, log_level="DEBUG", skip_raw_data=False):
         self.file = file
         self.celltype = celltype
         self.celltype_exclude = celltype_exclude
@@ -33,10 +33,16 @@ class DatabaseOperations:
         self.log_level = self._set_log_level(log_level)
         self.sample_types = sample_types
         self.second_parser = second_parser
-        self.parent_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..")) + "/Files/"
-        # First, import only the necessary data
-        self.raw_data = pd.read_csv(self.parent_path + self.file, sep="\t", index_col=0, skiprows=skiprows,
-                                    nrows=nrows, engine="python")
+        self.parent_path = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)), "Files")
+        if not skip_raw_data:
+            # First, import only the necessary data
+            self.raw_data = pd.read_csv(os.path.join(self.parent_path, self.file), sep="\t", index_col=0,
+                                        skiprows=skiprows,
+                                        nrows=nrows, engine="python")
+        else:
+            self.raw_data = pd.read_csv(os.path.join(self.parent_path, self.file), sep="\t", index_col=0,
+                                        skiprows=skiprows,
+                                        nrows=4, engine="python")
 
     @staticmethod
     def sample_category_selector(sample_types_file, types, path="parent", get="index"):
@@ -326,13 +332,17 @@ class Promoters(DatabaseOperations):
 
     def __init__(self, file, celltype, celltype_exclude=None, not_include=None, partial_exclude=None,
                  sample_types="primary cells", skiprows=1831, second_parser=None, nrows=None, conservative=False,
-                 log_level="DEBUG", enhancers=None, ram_saving=True):
+                 log_level="DEBUG", enhancers=None, ram_saving=True, skip_raw_data=False):
         super().__init__(file, celltype, celltype_exclude=celltype_exclude, not_include=not_include,
                          sample_types=sample_types, skiprows=skiprows, second_parser=second_parser, nrows=nrows,
-                         log_level=log_level)
+                         log_level=log_level, skip_raw_data=skip_raw_data)
         self.enhancers = enhancers
-        if self.enhancers is not None:
-            self.names_db = pd.read_csv(self.parent_path + enhancers, sep="\t", index_col=1, header=None,
+        if enhancers:
+            self.data_type = "enhancers"
+        else:
+            self.data_type = "promoters"
+        if self.enhancers:
+            self.names_db = pd.read_csv(os.path.join(self.parent_path, enhancers), sep="\t", index_col=1, header=None,
                                         names=["celltypes"], engine="python")
             column_names = {}
             for column_code in self.raw_data.columns:
@@ -354,6 +364,10 @@ class Promoters(DatabaseOperations):
                 self.partial_exclude_codes[key] = self._code_selector(self.data, value[0], not_include=value[1])
         if ram_saving:
             self.raw_data = None  # for RAM optimization only, remove if raw_data is needed
+        if skip_raw_data:
+            self.skip_raw_data = skip_raw_data
+            self.conservative = False
+            self.path_parsed_data = os.path.join(self.parent_path, "Dbs")
 
     def _first_parser(self):
         data_1 = self.raw_data.drop(self.raw_data.index[[0, 1]])
@@ -407,7 +421,8 @@ class Promoters(DatabaseOperations):
                     not_codes = self.not_include_code_getter(values, codes_df)
                     codes[key] = list(set(code_dict[key]) - set(not_codes))
             else:
-                not_codes_df = util.df_regex_searcher(not_include, codes_df) if regex else util.df_minimal_regex_searcher(
+                not_codes_df = util.df_regex_searcher(not_include,
+                                                      codes_df) if regex else util.df_minimal_regex_searcher(
                     not_include, codes_df)
                 not_codes = not_codes_df.columns.values
                 if not codes:
@@ -1127,6 +1142,9 @@ class Promoters(DatabaseOperations):
         logger = self.logging_proms(locals())
         if self.conservative:
             self.data = self.merge_donors_into_celltypes(exclude=celltype)
+        if self.skip_raw_data:
+            filename = os.path.join(self.path_parsed_data, "{}_tpm_{}-1.csv".format(celltype, self.data_type))
+            self.data = pd.read_csv(filename, sep=";", index_col=0, engine="python")
         data = self.filter_prep_sort_drop_codes(self.codes[celltype], threshold_activity, threshold_sparseness,
                                                 threshold_inactivity=threshold_inactivity)
         vencodes_final_list = []
@@ -1161,17 +1179,21 @@ class Promoters(DatabaseOperations):
                 break
         util.multi_log(logger, vencodes_final_dict)
         # plotting:
-        for vencode_to_write in vencodes_final_dict.keys():
+        for vencode_to_write, e_values in vencodes_final_dict.items():
             to_csv = self.data.loc[list(vencode_to_write)]
             to_csv = to_csv.applymap(
                 lambda x: 0 if x == 0 else 1)  # change expression to 1s and 0s if we don't want the actual numbers.
-            file_name = dhs.file_directory_handler("{}_ven_enh_1.csv".format(celltype),
-                                                   folder="/VenCodes/",
-                                                   path_type="parent")
+            file_name = dhs.check_if_and_makefile(os.path.join("VenCodes",
+                                                               "{}_{}_ven").format(celltype, self.data_type),
+                                                  path_type="parent2")
             with open(file_name, 'a') as f:
                 to_csv.to_csv(f, sep=";")
-        file_name_e_values = "{}_ven_test_1_evalues.csv".format(celltype)
-        writing_files.write_dict_to_csv(file_name_e_values, vencodes_final_dict, "/VenCodes/", path="parent")
+            file_name_e_values = dhs.check_if_and_makefile(os.path.join("VenCodes",
+                                                                        "{}_{}_ven_evalues").format(celltype,
+                                                                                                    self.data_type),
+                                                           path_type="parent2")
+            to_write = {vencode_to_write: e_values}
+            writing_files.write_dict_to_csv(file_name_e_values, to_write, deprecated=False)
         return
 
     def find_vencodes_each_celltype(self, combinations_number=tuple(range(1, 11)), threshold_activity=1,
@@ -1203,6 +1225,9 @@ class Promoters(DatabaseOperations):
                 data_celltype = self.data[celltype]
                 self.data.drop(celltype, axis=1, inplace=True)
                 self.data = pd.concat([self.data, data_copy[self.codes[celltype]]], axis=1)
+            if self.skip_raw_data:
+                filename = os.path.join(self.path_parsed_data, "{}_tpm_{}-1.csv".format(celltype, self.data_type))
+                self.data = pd.read_csv(filename, sep=";", index_col=0, engine="python")
             data = self.filter_prep_sort_drop_codes(self.codes[celltype], threshold_activity, threshold_sparseness,
                                                     threshold_inactivity=threshold_inactivity)
             for k in combinations_number:

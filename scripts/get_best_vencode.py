@@ -18,8 +18,9 @@ initialize_promoters = classes.Promoters(promoter_file_name, complete_primary_ce
                                          not_include=complete_primary_non_include_list,
                                          partial_exclude=complete_primary_jit_exclude_list,
                                          sample_types="primary cells", second_parser=None,
-                                         conservative=True, log_level="info", nrows=rows_number)
-initialize_promoters.best_vencode_generator("Adipocyte - breast", number_vencodes=vencodes_number)
+                                         conservative=True, log_level="info", skip_raw_data=True,
+                                         nrows=rows_number)
+initialize_promoters.best_vencode_generator("Hepatocyte", number_vencodes=vencodes_number)
 
 
 # Enhancers

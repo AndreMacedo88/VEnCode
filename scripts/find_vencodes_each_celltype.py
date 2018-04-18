@@ -41,7 +41,7 @@ initialize_enhancers = classes.Promoters(enhancer_file_name,
                                          partial_exclude=complete_primary_jit_exclude_list,
                                          sample_types="primary cells", second_parser=None,
                                          conservative=True, log_level="info", enhancers=enhancer_names_db,
-                                         skiprows=None)
+                                         skiprows=None, skip_raw_data=True)
 
 results = initialize_enhancers.find_vencodes_each_celltype(stop=5, combinations_number=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
                                                            method="sampling", n_samples=10000,
