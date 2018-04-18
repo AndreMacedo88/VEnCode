@@ -1277,7 +1277,7 @@ class Promoters(DatabaseOperations):
         if self.conservative:
             self.data = self.merge_donors_into_celltypes()
         # Starting loop through all cell types:
-        for cell in self.codes:
+        for cell in tqdm(self.codes):
             threshold = base_threshold
             codes = self.codes[cell]
             print("Cell types to get VEnCodes:", *codes, sep="\n", end="\n\n")
@@ -1285,6 +1285,9 @@ class Promoters(DatabaseOperations):
                 data_celltype = self.data[cell]
                 self.data.drop(cell, axis=1, inplace=True)
                 self.data = pd.concat([self.data, data_copy[self.codes[cell]]], axis=1)
+            if self.skip_raw_data:
+                filename = os.path.join(self.path_parsed_data, "{}_tpm_{}-1.csv".format(cell, self.data_type))
+                self.data = pd.read_csv(filename, sep=";", index_col=0, engine="python")
             filter_1 = util.df_filter_by_expression_and_percentile(self.data, codes, expression, 1)
             e_values_list = []
             counter = 0
@@ -1294,14 +1297,14 @@ class Promoters(DatabaseOperations):
                     e_value_raw, vencodes = util.vencode_percent_sampling_monte_carlo(codes, filter_2,
                                                                                       combinations_number,
                                                                                       vens_to_take, reps,
-                                                                                      vencodes=threshold,
-                                                                                      stop_at=250000)
+                                                                                      vencodes=get_vencodes,
+                                                                                      stop_at=10000)
                     final_vencodes.update(vencodes)
                 else:
                     e_value_raw = util.vencode_percent_sampling_monte_carlo(codes, filter_2, combinations_number,
                                                                             vens_to_take,
                                                                             reps, vencodes=get_vencodes,
-                                                                            stop_at=250000)
+                                                                            stop_at=10000)
                 try:
                     for item in e_value_raw:
                         e_value_norm = self.e_value_normalizer(item, filter_2.shape[1], combinations_number)
@@ -1321,12 +1324,14 @@ class Promoters(DatabaseOperations):
                 self.data.drop(data_copy[self.codes[cell]], axis=1, inplace=True)
                 self.data = pd.concat([self.data, data_celltype], axis=1)
 
-        folder = "/Figure 2/"
+        # folder = "/Figure 2/"
         if get_vencodes:
-            file_name = u"/VEnCodes {} samples {} VEnCodes.csv".format(len(self.codes), vens_to_take)
-            writing_files.write_dict_to_csv(file_name, final_vencodes, folder, path="parent")
-        file_name = u"/VEnCode E-values {} samples {} VEnCodes.csv".format(len(self.codes), vens_to_take)
-        writing_files.write_dict_to_csv(file_name, final, folder, path="parent")
+            # file_name = u"/VEnCodes {} samples {} VEnCodes.csv".format(len(self.codes), vens_to_take)
+            # writing_files.write_dict_to_csv(file_name, final_vencodes, folder, path="parent")
+            return  final_vencodes
+        # file_name = u"/VEnCode E-values {} samples {} VEnCodes.csv".format(len(self.codes), vens_to_take)
+        # writing_files.write_dict_to_csv(file_name, final, folder, path="parent")
+        return final
 
     # Tests:
 

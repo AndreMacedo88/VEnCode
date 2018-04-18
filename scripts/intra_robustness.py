@@ -2,7 +2,10 @@
 # -*- coding: UTF-8 -*-
 
 """intra_robustness.py: Functions for generating intra robustness data """
+import os
 
+import utils.directory_handlers as directory_handlers
+import utils.writing_files as writing_files
 import classes
 from common_variables import promoter_file_name, enhancer_file_name, enhancer_names_db, complete_primary_cell_list, \
     complete_primary_exclude_list, \
@@ -28,7 +31,7 @@ if __name__ == "__main__":
                                              not_include=complete_primary_non_include_list,
                                              partial_exclude=complete_primary_jit_exclude_list,
                                              sample_types="primary cells", second_parser=None,
-                                             conservative=True)
+                                             conservative=True, skip_raw_data=True)
     """ All cell types 
     # use: cell_list = complete_primary_cell_list
     initialize_promoters.codes_to_csv("codes_all_cells.csv", "list", "/Figure 2/Test codes/")
@@ -47,5 +50,11 @@ if __name__ == "__main__":
     initialize_promoters.celltypes_to_csv("celltypes_4_donors.csv", "list", "/Figure 2/Test codes/")
     """
 
-    initialize_promoters.intra_individual_robustness(Setup.combinations_number, Setup.vens_to_take,
-                                                     threshold=Setup.threshold)
+    results = initialize_promoters.intra_individual_robustness(Setup.combinations_number, Setup.vens_to_take,
+                                                               threshold=Setup.threshold)
+
+    results_directory = directory_handlers.check_if_and_makefile(
+        os.path.join("Figure 2", "VEnCode E-values {} samples {} VEnCodes".format(len(Setup.cell_list),
+                                                                                  Setup.vens_to_take)),
+        path_type="parent2")
+    writing_files.write_dict_to_csv(results_directory, results, deprecated=False)

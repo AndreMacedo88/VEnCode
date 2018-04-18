@@ -47,6 +47,6 @@ results = initialize_enhancers.find_vencodes_each_celltype(stop=5, combinations_
                                                            method="sampling", n_samples=10000,
                                                            threshold_inactivity=0, threshold_activity=0.5)
 
-results_directory = directory_handlers.check_if_and_makefile(r"/VEnCode Search/All CellTps VEnC search",
+results_directory = directory_handlers.check_if_and_makefile(os.path.join("VEnCode Search", "All CellTps VEnC search"),
                                                              path_type="parent2")
 writing_files.write_dict_to_csv(results_directory, results, deprecated=False)
