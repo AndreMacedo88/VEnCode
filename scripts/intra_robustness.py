@@ -51,7 +51,7 @@ if __name__ == "__main__":
     """
 
     results = initialize_promoters.intra_individual_robustness(Setup.combinations_number, Setup.vens_to_take,
-                                                               threshold=Setup.threshold)
+                                                               threshold_sparseness=Setup.threshold)
 
     results_directory = directory_handlers.check_if_and_makefile(
         os.path.join("Figure 2", "VEnCode E-values {} samples {} VEnCodes".format(len(Setup.cell_list),

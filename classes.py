@@ -600,7 +600,8 @@ class Promoters(DatabaseOperations):
             return 100
 
     @staticmethod
-    def sampling_method_vencode_getter(data, combinations_number=4, to_drop=None, n_samples=100000, threshold=0):
+    def sampling_method_vencode_getter(data, combinations_number=4, to_drop=None, n_samples=100000, threshold=0,
+                                       skip_sparsest=True):
         """
         Function that searches for a VEnCode in data by the sampling method. Please note that it retrieves a DataFrame
         containing the entire sample. This is the reason why it only retrieves one VEnCode.
@@ -609,8 +610,14 @@ class Promoters(DatabaseOperations):
         :param to_drop:
         :param n_samples:
         :param threshold: minimum expression threshold that counts to consider a promoter inactive.
+        :param skip_sparsest: Allows user to skip first check - check if sparsest REs already constitute a VEnCode.
         :return: a Pandas DataFrame with the sample that is a VEnCode.
         """
+        if not skip_sparsest:
+            # try first to see if sparsest REs aren't already a VEnCode:
+            sparsest = data.head(n=combinations_number)
+            if util.assess_vencode_one_zero_boolean(sparsest, threshold=threshold):
+                return sparsest
         for i in range(n_samples):
             try:
                 sample = data.sample(n=combinations_number)  # take a sample of n promoters
@@ -1211,8 +1218,8 @@ class Promoters(DatabaseOperations):
         :param threshold_sparseness: Starting threshold of sparseness. Int
         :param threshold_inactivity: minimum RE expression to consider as inactive in all ctps not to get VEnCode. Int
         :param method: method of searching for VEnCodes. currently supported: sampling or heuristic. str
-        :param stop: Number of nodes to test at each level. Used in heuristic method. Int
         :param n_samples: Number of samples to test for VEnCode. Used in sampling method. Int
+        :param stop: Number of nodes to test at each level. Used in heuristic method. Int
         """
         logger = self.logging_proms(locals())
         data_copy = self.data.copy()
@@ -1242,7 +1249,7 @@ class Promoters(DatabaseOperations):
                                                               breaks=breaks, stop=stop)
                 elif method.casefold() == "sampling":
                     vencodes = self.sampling_method_vencode_getter(data, combinations_number=k,
-                                                                   n_samples=n_samples)
+                                                                   n_samples=n_samples, skip_sparsest=False)
                     if isinstance(vencodes, pd.DataFrame):
                         vencodes = True
                 else:
@@ -1259,26 +1266,26 @@ class Promoters(DatabaseOperations):
             util.multi_log(logger, celltype, results_dict[celltype])
         return results_dict
 
-    def intra_individual_robustness(self, combinations_number, vens_to_take, reps=1, threshold=90, expression=1,
-                                    get_vencodes=False):
+    def intra_individual_robustness(self, combinations_number, vens_to_take, reps=1, threshold_sparseness=90,
+                                    threshold_activity=1, get_vencodes=False):
         """
 
         :param combinations_number: Number of combinations to search for VEnCodes. List
         :param vens_to_take:
         :param reps:
-        :param threshold: Starting threshold of sparseness. Int
-        :param expression: Minimum RE expression to qualify for VEnCode for each celltype. Int
+        :param threshold_sparseness: Starting threshold of sparseness. Int
+        :param threshold_activity: Minimum RE expression to qualify for VEnCode for each celltype. Int
         :param get_vencodes:
         """
         final = {}
         final_vencodes = {}
-        base_threshold = threshold
+        base_threshold = threshold_sparseness
         data_copy = self.data.copy()
         if self.conservative:
             self.data = self.merge_donors_into_celltypes()
         # Starting loop through all cell types:
         for cell in tqdm(self.codes):
-            threshold = base_threshold
+            threshold_sparseness = base_threshold
             codes = self.codes[cell]
             print("Cell types to get VEnCodes:", *codes, sep="\n", end="\n\n")
             if self.conservative:
@@ -1288,11 +1295,11 @@ class Promoters(DatabaseOperations):
             if self.skip_raw_data:
                 filename = os.path.join(self.path_parsed_data, "{}_tpm_{}-1.csv".format(cell, self.data_type))
                 self.data = pd.read_csv(filename, sep=";", index_col=0, engine="python")
-            filter_1 = util.df_filter_by_expression_and_percentile(self.data, codes, expression, 1)
+            filter_1 = util.df_filter_by_expression_and_percentile(self.data, codes, threshold_activity, 1)
             e_values_list = []
             counter = 0
             while len(e_values_list) < vens_to_take:
-                filter_2, threshold = util.df_filter_by_percentile(filter_1, codes, threshold)
+                filter_2, threshold_sparseness = util.df_filter_by_percentile(filter_1, codes, threshold_sparseness)
                 if get_vencodes:
                     e_value_raw, vencodes = util.vencode_percent_sampling_monte_carlo(codes, filter_2,
                                                                                       combinations_number,
@@ -1311,9 +1318,9 @@ class Promoters(DatabaseOperations):
                         e_values_list.append(e_value_norm)
                 except:
                     pass
-                threshold -= 5
+                threshold_sparseness -= 5
                 counter += 1
-                if threshold < 50 or counter == 3:
+                if threshold_sparseness < 50 or counter == 3:
                     if len(e_values_list) == vens_to_take:
                         break
                     for i in range(len(e_values_list), vens_to_take):
@@ -1328,10 +1335,86 @@ class Promoters(DatabaseOperations):
         if get_vencodes:
             # file_name = u"/VEnCodes {} samples {} VEnCodes.csv".format(len(self.codes), vens_to_take)
             # writing_files.write_dict_to_csv(file_name, final_vencodes, folder, path="parent")
-            return  final_vencodes
+            return final_vencodes
         # file_name = u"/VEnCode E-values {} samples {} VEnCodes.csv".format(len(self.codes), vens_to_take)
         # writing_files.write_dict_to_csv(file_name, final, folder, path="parent")
         return final
+
+    def enhancer_promoter_vencodes(self, combinations_number=tuple(range(1, 11)), threshold_activity=1,
+                                   threshold_sparseness=90, threshold_inactivity=0, method="sampling",
+                                   n_samples=200000, stop=5):
+        """
+        Objective: Get specific combinations for all (or most) of the cell types in the data set.
+        Methods: Try to get VEnCodes for enhancers at a specific combinations_number. If there is no VEnCode,
+        find columns (cell types) that are preventing the VEnCode for the combination of sparsest REs and get a promoter that
+        is not expressed in those columns (cell types).
+        :param combinations_number: Number of combinations to search for VEnCodes. List
+        :param threshold_activity: Minimum RE expression to qualify as active in cell types to get VEnCode. Int
+        :param threshold_sparseness: Starting threshold of sparseness. Int
+        :param threshold_inactivity: minimum RE expression to consider as inactive in all ctps not to get VEnCode. Int
+        :param method: method of searching for VEnCodes. currently supported: sampling or heuristic. str
+        :param n_samples: Number of samples to test for VEnCode. Used in sampling method. Int
+        :param stop: Number of nodes to test at each level. Used in heuristic method. Int
+        """
+        logger = self.logging_proms(locals())
+        results_dict = defaultdict(list)
+        for celltype in tqdm(self.celltype, desc="Celltypes"):
+            util.multi_log(logger, "Starting:", celltype)
+            filename = os.path.join(self.path_parsed_data, "{}_tpm_{}-1.csv".format(celltype, self.data_type))
+            filename_promoters = filename.replace("enhancers", "promoters")
+            self.data = pd.read_csv(filename_promoters, sep=";", index_col=0, engine="python")
+            codes = self._code_selector(self.data, self.celltype, not_include=self.not_include,
+                                        to_dict=True, regex=True)
+            data_promoters = self.filter_prep_sort_drop_codes(codes[celltype], threshold_activity,
+                                                              threshold_sparseness,
+                                                              threshold_inactivity=threshold_inactivity)
+            self.data = pd.read_csv(filename, sep=";", index_col=0, engine="python")
+            data = self.filter_prep_sort_drop_codes(self.codes[celltype], threshold_activity, threshold_sparseness,
+                                                    threshold_inactivity=threshold_inactivity)
+            for k in combinations_number:
+                if method.casefold() == "heuristic":
+                    # this next section creates a dictionary to update with how many times each node is cycled
+                    breaks = {}
+                    for item in range(1, k):
+                        breaks["breaker_" + str(item)] = 0
+                    skip = []
+                    vencodes = self.node_based_vencode_getter(data,
+                                                              combinations_number=k, skip=skip,
+                                                              breaks=breaks, stop=stop)
+                elif method.casefold() == "sampling":
+                    vencodes = self.sampling_method_vencode_getter(data, combinations_number=k,
+                                                                   n_samples=n_samples, skip_sparsest=False)
+                    if isinstance(vencodes, pd.DataFrame):
+                        vencodes = True
+                else:
+                    raise NameError("method name to get VEnCodes not recognized: ", method)
+                if not vencodes:
+                    sparsest = data.head(n=k)
+                    mask = sparsest != 0
+                    cols = sparsest.columns[np.all(mask.values, axis=0)]
+                    sparsest_problems = sparsest[cols]
+                    data_promoters_problems = data_promoters[cols]
+                    for kay in range(k):
+                        ven_promoters = self.sampling_method_vencode_getter(data_promoters_problems, combinations_number=kay,
+                                                                            n_samples=n_samples, skip_sparsest=False)
+                        if isinstance(ven_promoters, pd.DataFrame):
+                            ven_promoters = True
+                        if not ven_promoters:
+                            continue
+                        else:
+                            break
+                    if not ven_promoters:
+                        results_dict[celltype].append(0)
+                    else:
+                        for v in range((k - combinations_number[0]), len(combinations_number)):
+                            results_dict[celltype].append(1)
+                        break
+                else:
+                    for v in range((k - combinations_number[0]), len(combinations_number)):
+                        results_dict[celltype].append(1)
+                    break
+            util.multi_log(logger, celltype, results_dict[celltype])
+        return results_dict
 
     # Tests:
 
