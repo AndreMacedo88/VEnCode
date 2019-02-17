@@ -5,18 +5,19 @@
 
 import classes
 from utils import input_handlers as ih
-from common_variables import promoter_file_name, enhancer_file_name, enhancer_names_db, complete_primary_cell_list, \
-    complete_primary_exclude_list, \
-    complete_primary_non_include_list, complete_primary_jit_exclude_list
+
+from VEnCode.common_variables import promoter_file_name, primary_cell_list, \
+    primary_exclude_list, \
+    primary_not_include_codes, primary_cells_supersets
 
 vencodes_number = ih.input_integers("Number of VEnCodes to get: ")
 rows_number = ih.input_integers("Number of rows from the file to open (put 'None' for full file): ")
 
 # Promoters
-initialize_promoters = classes.Promoters(promoter_file_name, complete_primary_cell_list,
-                                         celltype_exclude=complete_primary_exclude_list,
-                                         not_include=complete_primary_non_include_list,
-                                         partial_exclude=complete_primary_jit_exclude_list,
+initialize_promoters = classes.Promoters(promoter_file_name, primary_cell_list,
+                                         celltype_exclude=primary_exclude_list,
+                                         not_include=primary_not_include_codes,
+                                         partial_exclude=primary_cells_supersets,
                                          sample_types="primary cells", second_parser=None,
                                          conservative=True, log_level="info", skip_raw_data=True,
                                          nrows=rows_number)

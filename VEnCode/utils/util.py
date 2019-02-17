@@ -215,7 +215,7 @@ def vencode_percent_sampling_monte_carlo(codes, filters, combinations_number, ve
 # region Other VEnCode functions
 
 
-def assess_vencode_one_zero_boolean(sample, threshold=0):
+def assess_vencode_one_zero_boolean(sample, threshold=0):  # moved to internals.py
     """
     Returns True if sample represents a VEnCodes for a celltype not in "sample". It assumes VEnCodes when all
     other celltypes have at least one promoter not expressing. It's the quickest VEnCode counting algorithm.
@@ -260,7 +260,7 @@ def assess_vencode_one_zero_plus_problems(counter, sample, problems):
     return counter, problems
 
 
-def vencode_mc_simulation(data, col_list, reps=100):
+def vencode_mc_simulation(data, col_list, reps=100):  # moved to internals.py
     """
     :param data: pandas data frame of promoter expression per celltype without the celltype of interest.
     :param col_list: columns of celltypes/donors without the celltype of interest.
@@ -444,7 +444,7 @@ def df_row_percentage_of_zeros_calculator(data_frame, celltype):
     return data_frame_new, column_label
 
 
-def df_percentile_calculator(data_frame, celltype, start_percent, define_percentile=False):
+def df_percentile_calculator(data_frame, celltype, start_percent, define_percentile=False):   # note: migrated to pandas_utils.py
     """
     Returns a df with one extra column containing the value of the data at percentile start_percent and the label
     of such column.
@@ -457,7 +457,7 @@ def df_percentile_calculator(data_frame, celltype, start_percent, define_percent
     return data_frame, column_label
 
 
-def df_filter_by_expression(data, codes, expression):
+def df_filter_by_expression(data, codes, expression):  # note: migrated to pandas_utils.py
     """ Returns a df containing only the rows which value is >= than expression for all columns in codes """
     # data_filtered = data.copy()
     if isinstance(codes, (list, tuple, np.ndarray)):
@@ -468,7 +468,7 @@ def df_filter_by_expression(data, codes, expression):
     return data
 
 
-def df_filter_by_column_value(data_frame, column, value=0):
+def df_filter_by_column_value(data_frame, column, value=0):  # note: migrated to pandas_utils.py
     """ Returns a df containing only the rows that present a value = 0 for the column "column" """
     data_filtered = data_frame[data_frame[column] == value]
     return data_filtered
@@ -520,7 +520,7 @@ def df_filter_by_percentile(data, codes, threshold):
         return
 
 
-def df_regex_searcher(string, database):
+def df_regex_searcher(string, database): # Note: migrated to pandas_utils.py
     """ Returns a df containing only the columns which contain the string somewhere in its label """
     regular = ".*" + string.replace(" ", ".*").replace("+", "%2b").replace(":", "%3a").replace("(",
                                                                                                "%28").replace(
@@ -530,8 +530,9 @@ def df_regex_searcher(string, database):
     return regex_filtered_df
 
 
-def df_minimal_regex_searcher(string, database):
-    """ Returns a df containing only the columns which contain the string somewhere in its label """
+def df_minimal_regex_searcher(string, database): # Note: migrated to pandas_utils.py
+    """ Returns a df containing only the columns which contain the string somewhere in its label
+    Used for enhancer data set. """
     expression = ".*" + string.replace(" ", ".*").replace("+", "\+") + ".*"
     idx = database.columns.str.contains(expression, flags=re.IGNORECASE, regex=True, na=False)
     regex_filtered_df = database.loc[:, idx]

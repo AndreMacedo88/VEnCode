@@ -2,8 +2,9 @@
 # -*- coding: UTF-8 -*-
 
 import classes
-from common_variables import file_name, complete_cancer_cell_type, complete_primary_exclude_list, \
-    complete_primary_non_include_list, complete_primary_jit_exclude_list
+
+from VEnCode.common_variables import file_name, primary_exclude_list, \
+    primary_not_include_codes, primary_cells_supersets
 
 # region Variables
 case_studies = ["small cell lung carcinoma", "testicular germ cell embryonal carcinoma",
@@ -13,9 +14,9 @@ case_studies = ["small cell lung carcinoma", "testicular germ cell embryonal car
 if __name__ == "__main__":
     initialize_promoters = classes.Promoters(file_name,
                                              case_studies[3],
-                                             celltype_exclude=complete_primary_exclude_list,
-                                             not_include=complete_primary_non_include_list,
-                                             partial_exclude=complete_primary_jit_exclude_list,
+                                             celltype_exclude=primary_exclude_list,
+                                             not_include=primary_not_include_codes,
+                                             partial_exclude=primary_cells_supersets,
                                              sample_types=["primary cells", "cell lines"],
                                              second_parser="primary cells")
     # get files for VEn diagram:

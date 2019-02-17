@@ -4,16 +4,16 @@
 """
 sampling_vs_heuristic.py: Script to compare VEnCodes between the sampling and heuristic algorithms.
 """
+import classes
 import matplotlib.pyplot as plt
-from tqdm import tqdm
-
-import utils.writing_files as wfs
 import utils.directory_handlers as dhs
 import utils.input_handlers as ihs
-import classes
-from common_variables import promoter_file_name, enhancer_file_name, enhancer_names_db, complete_primary_cell_list, \
-    complete_primary_exclude_list, \
-    complete_primary_non_include_list, complete_primary_jit_exclude_list
+import utils.writing_files as wfs
+from tqdm import tqdm
+
+from VEnCode.common_variables import promoter_file_name, primary_cell_list, \
+    primary_exclude_list, \
+    primary_not_include_codes, primary_cells_supersets
 
 rows_number = ihs.input_integers("Number of rows from the file to open (put 'None' for full file): ")
 vencodes_number = ihs.input_integers("Number of VEnCodes to get: ")
@@ -22,10 +22,10 @@ algorithm = ihs.input_string("Algorithm(s) to use (heuristic, sampling, both): "
 celltype_list = ["Lens Epithelial Cells"]
 
 
-initialize_promoters = classes.Promoters(promoter_file_name, complete_primary_cell_list,
-                                         celltype_exclude=complete_primary_exclude_list,
-                                         not_include=complete_primary_non_include_list,
-                                         partial_exclude=complete_primary_jit_exclude_list,
+initialize_promoters = classes.Promoters(promoter_file_name, primary_cell_list,
+                                         celltype_exclude=primary_exclude_list,
+                                         not_include=primary_not_include_codes,
+                                         partial_exclude=primary_cells_supersets,
                                          sample_types="primary cells", second_parser=None,
                                          conservative=True, log_level="info", nrows=rows_number)
 

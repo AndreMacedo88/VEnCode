@@ -1,1 +1,3 @@
-from classes import DatabaseOperations
+__all__ = ["VEnCode"]
+
+import VEnCode

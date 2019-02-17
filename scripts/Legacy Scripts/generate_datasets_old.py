@@ -2,20 +2,19 @@
 # -*- coding: UTF-8 -*-
 
 """
-generate_datasets.py: Script to generate pre-filtered data sets files.
+generate_datasets_old.py: Script to generate files with parsed data sets.
 """
 import os
 
 import classes
 import pandas as pd
 from tqdm import tqdm
+from utils import util
 
-from VEnCode import internals
 from VEnCode.common_variables import enhancer_file_name, enhancer_names_db, primary_cell_list, \
-    primary_exclude_list, promoter_file_name, \
+    primary_exclude_list, \
     primary_not_include_codes, primary_cells_supersets
 from VEnCode.utils import directory_handlers as dhs
-from VEnCode.utils import util
 
 # Promoters:
 """
@@ -37,12 +36,9 @@ init = classes.Promoters(enhancer_file_name,
                          conservative=True, log_level="info", enhancers=enhancer_names_db,
                          skiprows=None, nrows=None)
 
-data = internals.DataTpm(file=promoter_file_name, sample_types="primary cells", data_type="promoters")
-data_copy = data.data.copy()
-# data_copy = init.data.copy()
-# init.data = init.merge_donors_into_celltypes()
-
-for celltype in tqdm(primary_cell_list, desc="Completed: "):
+data_copy = init.data.copy()
+init.data = init.merge_donors_into_celltypes()
+for celltype in tqdm(primary_cell_list):
     # file name:
     filename = "{}_tpm_enhancers".format(celltype)
     results_directory = dhs.check_if_and_makefile(os.path.join("Files", "Dbs", filename),

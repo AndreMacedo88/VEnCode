@@ -1,0 +1,5 @@
+To use the following scripts which were used to generate the data for the article Macedo & Gontijo, 2019, please first
+generate the more compact data sets using "generate_datasets.py", for primary cell types, and
+"generate_datasets_cancer.py" for cancer cell types respectively. Remember to use the same scripts for both promoter and
+enhancer data. In the end your new folder should contain about 31 GBs of data.
+Otherwise, you can create your own scripts around the internals.py classes and objects.

@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-""" intra_robustness.py: Script for generating intra robustness data in Macedo & Gontijo, 2019. """
+"""
+intra_robustness_heu2.py: Script for generating intra robustness data, using the heuristic2 approach as in
+Macedo & Gontijo, 2019.
+"""
 
 import os
 import sys
@@ -19,64 +22,61 @@ from VEnCode.common_variables import primary_cell_list, cancer_celltype_list
 
 class SetUp:
     """ set up some variables: """
-    celltype_type = "primary"
-    data_type = "enhancers"
-    algorithm = "heuristic"
+    celltype_type = "cancer"
+    first_data_type = "enhancers"
+    second_data_type = "promoters"
     ven_number = 20
     ven_size = 4
 
     # Next ones you may not need to change:
+    target_celltype_activity = 0.1
     non_target_celltypes_inactivity = 0
-    if data_type == "enhancers":
-        target_celltype_activity = 0.1
-    elif data_type == "promoters":
-        target_celltype_activity = 0.5
-    else:
-        raise AttributeError("data_type - {} - currently not supported".format(data_type))
-    if algorithm == "heuristic":
-        reg_element_sparseness = 0
-    elif algorithm == "sampling":
-        reg_element_sparseness = 90
-    else:
-        raise AttributeError("Algorithm - {} - currently not supported".format(algorithm))
+    second_target_celltype_activity = 0.5
+    second_non_target_celltypes_inactivity = 0
+    reg_element_sparseness = 0
+    second_reg_element_sparseness = 0
+
 
 # Now you don't need to change anything else
 setup = SetUp()
 
-if setup.celltype_type == "cancer":
-    celltype_list = cancer_celltype_list
-    sample_types = "cell lines"
-elif setup.celltype_type == "primary":
+algorithm = "heuristic"
+
+if setup.celltype_type == "primary":
     celltype_list = primary_cell_list
     sample_types = "primary cells"
+elif setup.celltype_type == "cancer":
+    celltype_list = cancer_celltype_list
+    sample_types = "cell lines"
 else:
     raise AttributeError("Celltype_type - {} - currently not supported".format(setup.celltype_type))
 
 results = {}
-data = internals.DataTpm(file="parsed", sample_types=sample_types, data_type=setup.data_type)
+data = internals.DataTpm(file="parsed", sample_types=sample_types, data_type=setup.first_data_type)
+data_second = internals.DataTpm(file="parsed", sample_types=sample_types, data_type=setup.second_data_type)
 
 # cycle your list of cell types:
 for celltype in tqdm(celltype_list, desc="Completed: "):
-    # prepare data:
+    # prepare first data:
     data.make_data_celltype_specific(celltype)
     data.filter_by_target_celltype_activity(threshold=setup.target_celltype_activity)
     data.filter_by_reg_element_sparseness(threshold=setup.reg_element_sparseness)
     data.define_non_target_celltypes_inactivity(threshold=setup.non_target_celltypes_inactivity)
-    if setup.algorithm != "sampling":
-        data.sort_sparseness()
+    data.sort_sparseness()
+    # prepare second data:
+    data_second.make_data_celltype_specific(celltype)
+    data_second.filter_by_target_celltype_activity(threshold=setup.second_target_celltype_activity)
+    data_second.filter_by_reg_element_sparseness(threshold=setup.second_reg_element_sparseness)
+    data_second.define_non_target_celltypes_inactivity(threshold=setup.second_non_target_celltypes_inactivity)
+    data_second.sort_sparseness()
 
     # Deal with possible dictionaries in celltype list:
     if isinstance(celltype, dict):
         celltype = list(celltype.keys())[0]
 
     # Launch VEnCode search:
-    if setup.algorithm == "sampling":
-        vencodes = internals.Vencodes(data, algorithm="sampling", number_of_re=setup.ven_size, n_samples=10000)
-    elif setup.algorithm == "heuristic":
-        vencodes = internals.Vencodes(data, algorithm="heuristic", number_of_re=setup.ven_size, stop=3)
-    else:
-        raise AttributeError("Algorithm '{}' not recognized".format(setup.algorithm))
-    vencodes.next(amount=setup.ven_number)
+    vencodes = internals.Vencodes(data, algorithm="heuristic", number_of_re=setup.ven_size, stop=3)
+    vencodes.next_heuristic2_vencode(data_second, amount=setup.ven_number)
 
     # Determine e-values:
     if vencodes.vencodes:
@@ -91,7 +91,7 @@ for celltype in tqdm(celltype_list, desc="Completed: "):
 
 # create a directory to store results
 results_directory = directory_handlers.check_if_and_makefile(os.path.join(
-    "E-values analysis", "{} {} k{} {}".format(setup.celltype_type, setup.data_type, setup.ven_size, setup.algorithm)),
+    "E-values analysis", "{} {} k{} {}".format(setup.celltype_type, "Heuristic2", setup.ven_size, algorithm)),
     path_type="parent3")
 
 # Set up the important information to include in the file

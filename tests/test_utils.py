@@ -2,11 +2,11 @@ import unittest
 
 import numpy as np
 import pandas as pd
-
 import utils.directory_handlers
 import utils.writing_files
-from utils import pandas_utils as pdutil
 from utils import util
+
+from VEnCode.utils import pandas_utils as pdutil
 
 
 class FilterByExpressionAndPercentileTest(unittest.TestCase):
@@ -111,6 +111,7 @@ class CombinationsFromNestedListTest(unittest.TestCase):
         """
         for i in util.combinations_from_nested_lists(self.lst1):
             print(i)
+
 
 class TestMakingWritingFiles:
     def test_dicts(self):

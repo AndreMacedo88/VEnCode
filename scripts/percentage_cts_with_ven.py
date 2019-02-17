@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-""" intra_robustness.py: Script for generating intra robustness data in Macedo & Gontijo, 2019. """
+"""
+percentage_cts_with_ven.py: Script to find which cell types have at least one VEnCode, as in Macedo & Gontijo, 2019.
+"""
 
 import os
 import sys
@@ -19,11 +21,9 @@ from VEnCode.common_variables import primary_cell_list, cancer_celltype_list
 
 class SetUp:
     """ set up some variables: """
-    celltype_type = "primary"
+    celltype_type = "cancer"
     data_type = "enhancers"
-    algorithm = "heuristic"
-    ven_number = 20
-    ven_size = 4
+    algorithm = "sampling"
 
     # Next ones you may not need to change:
     non_target_celltypes_inactivity = 0
@@ -39,6 +39,7 @@ class SetUp:
         reg_element_sparseness = 90
     else:
         raise AttributeError("Algorithm - {} - currently not supported".format(algorithm))
+
 
 # Now you don't need to change anything else
 setup = SetUp()
@@ -65,34 +66,38 @@ for celltype in tqdm(celltype_list, desc="Completed: "):
     if setup.algorithm != "sampling":
         data.sort_sparseness()
 
-    # Deal with possible dictionaries in celltype list:
-    if isinstance(celltype, dict):
+    try:
+        results[celltype] = []
+    except TypeError:
         celltype = list(celltype.keys())[0]
+        results[celltype] = []
 
-    # Launch VEnCode search:
-    if setup.algorithm == "sampling":
-        vencodes = internals.Vencodes(data, algorithm="sampling", number_of_re=setup.ven_size, n_samples=10000)
-    elif setup.algorithm == "heuristic":
-        vencodes = internals.Vencodes(data, algorithm="heuristic", number_of_re=setup.ven_size, stop=3)
-    else:
-        raise AttributeError("Algorithm '{}' not recognized".format(setup.algorithm))
-    vencodes.next(amount=setup.ven_number)
+    # cycle the k numbers to search if there's a VEnCode.
+    for k in range(1, 11):  # you can redefine the range of k here
+        # Launch VEnCode search:
+        if setup.algorithm == "sampling":
+            vencodes = internals.Vencodes(data, algorithm="sampling", number_of_re=k, n_samples=10000)
+        elif setup.algorithm == "heuristic":
+            vencodes = internals.Vencodes(data, algorithm="heuristic", number_of_re=k, stop=3)
+        else:
+            raise AttributeError("Algorithm '{}' not recognized".format(setup.algorithm))
+        vencodes.next(amount=1)
 
-    # Determine e-values:
-    if vencodes.vencodes:
-        vencodes.determine_e_values()
-        e_values = list(vencodes.e_values.values())
-        if len(e_values) != setup.ven_number:
-            for i in range(len(e_values), setup.ven_number):
-                e_values.append("")
-        results[celltype] = e_values
-    else:
-        results[celltype] = [""]*20
+        # Determine if a VEnCode was found:
+        if vencodes.vencodes:
+            for v in range(k, 11):
+                results[celltype].append(1)
+            break
+        else:
+            results[celltype].append(0)
 
 # create a directory to store results
 results_directory = directory_handlers.check_if_and_makefile(os.path.join(
-    "E-values analysis", "{} {} k{} {}".format(setup.celltype_type, setup.data_type, setup.ven_size, setup.algorithm)),
-    path_type="parent3")
+    "VEnCode Search",
+    "{} {} {} sp{} act{} inact{}".format(setup.celltype_type, setup.data_type, setup.algorithm,
+                                         setup.reg_element_sparseness,
+                                         setup.target_celltype_activity,
+                                         setup.non_target_celltypes_inactivity)), path_type="parent3")
 
 # Set up the important information to include in the file
 info_list = [attr for attr in dir(setup) if not callable(getattr(setup, attr)) and not attr.startswith("__")]

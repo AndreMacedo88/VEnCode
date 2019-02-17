@@ -2,7 +2,7 @@
 # -*- coding: UTF-8 -*-
 
 """
-inter_robustness.py: Script to find cell type z values for all cell types with 3 or more donors,
+inter_robustness_heu2.py: Script to find cell type z-values, using the hybrid vencode strategy,
 as in Macedo & Gontijo, 2019.
 """
 
@@ -16,70 +16,45 @@ file_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(file_dir)
 
 from VEnCode import internals
+from VEnCode.common_variables import three_donors_cell_list
 import VEnCode.utils.directory_handlers as directory_handlers
 import VEnCode.utils.writing_files as writing_files
-from VEnCode.common_variables import cancer_three_donors_list, cancer_three_donors_bio_rep_list, \
-    three_donors_cell_list, cancer_four_donors_list
 
 
 class SetUp:
-    """ Set up some variables: """
-    celltype_type = "cancer"
-    data_type = "enhancers"
-    algorithm = "sampling"
-    celltypes_list = cancer_three_donors_list
-    ven_size = 4
+    """ set up some variables: """
+    celltype_list = three_donors_cell_list
+    first_data_type = "enhancers"
+    second_data_type = "promoters"
+    algorithm = "heuristic"
 
-    # Next ones you may not need to change:
+    target_celltype_activity = 0.1
+    reg_element_sparseness = 0
     non_target_celltypes_inactivity = 0
-    if data_type == "enhancers":
-        target_celltype_activity = 0.1
-    elif data_type == "promoters":
-        target_celltype_activity = 0.5
-    else:
-        raise AttributeError("data_type - {} - currently not supported".format(data_type))
-    if algorithm == "heuristic":
-        reg_element_sparseness = 0
-    elif algorithm == "sampling":
-        reg_element_sparseness = 90
-    else:
-        raise AttributeError("Algorithm - {} - currently not supported".format(algorithm))
+
+    second_target_celltype_activity = 0.5
+    second_reg_element_sparseness = 0
+    second_non_target_celltypes_inactivity = 0
+
 
 # Now you don't need to change anything else
 setup = SetUp()
-
-if setup.celltype_type == "cancer":
-    sample_types = "cell lines"
-elif setup.celltype_type == "primary":
-    sample_types = "primary cells"
-else:
-    raise AttributeError("Celltype_type - {} - currently not supported".format(setup.celltype_type))
-
 results_final = {}
-data = internals.DataTpm(file="parsed", sample_types=sample_types, data_type=setup.data_type)
+data = internals.DataTpm(file="parsed", sample_types="primary cells", data_type=setup.data_type)
 
-# cycle your list of cell types:
-for celltype in tqdm(setup.celltypes_list, desc="Completed: "):
+for celltype in tqdm(setup.re_list, desc="Completed: "):
     data.make_data_celltype_specific(celltype)
     data_copy = data.copy()
-
-    # Deal with possible dictionaries in celltype list:
-    if isinstance(celltype, dict):
-        celltype = list(celltype.keys())[0]
-
-    # cycle possible number of combinations of donors:
-    donors_number = len(data.ctp_analyse_donors[celltype])
-    for k in range(1, donors_number):
+    for k in [1, 2]:
         results_celltype = []
         for n in range(50):
-            choice = random.sample(range(donors_number), k=k)  # chooses a random int from 0 to 2, to later choose a donor.
+            choice = random.sample(range(3), k=k)  # chooses a random int from 0 to 2, to later choose a donor.
             data.filter_by_target_celltype_activity(threshold=setup.target_celltype_activity, donors=choice)
             data.filter_by_reg_element_sparseness(threshold=setup.reg_element_sparseness)
             data.define_non_target_celltypes_inactivity(threshold=setup.non_target_celltypes_inactivity)
             if setup.algorithm != "sampling":
                 data.sort_sparseness()
 
-            # Launch VEnCode search:
             if setup.algorithm == "sampling":
                 vencodes = internals.Vencodes(data, algorithm="sampling", number_of_re=setup.ven_size, n_samples=10000)
             elif setup.algorithm == "heuristic":
@@ -87,8 +62,6 @@ for celltype in tqdm(setup.celltypes_list, desc="Completed: "):
             else:
                 raise AttributeError("Algorithm '{}' not recognized".format(setup.algorithm))
             vencodes.next(amount=1)
-
-            # Determine z-values
             if vencodes.vencodes:
                 donors_vencode_data = vencodes.celltype_donors_data.loc[vencodes.vencodes[0]]
                 assess_if_not_vencode = np.any(donors_vencode_data == 0, axis=0)
@@ -97,11 +70,11 @@ for celltype in tqdm(setup.celltypes_list, desc="Completed: "):
             else:
                 results_celltype.append("")
             data = data_copy
-        results_final["{}_{}".format(celltype, k)] = results_celltype
+        results_final[celltype + str(k)] = results_celltype
 
 # create a directory to store results
 results_directory = directory_handlers.check_if_and_makefile(os.path.join(
-    "Z-values analysis", "{} {} {} {}".format(setup.celltype_type, "three donors", setup.data_type, setup.algorithm)),
+    "Z-values analysis", "{} primary {} {}".format("Three donors", setup.data_type, setup.algorithm)),
     path_type="parent3")
 
 # Set up the important information to include in the file
@@ -113,4 +86,3 @@ for item in info_list:
 # write the information and results
 writing_files.write_dict_to_csv(results_directory, info_dict, deprecated=False)
 writing_files.write_dict_to_csv(results_directory, results_final, deprecated=False, method="a")
-print("File saved in: {}".format(results_directory))

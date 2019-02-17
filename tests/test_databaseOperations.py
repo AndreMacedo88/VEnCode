@@ -1,11 +1,9 @@
 import unittest
+
+import classes
 import pandas as pd
 
-from utils import pandas_utils as pdutil
-from .context import classes
-from common_variables import promoter_file_name, enhancer_file_name, enhancer_names_db, complete_primary_cell_list, \
-    complete_primary_exclude_list, \
-    complete_primary_non_include_list, complete_primary_jit_exclude_list
+from VEnCode.utils import pandas_utils as pdutil
 
 
 class SampleCategorySelectorTest(unittest.TestCase):
