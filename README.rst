@@ -1,10 +1,9 @@
 Module for VEnCode-related projects based on FANTOM5 databases
 ==============================================================
 
-This module contains classes and functions that do VEnCode-related operations on databases provided by the `FANTOM5
-consortium`_, namely the CAGE enhancer and transcription start site (TSS) databases.
+This module contains classes and functions that perform intersectional genetics-related operations to find VEnCodes using databases provided by the `FANTOM5 consortium`_, namely the CAGE enhancer and transcription start site (TSS) databases.
 
-For more information on the VEnCode technology, please refer to **Macedo et al., 2017. DOI:**
+For more information on the VEnCode technology, please refer to **Macedo and Gontijo, bioRxiv 2019. DOI:**
 
 Getting started
 ---------------
@@ -59,8 +58,12 @@ This project is not under any free License at the moment.
 
 Acknowledgements
 ----------------
-- Integrative Biomedicine Laboratory @ CEDOC, NMS, Lisbon
+- Integrative Biomedicine Laboratory @ CEDOC, NMS, Lisbon (supported by FCT: UID/Multi/04462/2019; PTDC/MED-NEU/30753/2017; and PTDC/BIA-BID/31071/2017 and FAPESP: 2016/09659-3)
 - CEDOC: Chronic Diseases Research Center, Nova Medical School, Lisbon
+- The MIT Portugal Program (MITEXPL/BIO/0097/2017)
+- LIGA PORTUGUESA CONTRA O CANCRO (LPCC) 2017.
+- FCT (IF/00022/2012, SFRH/BD/94931/2013, PTDC/BEXBCM/1370/2014)
+- Prof. Dr. Ney Lemke and Ms. Benilde Pondeca for important discussions.
 
 .. Starting hyperlink targets:
 
