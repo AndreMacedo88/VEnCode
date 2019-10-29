@@ -1,19 +1,28 @@
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
+import setuptools
 
-config = {
-    'description': 'My Project',
-    'author': 'Andre_Macedo',
-    'url': 'URL to get it at.',
-    'download_url': 'Where to download it.',
-    'author_email': 'andre.lopes.macedo@gmail.com',
-    'version': '0.1pre',
-    'install_requires': ['nose'],
-    'packages': ['NAME'],
-    'scripts': [],
-    'name': 'projectname'
-}
+with open("README.rst", "r") as fh:
+    long_description = fh.read()
 
-setup(**config)
+setuptools.setup(
+    name='VEnCode',
+    version='0.0.2',
+    description='Package to get VEnCodes as in Macedo and Gontijo, 2019',
+    author='Andre Macedo',
+    author_email='andre.lopes.macedo@gmail.com',
+    url='https://github.com/AndreMacedo88/VEnCode',
+    packages=setuptools.find_packages(),
+    install_requires=[
+        "tqdm",
+        "numpy",
+        "pandas",
+        "matplotlib",
+        "scipy",
+        "tkinter",
+        "pylab"
+    ],
+    classifiers=[
+        "Programming Language :: Python :: 3.6",
+        "License :: Free for non-commercial use",
+        "Operating System :: OS Independent",
+    ]
+)

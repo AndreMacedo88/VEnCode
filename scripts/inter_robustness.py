@@ -12,12 +12,13 @@ import random
 import numpy as np
 from tqdm import tqdm
 
+import VEnCode.utils.dir_and_file_handling
+
 file_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(file_dir)
 
 from VEnCode import internals
-import VEnCode.utils.directory_handlers as directory_handlers
-import VEnCode.utils.writing_files as writing_files
+import VEnCode.utils.dir_and_file_handling as d_f_handling
 from VEnCode.common_variables import cancer_three_donors_list, cancer_three_donors_bio_rep_list, \
     three_donors_cell_list, cancer_four_donors_list
 
@@ -100,7 +101,7 @@ for celltype in tqdm(setup.celltypes_list, desc="Completed: "):
         results_final["{}_{}".format(celltype, k)] = results_celltype
 
 # create a directory to store results
-results_directory = directory_handlers.check_if_and_makefile(os.path.join(
+results_directory = d_f_handling.check_if_and_makefile(os.path.join(
     "Z-values analysis", "{} {} {} {}".format(setup.celltype_type, "three donors", setup.data_type, setup.algorithm)),
     path_type="parent3")
 
@@ -111,6 +112,6 @@ for item in info_list:
     info_dict[item] = getattr(setup, item)
 
 # write the information and results
-writing_files.write_dict_to_csv(results_directory, info_dict, deprecated=False)
-writing_files.write_dict_to_csv(results_directory, results_final, deprecated=False, method="a")
+VEnCode.utils.dir_and_file_handling.write_dict_to_csv(results_directory, info_dict, deprecated=False)
+VEnCode.utils.dir_and_file_handling.write_dict_to_csv(results_directory, results_final, deprecated=False, method="a")
 print("File saved in: {}".format(results_directory))

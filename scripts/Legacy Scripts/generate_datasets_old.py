@@ -14,7 +14,7 @@ from utils import util
 from VEnCode.common_variables import enhancer_file_name, enhancer_names_db, primary_cell_list, \
     primary_exclude_list, \
     primary_not_include_codes, primary_cells_supersets
-from VEnCode.utils import directory_handlers as dhs
+from VEnCode.utils import dir_and_file_handling as dhs
 
 # Promoters:
 """

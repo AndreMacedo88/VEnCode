@@ -14,8 +14,7 @@ import pandas as pd
 import sqlite3
 
 import VEnCode.utils.sqlite_utils as sq
-import VEnCode.utils.directory_handlers as directory_handlers
-import VEnCode.utils.writing_files as writing_files
+import VEnCode.utils.dir_and_file_handling as directory_handlers
 
 # TODO: A class that inputs one or several VEnCodes and has functions to view several VEnCodes, or to output a file.
 

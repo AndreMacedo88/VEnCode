@@ -12,7 +12,7 @@ sys.path.append(file_dir)
 
 from VEnCode import internals
 from VEnCode import common_variables as cv
-from VEnCode.utils import directory_handlers as dh
+from VEnCode.utils import dir_and_file_handling as dh
 
 
 class DataTpmTest(unittest.TestCase):
@@ -86,10 +86,8 @@ class DataNotParsedTest(DataTpmTest):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.database_promoters = internals.DataTpm(file=cv.promoter_file_name, nrows=4,
-                                                   celltype_exclude=cv.primary_exclude_list)
-        cls.database_enhancers = internals.DataTpm(file=cv.enhancer_file_name, nrows=4, data_type="enhancers",
-                                                   celltype_exclude=cv.primary_exclude_list)
+        cls.database_promoters = internals.DataTpm(file=cv.promoter_file_name, nrows=4)
+        cls.database_enhancers = internals.DataTpm(file=cv.enhancer_file_name, nrows=4, data_type="enhancers")
 
     def test_primary_cells_ncols_promoters(self):
         self.assertEqual(self.database_promoters.data.shape[1], 537)
@@ -108,11 +106,9 @@ class DataParsedTest(DataTpmTest):
     def setUpClass(cls):
         super().setUpClass()
         file_type = "parsed"
-        cls.database_promoters = internals.DataTpm(file=file_type, nrows=4,
-                                                   celltype_exclude=cv.primary_exclude_list)
+        cls.database_promoters = internals.DataTpm(file=file_type, nrows=4)
         cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse)
-        cls.database_enhancers = internals.DataTpm(file=file_type, nrows=4, data_type="enhancers",
-                                                   celltype_exclude=cv.primary_exclude_list)
+        cls.database_enhancers = internals.DataTpm(file=file_type, nrows=4, data_type="enhancers")
         cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse)
 
     def test_primary_cells_ncols_promoters(self):
@@ -132,14 +128,10 @@ class MakeCelltypeSpecificTest(DataTpmTest):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.database_promoters = internals.DataTpm(file=cv.promoter_file_name, nrows=4,
-                                                   celltype_exclude=cv.primary_exclude_list)
-        cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse,
-                                                           not_include=cv.primary_not_include_codes)
-        cls.database_enhancers = internals.DataTpm(file=cv.enhancer_file_name, nrows=4, data_type="enhancers",
-                                                   celltype_exclude=cv.primary_exclude_list)
-        cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse,
-                                                           not_include=cv.primary_not_include_codes)
+        cls.database_promoters = internals.DataTpm(file=cv.promoter_file_name, nrows=4)
+        cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse)
+        cls.database_enhancers = internals.DataTpm(file=cv.enhancer_file_name, nrows=4, data_type="enhancers")
+        cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse)
 
     def test_donors_promoters(self):
         expected = {'Adipocyte - breast, donor1', 'Adipocyte - breast, donor2'}
@@ -155,14 +147,10 @@ class MakeCelltypeSpecificParsedTest(DataTpmTest):
     def setUpClass(cls):
         super().setUpClass()
         file_type = "parsed"
-        cls.database_promoters = internals.DataTpm(file=file_type, nrows=4,
-                                                   celltype_exclude=cv.primary_exclude_list)
-        cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse,
-                                                           not_include=cv.primary_not_include_codes)
-        cls.database_enhancers = internals.DataTpm(file=file_type, nrows=4, data_type="enhancers",
-                                                   celltype_exclude=cv.primary_exclude_list)
-        cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse,
-                                                           not_include=cv.primary_not_include_codes)
+        cls.database_promoters = internals.DataTpm(file=file_type, nrows=4)
+        cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse)
+        cls.database_enhancers = internals.DataTpm(file=file_type, nrows=4, data_type="enhancers")
+        cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse)
 
     def test_donors_promoters(self):
         expected = {'tpm.Adipocyte%20-%20breast%2c%20donor1.CNhs11051.11376-118A8',
@@ -178,15 +166,11 @@ class MergeDonorsPrimaryTest(DataTpmTest):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.database_promoters = internals.DataTpm(file=cv.promoter_file_name, nrows=4,
-                                                   celltype_exclude=cv.primary_exclude_list)
-        cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse,
-                                                           not_include=cv.primary_not_include_codes)
+        cls.database_promoters = internals.DataTpm(file=cv.promoter_file_name, nrows=4)
+        cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_promoters.merge_donors_primary()
-        cls.database_enhancers = internals.DataTpm(file=cv.enhancer_file_name, nrows=4, data_type="enhancers",
-                                                   celltype_exclude=cv.primary_exclude_list)
-        cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse,
-                                                           not_include=cv.primary_not_include_codes)
+        cls.database_enhancers = internals.DataTpm(file=cv.enhancer_file_name, nrows=4, data_type="enhancers")
+        cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_enhancers.merge_donors_primary()
 
     def test_merged_promoters_cols(self):
@@ -205,15 +189,11 @@ class FilterByTargetTest(DataTpmTest):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.database_promoters = internals.DataTpm(file=cv.promoter_file_name, nrows=10,
-                                                   celltype_exclude=cv.primary_exclude_list)
-        cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse,
-                                                           not_include=cv.primary_not_include_codes)
+        cls.database_promoters = internals.DataTpm(file=cv.promoter_file_name, nrows=10)
+        cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_promoters.merge_donors_primary()
-        cls.database_enhancers = internals.DataTpm(file=cv.enhancer_file_name, nrows=10, data_type="enhancers",
-                                                   celltype_exclude=cv.primary_exclude_list)
-        cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse,
-                                                           not_include=cv.primary_not_include_codes)
+        cls.database_enhancers = internals.DataTpm(file=cv.enhancer_file_name, nrows=10, data_type="enhancers")
+        cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_enhancers.merge_donors_primary()
 
     def test_above_threshold_promoters(self, threshold=1):
@@ -239,16 +219,12 @@ class FilterBySparsenessTest(DataTpmTest):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.database_promoters = internals.DataTpm(file=cv.promoter_file_name, nrows=10,
-                                                   celltype_exclude=cv.primary_exclude_list)
-        cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse,
-                                                           not_include=cv.primary_not_include_codes)
+        cls.database_promoters = internals.DataTpm(file=cv.promoter_file_name, nrows=10)
+        cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_promoters.merge_donors_primary()
         cls.database_promoters.filter_by_reg_element_sparseness(threshold=50)
-        cls.database_enhancers = internals.DataTpm(file=cv.enhancer_file_name, nrows=100, data_type="enhancers",
-                                                   celltype_exclude=cv.primary_exclude_list)
-        cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse,
-                                                           not_include=cv.primary_not_include_codes)
+        cls.database_enhancers = internals.DataTpm(file=cv.enhancer_file_name, nrows=100, data_type="enhancers")
+        cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_enhancers.merge_donors_primary()
         cls.database_enhancers.filter_by_reg_element_sparseness(threshold=50)
 
@@ -278,17 +254,13 @@ class DefineNonTargetCelltypesInactivityTest(DataTpmTest):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.database_promoters = internals.DataTpm(file=cv.promoter_file_name, nrows=10,
-                                                   celltype_exclude=cv.primary_exclude_list)
-        cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse,
-                                                           not_include=cv.primary_not_include_codes)
+        cls.database_promoters = internals.DataTpm(file=cv.promoter_file_name, nrows=10)
+        cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_promoters.merge_donors_primary()
         cls.database_promoters.filter_by_target_celltype_activity(threshold=1)
         cls.database_promoters.define_non_target_celltypes_inactivity(threshold=0.3)
-        cls.database_enhancers = internals.DataTpm(file=cv.enhancer_file_name, nrows=10, data_type="enhancers",
-                                                   celltype_exclude=cv.primary_exclude_list)
-        cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse,
-                                                           not_include=cv.primary_not_include_codes)
+        cls.database_enhancers = internals.DataTpm(file=cv.enhancer_file_name, nrows=10, data_type="enhancers")
+        cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_enhancers.merge_donors_primary()
         cls.database_enhancers.filter_by_target_celltype_activity(threshold=0.15)
         cls.database_enhancers.define_non_target_celltypes_inactivity(threshold=0)
@@ -312,18 +284,14 @@ class SortSparsenessTest(DataTpmTest):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.database_promoters = internals.DataTpm(file=cv.promoter_file_name, nrows=20,
-                                                   celltype_exclude=cv.primary_exclude_list)
-        cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse,
-                                                           not_include=cv.primary_not_include_codes)
+        cls.database_promoters = internals.DataTpm(file=cv.promoter_file_name, nrows=20)
+        cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_promoters.merge_donors_primary()
         cls.database_promoters.filter_by_target_celltype_activity(threshold=1)
         cls.database_promoters.define_non_target_celltypes_inactivity(threshold=0)
         cls.database_promoters.sort_sparseness()
-        cls.database_enhancers = internals.DataTpm(file=cv.enhancer_file_name, nrows=50, data_type="enhancers",
-                                                   celltype_exclude=cv.primary_exclude_list)
-        cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse,
-                                                           not_include=cv.primary_not_include_codes)
+        cls.database_enhancers = internals.DataTpm(file=cv.enhancer_file_name, nrows=50, data_type="enhancers")
+        cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_enhancers.merge_donors_primary()
         cls.database_enhancers.filter_by_target_celltype_activity(threshold=0.15)
         cls.database_enhancers.define_non_target_celltypes_inactivity(threshold=0)
@@ -353,8 +321,7 @@ class SortSparsenessTest(DataTpmTest):
 class RemoveCelltypeTest(DataTpmTest):
     def setUp(self):
         self.cage_primary = internals.DataTpm(file="parsed", nrows=4)
-        self.cage_primary.make_data_celltype_specific(self.celltype_analyse,
-                                                      not_include=cv.primary_not_include_codes)
+        self.cage_primary.make_data_celltype_specific(self.celltype_analyse)
 
     def test_remove_hepatocyte(self):
         self.cage_primary.remove_celltype("Hepatocyte")
@@ -370,8 +337,7 @@ class RemoveCelltypeTest(DataTpmTest):
 class RemoveElementTest(DataTpmTest):
     def setUp(self):
         self.cage_primary = internals.DataTpm(file="parsed", nrows=4)
-        self.cage_primary.make_data_celltype_specific(self.celltype_analyse,
-                                                      not_include=cv.primary_not_include_codes)
+        self.cage_primary.make_data_celltype_specific(self.celltype_analyse)
         self.elements = ['chr10:100027943..100027958,-', 'chr10:100174900..100174956,-']
 
     def test_remove_elements(self):
@@ -390,8 +356,7 @@ class AddCelltypeTest(DataTpmTest):
     def setUpClass(cls):
         super().setUpClass()
         # main data
-        cls.cage_primary = internals.DataTpm(file=cv.promoter_file_name, nrows=20,
-                                             celltype_exclude=cv.primary_exclude_list)
+        cls.cage_primary = internals.DataTpm(file=cv.promoter_file_name, nrows=20)
         # copies for all different tests
         cls.cage_cancer = cls.cage_primary.copy(deep=True)
         cls.cage_tissue = cls.cage_primary.copy(deep=True)
@@ -435,10 +400,8 @@ class EqualTest(DataTpmTest):
     def setUpClass(cls):
         super().setUpClass()
         file_type = "parsed"
-        cls.data = internals.DataTpm(file=file_type, nrows=4,
-                                     celltype_exclude=cv.primary_exclude_list)
-        cls.data.make_data_celltype_specific(cls.celltype_analyse,
-                                             not_include=cv.primary_not_include_codes)
+        cls.data = internals.DataTpm(file=file_type, nrows=4)
+        cls.data.make_data_celltype_specific(cls.celltype_analyse)
         cls.data2 = cls.data.copy(deep=True)
         cls.data2.sample_type = "test"
         cls.data3 = cls.data.copy(deep=True)
@@ -464,8 +427,7 @@ class CopyTest(DataTpmTest):
         super().setUpClass()
         file_type = "parsed"
         cls.data = internals.DataTpm(file=file_type, nrows=4)
-        cls.data.make_data_celltype_specific(cls.celltype_analyse,
-                                             not_include=cv.primary_not_include_codes)
+        cls.data.make_data_celltype_specific(cls.celltype_analyse)
 
     def setUp(self):
         self.data2 = self.data.copy(deep=False)
@@ -506,8 +468,7 @@ class SortColumnsTest(DataTpmTest):
     def setUp(self):
         file_type = "parsed"
         self.cage_tpm = internals.DataTpm(file=file_type, nrows=4)
-        self.cage_tpm.make_data_celltype_specific(self.celltype_analyse,
-                                                  not_include=cv.primary_not_include_codes)
+        self.cage_tpm.make_data_celltype_specific(self.celltype_analyse)
         self.cols = self.cage_tpm.data.columns.tolist()
 
     def test_sort_alphabetically(self):
@@ -529,10 +490,10 @@ class SortColumnsTest(DataTpmTest):
 
     def test_sort_to_first(self):
         celltype = "Urothelial cells"
-        before = celltype in self.cage_tpm.data.columns
+        before = self.cage_tpm.data.columns.tolist().index(celltype)
         self.cage_tpm.sort_columns(col_to_shift=celltype, pos_to_move=0)
-        after = celltype in self.cage_tpm.data.columns
-        condition = (before != after) and ()
+        after = self.cage_tpm.data.columns.tolist().index(celltype)
+        condition = (before != after) and (after == 0)
         self.assertTrue(condition)
 
 

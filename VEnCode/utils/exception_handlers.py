@@ -3,7 +3,7 @@ import logging
 from VEnCode.utils import util
 
 
-def argument_exception(error_args, logger=None):
+def argument_exception(error_args):
     """
     Handles mistakes in key arguments by letting the user re-insert the argument.
     :param error_args: the argument's name that had the mistake. Str
@@ -11,7 +11,4 @@ def argument_exception(error_args, logger=None):
     :return: the new argument
     """
     arg_new = input("Argument {0} was not correct, please submit another argument: ".format(error_args))
-    if logger:
-        util.multi_log(logger, "Argument {0} was not entered correctly".format(error_args),
-                  "New argument {0}: {1}".format(error_args, arg_new))
     return arg_new

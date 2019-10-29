@@ -13,7 +13,8 @@ from tqdm import tqdm
 file_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(file_dir)
 
-from VEnCode.utils import directory_handlers as directory_handlers
+from VEnCode.utils import dir_and_file_handling as dir_handlers
+from VEnCode.utils import general_utils as gen_utils
 from VEnCode import internals
 from VEnCode.common_variables import cancer_celltype_list, promoter_file_name, enhancer_file_name
 
@@ -42,8 +43,8 @@ for celltype in tqdm(cancer_celltype_list, desc="Completed: "):
 
     if isinstance(celltype, dict):
         celltype = list(celltype.keys())[0]
-    celltype = celltype.replace(":","-").replace("/", "-")  # those symbols cannot be present in file names
-    directory = directory_handlers.check_if_and_makefile(os.path.join(
+    celltype = gen_utils.str_replace_multi(celltype, {":": "-", "/": "-"})  # those symbols can't be in file names
+    directory = dir_handlers.check_if_and_makefile(os.path.join(
         "Files", "Dbs",
         "{}_tpm_{}-1".format(celltype, setup.data_type)), path_type="parent3")
 

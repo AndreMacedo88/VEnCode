@@ -10,12 +10,13 @@ import sys
 
 from tqdm import tqdm
 
+import VEnCode.utils.dir_and_file_handling
+
 file_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(file_dir)
 
 from VEnCode import internals
-import VEnCode.utils.directory_handlers as directory_handlers
-import VEnCode.utils.writing_files as writing_files
+import VEnCode.utils.dir_and_file_handling as d_f_handling
 from VEnCode.common_variables import three_donors_cell_list, cancer_three_donors_list
 
 
@@ -54,7 +55,7 @@ data = internals.DataTpm(file="parsed", sample_types=sample_types, data_type=set
 data_second = internals.DataTpm(file="parsed", sample_types=sample_types, data_type=setup.second_data_type)
 
 # create a directory to store results
-results_directory = directory_handlers.check_if_and_makefile(os.path.join(
+results_directory = d_f_handling.check_if_and_makefile(os.path.join(
     "E-values table", "{} {}".format(setup.celltype_type, "Heuristic2")),
     path_type="parent3")
 
@@ -65,7 +66,7 @@ for item in info_list:
     info_dict[item] = getattr(setup, item)
 
 # write the information to a file
-writing_files.write_dict_to_csv(results_directory, info_dict, deprecated=False)
+VEnCode.utils.dir_and_file_handling.write_dict_to_csv(results_directory, info_dict, deprecated=False)
 
 # cycle your list of cell types:
 for celltype in tqdm(celltype_list, desc="Completed: "):
@@ -113,6 +114,6 @@ for celltype in tqdm(celltype_list, desc="Completed: "):
         else:
             results[celltype].append([""]*5)
         data_second = data_second_original.copy()
-    writing_files.write_dict_to_csv(results_directory, results, deprecated=False, method="a")
+    VEnCode.utils.dir_and_file_handling.write_dict_to_csv(results_directory, results, deprecated=False, method="a")
     results = {}
 print("File saved in: {}".format(results_directory))

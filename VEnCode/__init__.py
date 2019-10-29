@@ -1,6 +1,4 @@
-__all__ = ["internals", "common_variables", "utils", "view"]
+__all__ = ["internals", "internals_extensions", "common_variables", "utils", "validations", "view"]
 
-import VEnCode.utils
-import VEnCode.internals
-import VEnCode.common_variables
-import VEnCode.view
+from VEnCode.internals import *
+from VEnCode.common_variables import *

@@ -74,6 +74,7 @@ primary_not_include_codes = {"Adipocyte - breast": "pre", "Adipocyte - omental":
                              "Renal Epithelial Cells": "Cortical",
                              "Skeletal Muscle Cells": ["satellite", "differentiated"]}
 cancer_not_include_codes = {"neuroectodermal tumor cell line": "peripheral", "Epithelioid mesothelioma": "No36"}
+time_courses_not_include_codes = {"hIPS": "CCl2"}
 primary_exclude_list = ["mesenchymal precursor cell - ovarian", "Osteoblast - differentiated",
                         "Peripheral Blood Mononuclear Cells", "Whole blood"]
 primary_cells_supersets = {"CD14+ CD16- Monocytes": "CD14+ Monocytes",

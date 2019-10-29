@@ -7,19 +7,19 @@ import os
 import random
 import re
 import tkinter as tk
-from copy import copy, deepcopy
 from tkinter import filedialog
+from copy import copy, deepcopy
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import pylab
+from Bio import SeqIO
 
-import VEnCode.utils.general_utils as gen_util
-import VEnCode.utils.pandas_utils as pd_util
-import VEnCode.utils.directory_handlers as dh_util
+import VEnCode.utils.dir_and_file_handling as d_f_handling
 from VEnCode import common_variables as cv
+from VEnCode.utils import general_utils as gen_util, pandas_utils as pd_util
 
 
 class DataTpm:
@@ -32,7 +32,6 @@ class DataTpm:
         self._file, self.sample_type, self.data_type, self._nrows = file, sample_types, data_type, nrows
         self.target_ctp, self.ctp_analyse_donors, self.ctp_not_include, self.data = None, None, None, None
         self._file_path = None
-        self._parent_path = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)), "Files")
         self._parent_path = os.path.join(str(Path(__file__).parents[2]), "Files")
 
         if sample_types in ("cell lines", "tissues"):
@@ -68,7 +67,10 @@ class DataTpm:
             else:
                 raise AttributeError("data_type argument is not supported")
             self.raw_data.apply(pd.to_numeric, downcast='float')  # optimizes memory usage by downcasting to lower float
-            self.data = self._raw_data_cleaner()
+            if sample_types in ("cell lines", "cancer", "time courses", "tissues"):
+                self.data = self._raw_data_cleaner()
+            else:
+                self.data = self.raw_data
             if not keep_raw:
                 self.raw_data = None
         else:
@@ -110,7 +112,7 @@ class DataTpm:
         if self._file == "custom":
             root = tk.Tk()
             root.withdraw()
-            file_path = filedialog.askopenfilename()
+            file_path = tk.filedialog.askopenfilename()
         elif re.search(r"\....", self._file[-4:]):
             file_path = os.path.join(self._parent_path, self._file)
         elif self._file == "parsed":
@@ -154,8 +156,11 @@ class DataTpm:
                 try:
                     data_temp = data_1.loc[:, sample]
                 except KeyError:
-                    data_temp = pd_util.df_minimal_regex_searcher(sample, data_1)
-            data = data.join(data_temp)
+                    data_temp = pd_util.df_minimal_regex_columns_searcher(sample, data_1)
+            try:
+                data = data.join(data_temp)
+            except ValueError:
+                continue
         # Exclude some specific, on-demand, cell-types from the data straight away:
         if self.ctp_exclude is not None:
             codes_exclude = self._code_selector(data, self.ctp_exclude, not_include=None, regex=False)
@@ -201,8 +206,10 @@ class DataTpm:
         codes = []
         code_dict = {}
         for item in celltype:
-            codes_df = pd_util.df_regex_searcher(item, data) if regex else pd_util.df_minimal_regex_searcher(item,
-                                                                                                             data)
+            codes_df = pd_util.df_regex_columns_searcher(item,
+                                                         data) if regex else pd_util.df_minimal_regex_columns_searcher(
+                item,
+                data)
 
             if to_dict:
                 code_dict[item] = codes_df.columns.values.tolist()
@@ -229,11 +236,11 @@ class DataTpm:
         if isinstance(not_include, list):
             not_include_codes = []
             for item in not_include:
-                not_codes_item = pd_util.data_frame_regex_searcher(item, data_frame)
+                not_codes_item = pd_util.df_regex_columns_searcher_list(item, data_frame)
                 not_include_codes.append(not_codes_item)
             not_include_codes = [item for sublist in not_include_codes for item in sublist]
         else:
-            not_include_codes = pd_util.data_frame_regex_searcher(not_include, data_frame)
+            not_include_codes = pd_util.df_regex_columns_searcher_list(not_include, data_frame)
         return not_include_codes
 
     @staticmethod
@@ -298,6 +305,8 @@ class DataTpm:
             self.ctp_not_include = cv.cancer_not_include_codes
         elif self.sample_type == "primary cells":
             self.ctp_not_include = cv.primary_not_include_codes
+        elif self.sample_type == "time courses":
+            self.ctp_not_include = cv.time_courses_not_include_codes
         else:
             self.ctp_not_include = None
         if isinstance(target_celltypes, dict):  # to deal with situations such as mesothelioma cell line
@@ -377,6 +386,8 @@ class DataTpm:
 
         :param Union[int, float] threshold: TPM value used to filter the data.
         :param list donors: used to select only a few donors out of all from target celltype.
+        :param binarize: Convert target cell type expression to 0 and 1, for values below or above the threshold,
+        respectively
         """
         celltype_target = self.ctp_analyse_donors[self.target_ctp]
         if isinstance(celltype_target, (list, tuple, np.ndarray)):
@@ -520,7 +531,8 @@ class Vencodes:
     An Object representing the VEnCodes found for a specific celltype
     """
 
-    def __init__(self, data_object, algorithm, number_of_re=4, n_samples=10000, stop=5, second_data_object=None):
+    def __init__(self, data_object, algorithm, number_of_re=4, n_samples=10000, stop=5, second_data_object=None,
+                 using=None):
         """
         :param DataTpm data_object: Must be made celltype specific before calling this method.
         :param str algorithm: algorithm to find VEnCodes. Currently accepted: heuristic, sampling
@@ -546,7 +558,7 @@ class Vencodes:
             self.vencodes_generator = self._heuristic_method_vencode_getter()
         elif self.algorithm is "sampling":
             self.n_samples = n_samples
-            self.vencodes_generator = self._sampling_method_vencode_getter()
+            self.vencodes_generator = self._sampling_method_vencode_getter(using=using)
 
     def next(self, amount=1, add_problems=False):
         """
@@ -605,6 +617,28 @@ class Vencodes:
             e_value = self._e_value_normalizer(e_value_raw, k=k)
             self.e_values[vencode_tuple] = e_value
 
+    def export(self, *args, **kwargs):
+        """
+        Call this method to export vencode related values to a .csv file.
+
+        exporting e-values:
+        - use "e-values" in the args to export the e-values.
+        - Use:
+        >> e-values = path
+        to define a specific path for the file. (must be a complete path)
+
+        :param args: "e-values", "TPP" or a list/tuple with both.
+        :param kwargs: optional args to apply, see description.
+        """
+
+        if "e-values" in args and "TPP" not in args:
+            path = kwargs.get("path")
+            self._export_e_values(path)
+
+        if "e-values" in args and "TPP" in args:
+            path = kwargs.get("path")
+            self._export_e_values_tpp(path)
+
     def get_vencode_data(self, method="return", path=None):
         """
         Call this function to get the VEnCode data in .csv format (method="write") or just printed in terminal
@@ -612,20 +646,21 @@ class Vencodes:
         Alternatively, it can return the data to a variable (method="return").
 
         :param str method: how to retrieve the data.
+        :param str path: path to write a file to store the VEnCode data.
         """
         vencodes = []
         for vencode in self.vencodes:
+            if method in ("print", "both"):
+                print(self.data.loc[vencode])
             if method in ("write", "both"):
                 if path is None:
                     path = self._parent_path
                 else:
                     pass
                 file_name = "{}_vencode".format(self._data_object.target_ctp)
-                file_path = dh_util.check_if_and_makefile(file_name, path=path, file_type=".csv")
+                file_path = d_f_handling.check_if_and_makefile(file_name, path=path, file_type=".csv")
                 self.data.loc[vencode].to_csv(file_path, sep=';')
                 print("File stored in {}".format(file_path))
-            if method in ("print", "both"):
-                print(self.data.loc[vencode])
             elif method == "return":
                 vencodes.append(self.data.loc[vencode])
         if method == "return":
@@ -695,7 +730,7 @@ class Vencodes:
             self.vencodes.append(vencode)
 
     def _sampling_method_vencode_getter(self, threshold=0,
-                                        skip_sparsest=False):
+                                        skip_sparsest=False, using=None):
         """
         Function that searches for a VEnCode in data by the sampling method. Please note that it retrieves a DataFrame
         containing the entire sample. This is the reason why it only retrieves one VEnCode.
@@ -710,13 +745,28 @@ class Vencodes:
             if self._assess_vencode_one_zero_boolean(sparsest, threshold=threshold):
                 yield sparsest.index.values.tolist()
         i = 0
+
+        if using is not None:  # allows user to force some REs to be in the VEnCode
+            use = self._data_object.data.loc[using]
+            if isinstance(using, list):
+                n = self.k-len(using)
+            else:
+                n = self.k-1
+        else:
+            n = self.k
+
         while i < self.n_samples:
             try:
-                sample = self._data_object.data.sample(n=self.k)  # take a sample of n promoters
+                sample = self._data_object.data.sample(n=n)  # take a sample of n promoters
             except ValueError as e:  # Combinations number could be larger than number of RE available.
                 print("Combinations number (k) is probably larger than the number of RE available. {}".format(
                     e.args))
                 break
+            if using is not None:
+                try:
+                    sample.loc[using] = use
+                except KeyError:
+                    sample = pd.concat([sample, use])
             if self._assess_vencode_one_zero_boolean(sample, threshold=threshold):  # assess if VEnCode
                 yield sample.index.values.tolist()
                 i = 0
@@ -901,7 +951,7 @@ class Vencodes:
             else:
                 pass
             file_name = "{}_heat_map".format(self._data_object.target_ctp)
-            file_path = dh_util.check_if_and_makefile(file_name, path=path, file_type=".png")
+            file_path = d_f_handling.check_if_and_makefile(file_name, path=path, file_type=".png")
         else:
             file_path = None
         if method == "write":
@@ -983,3 +1033,345 @@ class Vencodes:
         else:
             raise ValueError("Threshold for VEnCode assessment is not valid.")
         return all(assess_if_vencode)  # if all columns are True (contain at least one 0), then is VEn
+
+    def _export_e_values(self, path=None):
+        """
+        Call this method to export E-values to a .csv file.
+        Use path to define a specific path for the file. (must be a complete path)
+        :param str path: Complete path to store the file.
+        """
+        if not self.e_values:
+            self.determine_e_values()
+        if path is None:
+            path = self._parent_path
+        file_name = "{}_evalues".format(self._data_object.target_ctp)
+        file_path = d_f_handling.check_if_and_makefile(file_name, path=path, file_type=".csv")
+        d_f_handling.write_one_value_dict_to_csv(file_path, self.e_values)
+        print("File stored in: {}".format(file_path))
+
+
+class OutsideData:
+    """
+    Base class for all data from outside sources.
+    """
+
+    def __init__(self):
+        self.data_path = os.path.join(str(Path(__file__).parents[2]), "Files", "Validation_files")
+        self._data_source = None
+        self.data = None
+
+    @property
+    def data_source(self):
+        """
+        File name of the data.
+        :return: File name of the data
+        """
+        return self._data_source
+
+    @data_source.setter
+    def data_source(self, value):
+        if value.endswith((".broadPeak", ".BED", ".txt", ".FASTA", ".fasta")):
+            self._data_source = value
+        else:
+            if value == "DennySK2016":
+                self._data_source = "GSE81255_all_merged.H14_H29_H52_H69_H82_H88_peaks.broadPeak"
+            elif value == "InoueF2017":
+                self._data_source = "supp_gr.212092.116_Supplemental_File_2_liverEnhancer_design.tsv"
+            elif value == "BarakatTS2018":
+                self._data_source = ["Barakat et al 2018 - Core and Extended Enhancers.csv",
+                                     "Barakat et al 2018 - Merged Enhancers.csv"]
+            elif value == "ChristensenCL2014":
+                self._data_source = ["1-s2.0-S1535610814004231-mmc3_GLC16.csv",
+                                     "1-s2.0-S1535610814004231-mmc3_H82.csv",
+                                     "1-s2.0-S1535610814004231-mmc3_H69.csv"]
+            elif value == "WangX2018":
+                self._data_source = "41467_2018_7746_MOESM4_ESM.txt"
+            elif value == "LiuY2017":
+                self._data_source = "GSE82204_enhancer_overlap_dnase.txt"
+            elif value.startswith("EnhancerAtlas-"):
+                self._data_source = "{}.fasta".format(value.split("-", 1)[1])
+            else:
+                raise AttributeError("Source {} still not implemented".format(value))
+
+    def join_data_sets(self, data_set):
+        """
+        Joins the data from this source with data from a different source. The result is a filtered data set with
+        just the genomic coordinates that are overlapping in both data sets.
+        :param data_set: the data set to merge with.
+        """
+        union = {"Chromosome": [], "range": []}
+        for index, row in self.data.iterrows():
+            range1 = row.range
+            data2_filter_chr = data_set.data[data_set.data["Chromosome"] == row.Chromosome]
+            range2_list = data2_filter_chr["range"].tolist()
+            for range2 in range2_list:
+                condition = gen_util.partial_subset_of_span(range1, range2)
+                if condition:
+                    temp_chr, temp_rng = union["Chromosome"], union["range"]
+                    temp_chr.append(row.Chromosome)
+                    temp_rng.append(self._range_union(range1, range2))
+                    union["Chromosome"] = temp_chr
+                    union["range"] = temp_rng
+                    break
+        df = pd.DataFrame.from_dict(union)
+        self.data = df
+
+    @staticmethod
+    def _range_union(range1, range2):
+        values = [x for x in range1]
+        values2 = [y for y in range2]
+        values += values2
+        range_union = [min(values), max(values)]
+        return range_union
+
+    def _open_csv_file(self, file_name, sep=";", header="infer", usecols=None, names=None):
+        file_path = os.path.join(self.data_path, file_name)
+        file_data = pd.read_csv(file_path, sep=sep, header=header, engine="python", usecols=usecols, names=names)
+        return file_data
+
+    def _merge_cell_type_files(self):
+        enhancer_data_merged = None
+        for source in self.data_source:
+            enhancer_data = self._open_csv_file(source)
+            if enhancer_data_merged is not None:
+                enhancer_data_merged = pd.concat([enhancer_data_merged, enhancer_data])
+            else:
+                enhancer_data_merged = enhancer_data
+        return enhancer_data_merged
+
+    def _create_range(self):
+        self.data["range"] = [[row.Start, row.End] for index, row in self.data.iterrows()]
+
+
+class BarakatTS2018Data(OutsideData):
+    """
+    Data from Barakat, et al., Cell Stem Cell, 2018.
+    Parsed to use in VEnCode validation studies.
+
+    How to use: data = internals.BarakatTS2018Data(**kwargs)
+    kwargs can be empty, or used to get only part of the data, by using the kwarg: data="core" for example.
+    data available are: core and extended enhancers, merged enhancers. Check Barakat, et al., Cell Stem Cell, 2018.
+    """
+
+    def __init__(self, source="BarakatTS2018", **kwargs):
+        super().__init__()
+        self.data_source = source
+
+        try:
+            source_partial = kwargs["data"]
+            enhancer_file = next((s for s in self.data_source if source_partial.lower() in s.lower()), None)
+            self.data = self._open_csv_file(enhancer_file)
+        except KeyError:
+            self.data = self._merge_cell_type_files()
+
+        gen_util.clean_whitespaces(self.data, "Start", "End")
+        pd_util.columns_to_numeric(self.data, "Start", "End")
+        self._create_range()
+
+
+class InoueF2017Data(OutsideData):
+    """
+        Data from Inoue F, et al., Genome Res., 2017.
+        Parsed to use in VEnCode validation studies.
+
+        How to use: data = internals.InoueF2017Data()
+        """
+
+    def __init__(self, source="InoueF2017"):
+        super().__init__()
+        self.data_source = source
+        self.data = self._open_csv_file(self.data_source, sep="\t", header=None, names=["temp", "sequence"])
+        self._data_cleaner()
+
+    @staticmethod
+    def search_between_brackets(string):
+        """
+        Gets all text between the first [] in a string.
+        :param string: String to search for text.
+        :return: All text between []
+        """
+        try:
+            return re.search("(?<=\[)(.*)(?=\])", string).group(1)
+        except AttributeError:
+            pass
+
+    def _genome_location_to_cols(self):
+        self.data[["Chromosome", "temp"]] = self.data.temp.str.split(":", expand=True)
+        self.data[["Start", "End"]] = self.data.temp.str.split("-", expand=True)
+        self.data = self.data[["Chromosome", "Start", "End"]]
+
+    def _genome_location_cleaner(self):
+        self.data["temp"] = self.data["temp"].apply(self.search_between_brackets)
+        self.data.drop_duplicates("temp", inplace=True)
+        self.data.dropna(inplace=True)
+
+    def _data_cleaner(self):
+        self._genome_location_cleaner()
+        self._genome_location_to_cols()
+        pd_util.columns_to_numeric(self.data, "Start", "End")
+        self._create_range()
+
+
+class ChristensenCL2014Data(OutsideData):
+    """
+    Parses data from Christensen CL, et al., Cancer Cell, 2014, to use in VEnCode validation studies.
+
+    How to use: data = internals.ChristensenCL2014Data(**kwargs)
+    kwargs can be empty, or used to get only part of the data, by using the kwarg: data="H82" for example.
+    data available are: GLC16, H82, and H69.
+    """
+
+    def __init__(self, source="ChristensenCL2014", **kwargs):
+        super().__init__()
+        self.data_source = source
+
+        try:
+            source_partial = kwargs["data"]
+            enhancer_file = next((s for s in self.data_source if source_partial.lower() in s.lower()), None)
+            self.data = self._open_csv_file(enhancer_file)
+        except KeyError:
+            self.data = self._merge_cell_type_files()
+
+        self._data_cleaner()
+
+    def _sort_data(self):
+        self.data.sort_values(by=["Start"], inplace=True)
+
+    def _data_cleaner(self):
+        self._sort_data()
+        self.data.rename({"Chrom": "Chromosome", "Stop": "End"}, axis='columns', inplace=True)
+        self._create_range()
+
+
+class BroadPeak(OutsideData):
+    """
+    Parses data from BroadPeak files to use in VEnCode validation studies.
+
+    How to use: data = internals.BroadPeak(source)
+    source can be any source described in baseclass, or a filename ending in .broadPeak
+    """
+
+    def __init__(self, source=False):
+        super().__init__()
+        self.data_source = source
+        names = ["Chromosome", "Start", "End", "Name", "Score", "Strand", "SignalValue",
+                 "pValue", "qValue"]
+        use_cols = range(0, len(names))
+        self.data = self._open_csv_file(self.data_source, sep="\t", header=None, usecols=use_cols,
+                                        names=names)
+        self._data_cleaner()
+
+    def _data_cleaner(self):
+        self.data = self.data[["Chromosome", "Start", "End", "Score"]]
+        self._create_range()
+
+
+class Bed(OutsideData):
+    """
+    Parses data from BED files to use in VEnCode validation studies.
+
+    How to use: data = internals.Bed(source)
+    source can be any source described in baseclass, or a filename ending in .BED
+    """
+
+    def __init__(self, source=False):
+        super().__init__()
+        if source:
+            self.data_source = source
+        names = ["Chromosome", "Start", "End"]
+        use_cols = range(0, len(names))
+        self.data = self._open_csv_file(self.data_source, sep="\t", header=None, usecols=use_cols,
+                                        names=names)
+
+        self._data_cleaner()
+
+    def _data_cleaner(self):
+        self.data = self.data[["Chromosome", "Start", "End"]]
+        self._create_range()
+
+
+class Fasta(OutsideData):
+    """
+    Parses data from FASTA files to use in VEnCode validation studies.
+
+    How to use: data = internals.Fasta(source)
+    source can be any source described in baseclass, or a filename ending in .Fasta, .Fa, .txt, etc.
+    """
+
+    def __init__(self, source=False):
+        super().__init__()
+        if source:
+            self.data_source = source
+        file_path = os.path.join(self.data_path, self.data_source)
+        fasta_sequences = SeqIO.parse(open(file_path), 'fasta')
+        self._data_cleaner(fasta_sequences)
+
+    def _data_cleaner(self, sequences):
+        array = None
+        for fasta in sequences:
+            name = fasta.id
+            name = name.split(':')
+            chr, locations = name[0], name[1].split("-")
+            start, end = locations[0], locations[1]
+            end = re.match(r"[0-9]+", end).group()
+            info = [[chr, start, end]]
+            try:
+                array = np.append(array, info, axis=0)
+            except ValueError:
+                array = np.array(info)
+        columns = ["Chromosome", "Start", "End"]
+        self.data = pd.DataFrame(array, columns=columns)
+        pd_util.columns_to_numeric(self.data, "Start", "End")
+        self._create_range()
+
+
+class DataTpmValidated(DataTpm):
+    """
+    This class provides methods to develop a data set with chromosome coordinates intercepted
+    with those of validate_with, which we call validated regulatory elements.
+
+    How to use: After initializing, filter data with validated REs by calling the "filter_validated" method.
+    """
+
+    def __init__(self, validate_with, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.validate_with = validate_with
+
+    def select_validated(self):
+        """
+        Main method to filter the REs in the data, leaving in the data only those that match the external data set.
+        """
+        self._interception(self.validate_with.data)
+
+    def _interception(self, data2):
+        df_range = self._regulatory_elements_range()
+        mask = self._mask(df_range, data2)
+        self.data = self.data.loc[mask]
+
+    def _regulatory_elements_range(self):
+        df_temp = pd.DataFrame()
+        df_temp["Id"] = self.data.index
+        df_temp[["Chromosome", "temp"]] = df_temp.Id.str.split(":", expand=True)
+        df_temp[["Start", "End"]] = df_temp.temp.str.split("-", expand=True)
+        df_temp = df_temp[["Chromosome", "Start", "End"]]
+        pd_util.columns_to_numeric(df_temp, "Start", "End")
+        df_temp["range"] = [[row.Start, row.End] for index, row in df_temp.iterrows()]
+        return df_temp
+
+    @staticmethod
+    def _mask(df, df2):
+        mask = []
+        for index, row in df.iterrows():
+            range1 = row.range
+            data2_filter_chr = df2[df2["Chromosome"] == row.iloc[0]]
+            range2_list = data2_filter_chr["range"].tolist()
+            switch = False
+            for range2 in range2_list:
+                condition = gen_util.partial_subset_of_span(range1, range2)
+                if condition:
+                    mask.append(True)
+                    switch = True
+                    break
+            if not switch:
+                mask.append(False)
+        return mask

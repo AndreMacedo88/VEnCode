@@ -70,3 +70,69 @@ def e_value_normalizer(e_value_raw, k, n_celltypes):
         return e_value_norm
     else:
         return 100
+
+
+def subset_of_range(range1, range2):
+    """ Asks whether range1 is a subset of range2. Returns True or False respectively. """
+    if not range1:
+        raise ValueError("{} is empty".format(range1))
+    if not range2:
+        raise ValueError("{} is empty".format(range2))
+    if len(range1) > 1 and range1.step % range2.step:
+        return False  # must have a single value or integer multiple step
+    return range1.start in range2 and range1[-1] in range2
+
+
+def partial_subset_of_range(range1, range2):
+    """ Asks whether range1 is a subset of range2. Returns True or False respectively. """
+    if not range1:
+        raise ValueError("{} is empty".format(range1))
+    if not range2:
+        raise ValueError("{} is empty".format(range2))
+    if len(range1) > 1 and range1.step % range2.step:
+        return False  # must have a single value or integer multiple step
+    return range1.start in range2 or range1[-1] in range2
+
+
+def subset_of_span(span1, span2):
+    """ Asks whether span1 is a subset of span2, or vice versa. Returns True or False. """
+    if not span1:
+        raise ValueError("{} is empty".format(span1))
+    if not span2:
+        raise ValueError("{} is empty".format(span2))
+    span1_sub_span2 = (span2[0] <= span1[0] <= span2[1]) and (span2[0] <= span1[1] <= span2[1])
+    condition = span1_sub_span2 or ((span1[0] <= span2[0] <= span1[1]) and (span1[0] <= span2[1] <= span1[1]))
+    return condition
+
+
+def partial_subset_of_span(span1, span2):
+    """ Asks whether span1 is a subset of span2, or vice versa. Returns True or False. """
+    if not span1:
+        raise ValueError("{} is empty".format(span1))
+    if not span2:
+        raise ValueError("{} is empty".format(span2))
+    span1_sub_span2 = (span2[0] <= span1[0] <= span2[1]) or (span2[0] <= span1[1] <= span2[1])
+    condition = span1_sub_span2 or ((span1[0] <= span2[0] <= span1[1]) or (span1[0] <= span2[1] <= span1[1]))
+    return condition
+
+
+def clean_whitespaces(df, *cols):
+    """
+    Removes all whitespaces from items in one or more pd.Dataframe columns.
+    :param df: the Dataframe
+    :param cols: the columns to remove whitespaces
+    """
+    for col in cols:
+        df[col] = df[col].str.replace(" ", "")
+
+
+def str_replace_multi(str_, chars):
+    """
+    replaces many chars in a string.
+    :param str_: string to apply replacements
+    :param chars: dict in the form {old char: new char, ...}
+    """
+    for old, new in chars.items():
+        str_ = str_.replace(old, new)
+    return str_
+

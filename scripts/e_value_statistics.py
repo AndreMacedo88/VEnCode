@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 from VEnCode import internals
-from VEnCode.utils import directory_handlers as dhs
+from VEnCode.utils import dir_and_file_handling as dhs
 from VEnCode.utils import general_utils as ghs
 
 if __name__ == "__main__":

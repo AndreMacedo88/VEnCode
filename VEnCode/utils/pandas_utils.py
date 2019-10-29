@@ -5,6 +5,7 @@
 
 import re
 import numpy as np
+import pandas as pd
 
 
 def multi_set_data_frame(data, arrays, set_value):
@@ -19,7 +20,7 @@ def multi_set_data_frame(data, arrays, set_value):
         data.at[i[0], i[1]] = set_value
 
 
-def data_frame_regex_searcher(string, database):
+def df_regex_columns_searcher_list(string, database):
     """ Returns a list containing only the columns of a data frame which contain the string somewhere
     in its label """
     regular = ".*" + string.replace(" ", ".*").replace("+", "%2b") + ".*"
@@ -29,7 +30,7 @@ def data_frame_regex_searcher(string, database):
     return regex_filtered
 
 
-def df_regex_searcher(string, database):
+def df_regex_columns_searcher(string, database):
     """ Returns a df containing only the columns which contain the string somewhere in its label """
     regular = ".*" + string.replace(" ", ".*").replace("+", "%2b").replace(":", "%3a").replace("(",
                                                                                                "%28").replace(
@@ -39,7 +40,7 @@ def df_regex_searcher(string, database):
     return regex_filtered_df
 
 
-def df_minimal_regex_searcher(string, database):
+def df_minimal_regex_columns_searcher(string, database):
     """ Returns a df containing only the columns which contain the string somewhere in its label
     Used for enhancer data set. """
     expression = ".*" + string.replace(" ", ".*").replace("+", "\+") + ".*"  # sets up regex pattern
@@ -75,3 +76,22 @@ def df_filter_by_column_value(data_frame, column, value=0):
     """ Returns a df containing only the rows that present a value = x for the column "column" """
     data_filtered = data_frame[data_frame[column] == value]
     return data_filtered
+
+
+def columns_to_numeric(df, *cols):
+    for col in cols:
+        df[col] = pd.to_numeric(df[col])
+
+
+def series_frequency(series, value, percent=True):
+    """
+    Calculates the frequency of a value in a list.
+    :param pd.Series series: the pandas.Series.
+    :param value: the value to calculate the frequency
+    :return: The frequency of a value in a list
+    """
+    number_of_value = series.values.tolist().count(value)
+    frequency_ = number_of_value/len(series)
+    if percent:
+        frequency_ *= 100
+    return frequency_
