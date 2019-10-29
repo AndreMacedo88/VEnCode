@@ -26,12 +26,12 @@ Installing
 
 Deployment
 -----------------
-Import objects from .py files (Classes.py, Plots.py) using, for example:
+To develop your own projects, import objects from .py files (internals.py) using, for example:
 
-``from VEnCode import Classes``
+``from VEnCode import internals``
 
-to use in your own methods.
-Note: You can see examples of most functions and objects being used by going to the "Scripts" folder. Old scripts can be found in somewhat obsolete files such as "main_fantom.py", even though this file still has some relevant functions for some publication panels/figures.
+to then use in your own methods.
+Note: You can see examples of most functions and objects being used by going to the "Scripts" folder. Old scripts can be found in somewhat obsolete directory Legacy Scripts.
 
 Contributing
 ------------
@@ -54,7 +54,7 @@ See also the list of contributors_ who participated in this project.
 License
 -------
 
-This project is not under any free License at the moment.
+Refer to file LICENSE.
 
 Acknowledgements
 ----------------
