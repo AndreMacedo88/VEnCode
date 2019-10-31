@@ -9,7 +9,7 @@ from VEnCode.utils import validation_utils as val_util
 
 class SetUp:
     """set up some variables: """
-    cell_types = ["B lymphoblastoid cell line: GM12878 ENCODE", "hepatocellular carcinoma cell line: HepG2 ENCODE"]
+    cell_types = ["epitheloid carcinoma cell line: HelaS3 ENCODE", "embryonic kidney cell line: HEK293/SLAM untreated"]
     cell_types_1 = ["CD19+ B Cells", "CD34+ stem cells - adult bone marrow derived",
                     "neuroepithelioma cell line:SK-N-MC", "acute myeloid leukemia (FAB M3) cell line",
                     "hepatocellular carcinoma cell line: HepG2 ENCODE",
@@ -28,7 +28,7 @@ class SetUp:
     # Paths to export data:
     path_out_ven = os.path.join(
         "D:/Utilizador HDD/OneDrive - Nova Medical School Faculdade de Ciências Médicas da UNL/1-Research/"
-        "3-Vencode/Fantom5/Validations/enhancer_atlas_pooled.csv")
+        "3-Vencode/Fantom5/Validations/enhancer_atlas_HelaHek_pooled.csv")
 
     # Next ones you may not need to change:
     non_target_celltypes_inactivity = 0

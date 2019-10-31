@@ -540,13 +540,13 @@ class Vencodes:
         :param int stop: number of promoters to test per node level. Used only if algorithm = "heuristic
         """
         self._data_object, self.algorithm, self.k = data_object.copy(), algorithm, number_of_re
-        self._celltype_donors = self._data_object.ctp_analyse_donors[data_object.target_ctp]
+        self.celltype_donors = self._data_object.ctp_analyse_donors[data_object.target_ctp]
         self.problems, self.vencodes, self.e_values = None, [], {}
         self._parent_path = os.path.join(str(Path(__file__).parents[2]), "VEnCodes")
 
-        self.celltype_donors_data = self._data_object.data[self._celltype_donors]
+        self.celltype_donors_data = self._data_object.data[self.celltype_donors]
         self.data = self._data_object.data.copy(deep=True)
-        self._data_object.data.drop(self._celltype_donors, axis=1, inplace=True)
+        self._data_object.data.drop(self.celltype_donors, axis=1, inplace=True)
 
         if second_data_object:
             self.second_data_object = second_data_object.copy()
@@ -658,6 +658,8 @@ class Vencodes:
                 else:
                     pass
                 file_name = "{}_vencode".format(self._data_object.target_ctp)
+                file_name = d_f_handling.str_replace_multi(
+                    file_name, {":": "-", "*": "-", "?": "-", "<": "-", ">": "-", "/": "-"})
                 file_path = d_f_handling.check_if_and_makefile(file_name, path=path, file_type=".csv")
                 self.data.loc[vencode].to_csv(file_path, sep=';')
                 print("File stored in {}".format(file_path))
@@ -1045,6 +1047,8 @@ class Vencodes:
         if path is None:
             path = self._parent_path
         file_name = "{}_evalues".format(self._data_object.target_ctp)
+        file_name = d_f_handling.str_replace_multi(
+            file_name, {":": "-", "*": "-", "?": "-", "<": "-", ">": "-", "/": "-"})
         file_path = d_f_handling.check_if_and_makefile(file_name, path=path, file_type=".csv")
         d_f_handling.write_one_value_dict_to_csv(file_path, self.e_values)
         print("File stored in: {}".format(file_path))

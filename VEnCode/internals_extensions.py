@@ -471,3 +471,81 @@ class NegativeControl(Assays):
     def _filename(self):
         filename = "control {} - {}".format("all celltypes", self.algorithm)
         return filename
+
+
+class CheckElementExpression:
+    """
+    Use to check Regulatory Element expression in any FANTOM5 cell type.
+    """
+
+    def __init__(self, element_list, cell_type, data_type, sample_type=None, parsed=False):
+        self.element_list = element_list
+        self.cell_type = cell_type
+        self.data_type = data_type
+        self.data = self._get_data(sample_type, parsed)
+
+    def export_expression_data(self, path=None, specific_ctp=None):
+        if specific_ctp == "All":
+            pass
+        elif isinstance(specific_ctp, list):
+            pass
+        expression = self._get_expression_data()
+        expression.to_csv(path)
+
+    def _get_expression_data(self):
+        columns = self.data.ctp_analyse_donors[self.data.target_ctp]
+        rows = self.element_list
+        expression = self.data.data.loc[rows, columns]
+        return expression
+
+    def _get_data(self, sample_type, parsed):
+        sample_type = self._get_sample_type(sample_type)
+        if parsed:
+            data = self._prepare_data_parsed(sample_type)
+        else:
+            data = self._prepare_data_raw(sample_type)
+        return data
+
+    def _prepare_data_parsed(self, sample_type):
+        data = internals.DataTpm(file="parsed", sample_types=sample_type, data_type=self.data_type)
+        data.make_data_celltype_specific(self.cell_type)
+        return data
+
+    def _prepare_data_raw(self, sample_type):
+        file_name = self._get_re_file_name()
+        data = internals.DataTpm(file=file_name, sample_types=sample_type, data_type=self.data_type)
+        data.make_data_celltype_specific(self.cell_type)
+        return data
+
+    def _get_sample_type(self, sample_type):
+        if sample_type:
+            return sample_type
+
+        if self.cell_type in cv.primary_cell_list:
+            sample_type = "primary cells"
+        elif any([self.cell_type in cancer for cancer in (cv.cancer_celltype_list, cv.cancer_donors_list)]):
+            sample_type = "cell lines"
+        else:
+            parent_path = os.path.join(str(Path(__file__).parents[2]), "Files")
+            sample_type_file = pd.read_csv(os.path.join(parent_path, cv.sample_type_file), sep=",",
+                                           index_col=0,
+                                           engine="python")
+            if sample_type_file["Name"].str.contains(self.cell_type).any():
+                sample_category = sample_type_file.loc[
+                    sample_type_file['Name'].str.contains(self.cell_type), ['Sample category']]
+                if len(sample_category["Sample category"].unique()) == 1:
+                    sample_type = sample_category["Sample category"][0]
+                else:
+                    raise exceptions.SampleTypeNotSupported(sample_type, self.cell_type)
+            else:
+                raise exceptions.SampleTypeNotSupported(sample_type, self.cell_type)
+        return sample_type
+
+    def _get_re_file_name(self):
+        if self.data_type == "enhancers":
+            file_name = cv.enhancer_file_name
+        elif self.data_type == "promoters":
+            file_name = cv.promoter_file_name
+        else:
+            raise AttributeError("data_type - {} - currently not supported".format(self.data_type))
+        return file_name

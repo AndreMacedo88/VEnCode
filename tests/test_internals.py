@@ -534,7 +534,7 @@ class HepatocyteHeuristicTest(VenCodesHepatocyteTest):
     def test_if_correct_vencodes(self):
         self.vencodes.next(amount=3)
         for vencode_data in self.vencodes.get_vencode_data(method="return"):
-            vencode_data.drop(self.vencodes._celltype_donors, axis=1, inplace=True)
+            vencode_data.drop(self.vencodes.celltype_donors, axis=1, inplace=True)
             with self.subTest(i=vencode_data.index.values.tolist()):
                 condition = self.vencodes._assess_vencode_one_zero_boolean(vencode_data)
                 self.assertTrue(condition)
@@ -575,7 +575,7 @@ class HepatocyteSamplingTest(VenCodesHepatocyteTest):
     def test_if_correct_vencodes(self):
         self.vencodes.next(amount=3)
         for vencode_data in self.vencodes.get_vencode_data(method="return"):
-            vencode_data.drop(self.vencodes._celltype_donors, axis=1, inplace=True)
+            vencode_data.drop(self.vencodes.celltype_donors, axis=1, inplace=True)
             with self.subTest(i=vencode_data.index.values.tolist()):
                 condition = self.vencodes._assess_vencode_one_zero_boolean(vencode_data)
                 self.assertTrue(condition)
@@ -614,7 +614,7 @@ class VenCodesAdipocyteTest(unittest.TestCase):
     def test_if_correct_vencodes(self):
         self.vencodes.next(amount=3)
         for vencode_data in self.vencodes.get_vencode_data(method="return"):
-            vencode_data.drop(self.vencodes._celltype_donors, axis=1, inplace=True)
+            vencode_data.drop(self.vencodes.celltype_donors, axis=1, inplace=True)
             with self.subTest(i=vencode_data.index.values.tolist()):
                 condition = self.vencodes._assess_vencode_one_zero_boolean(vencode_data)
                 self.assertTrue(condition)
@@ -666,7 +666,7 @@ class VenCodesKeratocytesTest(unittest.TestCase):
     def test_if_correct_vencodes(self):
         self.vencodes.next(amount=3)
         for vencode_data in self.vencodes.get_vencode_data(method="return"):
-            vencode_data.drop(self.vencodes._celltype_donors, axis=1, inplace=True)
+            vencode_data.drop(self.vencodes.celltype_donors, axis=1, inplace=True)
             with self.subTest(i=vencode_data.index.values.tolist()):
                 condition = self.vencodes._assess_vencode_one_zero_boolean(vencode_data)
                 self.assertTrue(condition)

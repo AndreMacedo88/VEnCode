@@ -12,7 +12,7 @@ from VEnCode.utils.general_utils import str_replace_multi
 
 def file_directory_handler(file_name, folder="", path_type="normal"):
     path = path_handler(path_type)
-    file_name = str_replace_multi(file_name, {":": "-", "*": "-", "?": "-", "<": "-", ">": "-"})
+    file_name = str_replace_multi(file_name, {":": "-", "*": "-", "?": "-", "<": "-", ">": "-", "/": "-"})
     try:
         new_file = os.path.join(path, folder, file_name)
         directory = os.path.join(path, folder)
@@ -57,7 +57,7 @@ def check_if_and_makefile(filename, path=None, file_type=".csv", path_type="norm
     folder, name = os.path.split(file_path)
     if folder:
         check_if_and_makedir(folder)
-    name = str_replace_multi(name, {":": "-", "*": "-", "?": "-", "<": "-", ">": "-"})
+    name = str_replace_multi(name, {":": "-", "*": "-", "?": "-", "<": "-", ">": "-", "/": "-"})
     file_path_updated = os.path.join(folder, name)
     if os.path.exists(file_path_updated):
         for i in range(1, 10000):

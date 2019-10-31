@@ -18,7 +18,9 @@ def get_data_to_validate(cell_type, optional=None):
                             "chronic myelogenous leukemia cell line:K562": "K562",
                             "breast carcinoma cell line:MCF7": "MCF-7",
                             "Burkitt lymphoma cell line:RAJI": "Raji",
-                            "CD133+ stem cells": "CD133+"}
+                            "CD133+ stem cells": "CD133+",
+                            "epitheloid carcinoma cell line: HelaS3 ENCODE": "Hela-S3",
+                            "embryonic kidney cell line: HEK293/SLAM untreated": "HEK293"}
 
     if cell_type == "hIPS":
         return internals.BarakatTS2018Data(data="core")

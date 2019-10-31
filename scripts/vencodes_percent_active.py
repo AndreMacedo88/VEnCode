@@ -75,6 +75,7 @@ class ValidatedVEnCodesHeatmap:
         plt.axes().set_aspect(2)
         plt.savefig(self.set_up.path_out_heat, transparent=True)
 
+
 if __name__ == "__main__":
     setup = SetUp()
     ven = ValidatedVEnCodesHeatmap(setup, 2)
