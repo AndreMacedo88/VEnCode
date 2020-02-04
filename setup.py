@@ -17,7 +17,6 @@ setuptools.setup(
         "pandas",
         "matplotlib",
         "scipy",
-        "tkinter",
         "pylab"
     ],
     classifiers=[
