@@ -12,12 +12,13 @@ setuptools.setup(
     url='https://github.com/AndreMacedo88/VEnCode',
     packages=setuptools.find_packages(),
     install_requires=[
+        "biopython",
         "tqdm",
         "numpy",
         "pandas",
         "matplotlib",
         "scipy",
-        "tkinter",
+        "pyvisa",
         "pylab"
     ],
     classifiers=[
