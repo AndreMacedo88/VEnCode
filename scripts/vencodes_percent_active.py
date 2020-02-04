@@ -6,16 +6,16 @@ import matplotlib.pyplot as plt
 
 class SetUp:
     path_e_values = "D:/Utilizador HDD/OneDrive - Nova Medical School Faculdade de Ciências Médicas da UNL/1-Research/" \
-                    "3-Vencode/Fantom5/VEnCodes/SK-N-MC-atlas 200 val vencodes/" \
-                    "neuroepithelioma cell line-SK-N-MC_evalues.csv"
+                    "3-Vencode/Fantom5/VEnCodes/A549-atlas 200 val vencodes - samp/" \
+                    "lung adenocarcinoma cell line-A549_evalues.csv"
 
     path_vencodes = "D:/Utilizador HDD/OneDrive - Nova Medical School Faculdade de Ciências Médicas da UNL/1-Research/" \
-                    "3-Vencode/Fantom5/VEnCodes/SK-N-MC-atlas 200 val vencodes"
+                    "3-Vencode/Fantom5/VEnCodes/A549-atlas 200 val vencodes - samp"
 
     path_out_heat = "D:/Utilizador HDD/OneDrive - Nova Medical School Faculdade de Ciências Médicas da UNL/1-Research/" \
-                   "3-Vencode/Fantom5/Validations/2- Figures - py/heatmap 200 val vens - SK-N-MC_inferno"
+                   "3-Vencode/Fantom5/Validations/2- Figures - py/heatmap 200 val vens - A549_samp"
 
-    name_cell_type = "SK-N-MC"
+    name_cell_type = "A549"
 
 
 class ValidatedVEnCodesHeatmap:
@@ -78,5 +78,5 @@ class ValidatedVEnCodesHeatmap:
 
 if __name__ == "__main__":
     setup = SetUp()
-    ven = ValidatedVEnCodesHeatmap(setup, 2)
+    ven = ValidatedVEnCodesHeatmap(setup, 0)
     ven.plot()

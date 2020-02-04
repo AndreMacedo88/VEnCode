@@ -389,3 +389,7 @@ cancer_three_donors_bio_rep_list = ["B lymphoblastoid cell line: GM12878 ENCODE"
 cancer_four_donors_list = ["embryonic pancreas cell line", "neuroblastoma cell line",
                            "oral squamous cell carcinoma cell line", "small cell lung carcinoma cell line",
                            "testicular germ cell embryonal carcinoma cell line"]
+
+# Variables for tests:
+test_promoter_file_name = "test_hg19.cage_peak_phase1and2combined_tpm.osc.txt"
+test_enhancer_file_name = "test_human_permissive_enhancers_phase_1_and_2_expression_tpm_matrix.txt"

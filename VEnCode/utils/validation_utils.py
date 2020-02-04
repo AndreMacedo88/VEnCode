@@ -2,7 +2,7 @@ from VEnCode import internals
 from VEnCode import common_variables as cv
 
 
-def get_data_to_validate(cell_type, optional=None):
+def get_data_to_validate(cell_type, file_name=None, **kwargs):
     """
     Gets the data used to validate, based on the target cell type.
     :return: internals.OutsideData object with the data that can be used to validate the cell type
@@ -21,6 +21,10 @@ def get_data_to_validate(cell_type, optional=None):
                             "CD133+ stem cells": "CD133+",
                             "epitheloid carcinoma cell line: HelaS3 ENCODE": "Hela-S3",
                             "embryonic kidney cell line: HEK293/SLAM untreated": "HEK293"}
+
+    optional = kwargs.get("optional", None)
+    positions = kwargs.get("positions", None)
+    splits = kwargs.get("splits")
 
     if cell_type == "hIPS":
         return internals.BarakatTS2018Data(data="core")
@@ -55,6 +59,8 @@ def get_data_to_validate(cell_type, optional=None):
         return internals.ChristensenCL2014Data(data="H82")
     elif cell_type in enhancer_atlas_lines:
         return internals.Fasta("EnhancerAtlas-{}".format(enhancer_atlas_lines.get(cell_type)))
+    elif "singlecell" in cell_type:
+        return internals.Csv(source=file_name, positions=positions, splits=splits)
     else:
         raise AttributeError("Cell Type {} to get validated VEnCodes still not supported".format(cell_type))
 
@@ -63,7 +69,7 @@ def status_parsed(cell_type):
     """
     Chooses whether the VEnCode module uses already parsed data sets or has to parse from the beginning.
     :param cell_type: cell type to analyse.
-    :return:
+    :return: Boolean True or False
     """
     if cell_type in ("hIPS", "small cell lung carcinoma cell line:NCI-H82", "CD133+ stem cells"):
         return False

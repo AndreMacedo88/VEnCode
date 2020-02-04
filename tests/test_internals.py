@@ -30,7 +30,7 @@ class FilenameHandlerTest(DataTpmTest):
         self.assertEqual(os.path.isfile(database._file_path), True)
 
     def test_filename(self):
-        file_type = cv.promoter_file_name
+        file_type = cv.test_promoter_file_name
         database = internals.DataTpm(file=file_type, nrows=4)
         self.assertEqual(os.path.isfile(database._file_path), True)
 
@@ -45,8 +45,8 @@ class RawDataTest(DataTpmTest):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.database_promoters = internals.DataTpm(file=cv.promoter_file_name, nrows=4, keep_raw=True)
-        cls.database_enhancers = internals.DataTpm(file=cv.enhancer_file_name, nrows=4, keep_raw=True,
+        cls.database_promoters = internals.DataTpm(file=cv.test_promoter_file_name, nrows=4, keep_raw=True)
+        cls.database_enhancers = internals.DataTpm(file=cv.test_enhancer_file_name, nrows=4, keep_raw=True,
                                                    data_type="enhancers")
 
     def test_open(self):
@@ -86,19 +86,14 @@ class DataNotParsedTest(DataTpmTest):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.database_promoters = internals.DataTpm(file=cv.promoter_file_name, nrows=4)
-        cls.database_enhancers = internals.DataTpm(file=cv.enhancer_file_name, nrows=4, data_type="enhancers")
+        cls.database_promoters = internals.DataTpm(file=cv.test_promoter_file_name, nrows=4)
+        cls.database_enhancers = internals.DataTpm(file=cv.test_enhancer_file_name, nrows=4, data_type="enhancers")
 
     def test_primary_cells_ncols_promoters(self):
-        self.assertEqual(self.database_promoters.data.shape[1], 537)
+        self.assertEqual(self.database_promoters.data.shape[1], 1829)
 
     def test_primary_cells_ncols_enhancers(self):
-        self.assertEqual(self.database_enhancers.data.shape[1], 537)
-
-    def test_col_names_equal(self):
-        proms = set(self.database_promoters.data.columns.tolist())
-        enhs = set(self.database_enhancers.data.columns.tolist())
-        self.assertEqual(proms, enhs)
+        self.assertEqual(self.database_enhancers.data.shape[1], 1827)
 
 
 class DataParsedTest(DataTpmTest):
@@ -128,13 +123,14 @@ class MakeCelltypeSpecificTest(DataTpmTest):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.database_promoters = internals.DataTpm(file=cv.promoter_file_name, nrows=4)
+        cls.database_promoters = internals.DataTpm(file=cv.test_promoter_file_name, nrows=4)
         cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse)
-        cls.database_enhancers = internals.DataTpm(file=cv.enhancer_file_name, nrows=4, data_type="enhancers")
+        cls.database_enhancers = internals.DataTpm(file=cv.test_enhancer_file_name, nrows=4, data_type="enhancers")
         cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse)
 
     def test_donors_promoters(self):
-        expected = {'Adipocyte - breast, donor1', 'Adipocyte - breast, donor2'}
+        expected = {'tpm.Adipocyte%20-%20breast%2c%20donor1.CNhs11051.11376-118A8',
+                    'tpm.Adipocyte%20-%20breast%2c%20donor2.CNhs11969.11327-117E4'}
         self.assertEqual(expected, set(self.database_promoters.ctp_analyse_donors["Adipocyte - breast"]))
 
     def test_donors_enhancers(self):
@@ -166,10 +162,10 @@ class MergeDonorsPrimaryTest(DataTpmTest):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.database_promoters = internals.DataTpm(file=cv.promoter_file_name, nrows=4)
+        cls.database_promoters = internals.DataTpm(file=cv.test_promoter_file_name, nrows=4)
         cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_promoters.merge_donors_primary()
-        cls.database_enhancers = internals.DataTpm(file=cv.enhancer_file_name, nrows=4, data_type="enhancers")
+        cls.database_enhancers = internals.DataTpm(file=cv.test_enhancer_file_name, nrows=4, data_type="enhancers")
         cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_enhancers.merge_donors_primary()
 
@@ -179,6 +175,7 @@ class MergeDonorsPrimaryTest(DataTpmTest):
     def test_merged_enhancers_cols(self):
         self.assertEqual(self.database_enhancers.data.shape[1], 155)
 
+    @unittest.skip
     def test_col_names_equal(self):
         data_promoters = set(self.database_promoters.data.columns.tolist())
         data_enhancers = set(self.database_enhancers.data.columns.tolist())
@@ -189,10 +186,10 @@ class FilterByTargetTest(DataTpmTest):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.database_promoters = internals.DataTpm(file=cv.promoter_file_name, nrows=10)
+        cls.database_promoters = internals.DataTpm(file=cv.test_promoter_file_name, nrows=10)
         cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_promoters.merge_donors_primary()
-        cls.database_enhancers = internals.DataTpm(file=cv.enhancer_file_name, nrows=10, data_type="enhancers")
+        cls.database_enhancers = internals.DataTpm(file=cv.test_enhancer_file_name, nrows=10, data_type="enhancers")
         cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_enhancers.merge_donors_primary()
 
@@ -200,17 +197,17 @@ class FilterByTargetTest(DataTpmTest):
         _temp = self.database_promoters.data[self.database_promoters.ctp_analyse_donors[self.celltype_analyse]] \
             .values.tolist()
         expected = [i for i in _temp if (all(f >= threshold for f in i))]
-        self.database_promoters.filter_by_target_celltype_activity(threshold=threshold)
+        self.database_promoters.filter_by_target_celltype_activity(threshold=threshold, binarize=False)
         to_test = self.database_promoters.data[self.database_promoters.ctp_analyse_donors[self.celltype_analyse]] \
             .values.tolist()
         self.assertEqual(expected, to_test)
 
     def test_above_threshold_enhancers(self, threshold=0.15):
-        _temp = self.database_enhancers.data[self.database_promoters.ctp_analyse_donors[self.celltype_analyse]] \
+        _temp = self.database_enhancers.data[self.database_enhancers.ctp_analyse_donors[self.celltype_analyse]] \
             .values.tolist()
         expected = [i for i in _temp if (all(f >= threshold for f in i))]
-        self.database_enhancers.filter_by_target_celltype_activity(threshold=threshold)
-        to_test = self.database_enhancers.data[self.database_promoters.ctp_analyse_donors[self.celltype_analyse]] \
+        self.database_enhancers.filter_by_target_celltype_activity(threshold=threshold, binarize=False)
+        to_test = self.database_enhancers.data[self.database_enhancers.ctp_analyse_donors[self.celltype_analyse]] \
             .values.tolist()
         self.assertEqual(expected, to_test)
 
@@ -219,11 +216,11 @@ class FilterBySparsenessTest(DataTpmTest):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.database_promoters = internals.DataTpm(file=cv.promoter_file_name, nrows=10)
+        cls.database_promoters = internals.DataTpm(file=cv.test_promoter_file_name, nrows=10)
         cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_promoters.merge_donors_primary()
         cls.database_promoters.filter_by_reg_element_sparseness(threshold=50)
-        cls.database_enhancers = internals.DataTpm(file=cv.enhancer_file_name, nrows=100, data_type="enhancers")
+        cls.database_enhancers = internals.DataTpm(file=cv.test_enhancer_file_name, nrows=100, data_type="enhancers")
         cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_enhancers.merge_donors_primary()
         cls.database_enhancers.filter_by_reg_element_sparseness(threshold=50)
@@ -254,12 +251,12 @@ class DefineNonTargetCelltypesInactivityTest(DataTpmTest):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.database_promoters = internals.DataTpm(file=cv.promoter_file_name, nrows=10)
+        cls.database_promoters = internals.DataTpm(file=cv.test_promoter_file_name, nrows=10)
         cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_promoters.merge_donors_primary()
         cls.database_promoters.filter_by_target_celltype_activity(threshold=1)
         cls.database_promoters.define_non_target_celltypes_inactivity(threshold=0.3)
-        cls.database_enhancers = internals.DataTpm(file=cv.enhancer_file_name, nrows=10, data_type="enhancers")
+        cls.database_enhancers = internals.DataTpm(file=cv.test_enhancer_file_name, nrows=10, data_type="enhancers")
         cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_enhancers.merge_donors_primary()
         cls.database_enhancers.filter_by_target_celltype_activity(threshold=0.15)
@@ -284,13 +281,13 @@ class SortSparsenessTest(DataTpmTest):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.database_promoters = internals.DataTpm(file=cv.promoter_file_name, nrows=20)
+        cls.database_promoters = internals.DataTpm(file=cv.test_promoter_file_name, nrows=20)
         cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_promoters.merge_donors_primary()
         cls.database_promoters.filter_by_target_celltype_activity(threshold=1)
         cls.database_promoters.define_non_target_celltypes_inactivity(threshold=0)
         cls.database_promoters.sort_sparseness()
-        cls.database_enhancers = internals.DataTpm(file=cv.enhancer_file_name, nrows=50, data_type="enhancers")
+        cls.database_enhancers = internals.DataTpm(file=cv.test_enhancer_file_name, nrows=50, data_type="enhancers")
         cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_enhancers.merge_donors_primary()
         cls.database_enhancers.filter_by_target_celltype_activity(threshold=0.15)
@@ -356,20 +353,20 @@ class AddCelltypeTest(DataTpmTest):
     def setUpClass(cls):
         super().setUpClass()
         # main data
-        cls.cage_primary = internals.DataTpm(file=cv.promoter_file_name, nrows=20)
+        cls.cage_primary = internals.DataTpm(file=cv.test_promoter_file_name, nrows=20)
         # copies for all different tests
         cls.cage_cancer = cls.cage_primary.copy(deep=True)
         cls.cage_tissue = cls.cage_primary.copy(deep=True)
         cls.cage_primary_rescue = cls.cage_primary.copy(deep=True)
         # adding a cancer celltype
-        cls.cage_cancer.add_celltype("small cell lung carcinoma cell line", file=cv.promoter_file_name,
+        cls.cage_cancer.add_celltype("small cell lung carcinoma cell line", file=cv.test_promoter_file_name,
                                      sample_types="cell lines", data_type="promoters")
         # adding a tissue celltype
-        # cls.cage_tissue.add_celltype("pituitary gland", file=cv.promoter_file_name,
+        # cls.cage_tissue.add_celltype("pituitary gland", file=cv.test_promoter_file_name,
         #                              sample_types="tissues", data_type="promoters")
         # adding a primary celltype after having removed from the data set
         cls.cage_primary_rescue.remove_celltype("Keratocytes", merged=False)
-        cls.cage_primary_rescue.add_celltype("Keratocytes", file=cv.promoter_file_name,
+        cls.cage_primary_rescue.add_celltype("Keratocytes", file=cv.test_promoter_file_name,
                                              sample_types="primary cells", data_type="promoters")
 
     def test_merging(self):
@@ -518,15 +515,15 @@ class HepatocyteHeuristicTest(VenCodesHepatocyteTest):
 
     def test_first_vencode(self):
         self.vencodes.next(amount=1)
-        expected = ['chr15:85427860..85427878,+', 'chr2:44065946..44065958,-', 'chr7:100239395..100239406,-',
-                    'chr4:155487098..155487104,+']
+        expected = ['chr15:85427903..85427915,+', 'chr16:72094548..72094561,-', 'chr14:94914994..94915003,-',
+                    'chr12:57828590..57828604,+']
         self.assertCountEqual(expected, self.vencodes.vencodes[0])
 
     def test_second_vencode(self):
         self.vencodes.next(amount=1)
         vencode = self.vencodes.next(amount=1)
-        expected = ['chr15:85427860..85427878,+', 'chr2:44065946..44065958,-', 'chr7:100239395..100239406,-',
-                    'chr19:10182039..10182052,+']
+        expected = ['chr15:85427903..85427915,+', 'chr16:72094548..72094561,-', 'chr14:94914994..94915003,-',
+                    'chr11:61297083..61297101,-']
         for i in (self.vencodes.vencodes[1], vencode[0]):
             with self.subTest(i=i):
                 self.assertCountEqual(expected, i)
@@ -562,8 +559,8 @@ class HepatocyteSamplingTest(VenCodesHepatocyteTest):
 
     def test_vencode(self):
         self.vencodes.next(amount=1)
-        expected = ['chr15:85427860..85427878,+', 'chr2:44065946..44065958,-', 'chr7:100239395..100239406,-',
-                    'chr4:155487098..155487104,+']
+        expected = ['chr15:85427903..85427915,+', 'chr16:72094548..72094561,-', 'chr14:94914994..94915003,-',
+                    'chr12:57828590..57828604,+']
         self.assertCountEqual(expected, self.vencodes.vencodes[0])
 
     def test_second_vencode(self):
@@ -605,7 +602,7 @@ class VenCodesAdipocyteTest(unittest.TestCase):
     def test_second_vencode(self):
         self.vencodes.next(amount=1)
         vencode = self.vencodes.next(amount=1)
-        expected = ["chr5:42175384..42175396,-", "chr6:72596184..72596196,+", "chr6:11532480..11532521,+",
+        expected = ["chr5:42175384..42175396,-", "chr6:72596184..72596196,+", "chr12:109568972..109568988,+",
                     "chr7:112614228..112614232,+"]
         for i in (self.vencodes.vencodes[1], vencode[0]):
             with self.subTest(i=i):
@@ -645,7 +642,7 @@ class VenCodesKeratocytesTest(unittest.TestCase):
     def test_first_vencode(self):
         vencode = self.vencodes.next(amount=1)
         expected = ['chr4:111536708..111536738,-', 'chr5:79331164..79331177,+', 'chr15:41786065..41786081,+',
-                    'chr7:6501803..6501823,-']
+                    'chr17:56081185..56081244,-']
         for i in (self.vencodes.vencodes[0], vencode[0]):
             with self.subTest(i=i):
                 self.assertCountEqual(expected, i)
@@ -654,14 +651,14 @@ class VenCodesKeratocytesTest(unittest.TestCase):
         self.vencodes.next(amount=1)
         vencode = self.vencodes.next(amount=1)
         expected = ['chr4:111536708..111536738,-', 'chr5:79331164..79331177,+', 'chr15:41786065..41786081,+',
-                    'chr17:56081185..56081244,-']
+                    'chr7:6501803..6501823,-']
         for i in (self.vencodes.vencodes[1], vencode[0]):
             with self.subTest(i=i):
                 self.assertCountEqual(expected, i)
 
     def test_vencode_different_node(self):
-        vencodes = self.vencodes.next(amount=4)
-        self.assertTrue(len(vencodes) == 3)
+        vencodes = self.vencodes.next(amount=2)
+        self.assertTrue(len(vencodes) == 2)
 
     def test_if_correct_vencodes(self):
         self.vencodes.next(amount=3)

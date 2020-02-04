@@ -14,8 +14,8 @@ from VEnCode.utils import validation_utils as val
 
 
 class SetUp:
-    cell_type = "hIPS"
-    type = "time courses"
+    cell_type = "lung adenocarcinoma cell line:A549"
+    type = "cell lines"
     data_type = "enhancers"
     algorithm = "heuristic"
     k = 4
@@ -24,7 +24,7 @@ class SetUp:
     data_set = "enhancer_atlas"  # default: None
 
     path_out_ven = "D:/Utilizador HDD/OneDrive - Nova Medical School Faculdade de Ciências Médicas da UNL/1-Research/" \
-                   "3-Vencode/Fantom5/VEnCodes/hIPS 200 val vencodes - heu"
+                   "3-Vencode/Fantom5/VEnCodes/A549-atlas 200 val vencodes - heu"
 
     # Next ones you may not need to change:
     non_target_celltypes_inactivity = 0
@@ -53,7 +53,8 @@ class ValidatedVEnCodes:
         self.set_up = set_up
         thresholds = (
             set_up.non_target_celltypes_inactivity, set_up.target_celltype_activity, set_up.reg_element_sparseness)
-        self.data = iext.GetVencodeValidated(validate_with=val.get_data_to_validate(set_up.cell_type, set_up.data_set),
+        self.data = iext.GetVencodeValidated(validate_with=val.get_data_to_validate(set_up.cell_type,
+                                                                                    optional=set_up.data_set),
                                              cell_type=set_up.cell_type,
                                              data_type=set_up.data_type, algorithm=set_up.algorithm,
                                              n_regulatory_elements=set_up.k,

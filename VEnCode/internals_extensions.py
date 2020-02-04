@@ -177,6 +177,40 @@ class GetVencode(GettingVencodes):
         return data
 
 
+class GetVencodeExternalData(GettingVencodes):
+    """
+    Gets VEnCodes
+    thresholds must be a list or tuple with the format:
+    (non_target_celltypes_inactivity, target_celltype_activity, reg_element_sparseness)
+    """
+    def __init__(self, validate_with, number_vencodes=1, parsed=False, sample_type=None, thresholds=(), *args,
+                 **kwargs):
+        super().__init__(*args, **kwargs)
+        self.validate_with = validate_with
+        self.vencodes = self._get_vencode(number_vencodes, sample_type, parsed, thresholds, n_samples=self.n_samples,
+                                          using=self.using)
+
+    def _prepare_data_parsed(self, sample_type, thresholds):
+        data = internals.DataTpmValidated(self.validate_with, file="parsed", sample_types="primary cells",
+                                          data_type=self.data_type)
+        data.make_data_celltype_specific("Hepatocyte")
+        data.merge_donors_primary(exclude_target=False)
+        # data.add_celltype(self.cell_type, file=file_name, sample_types=sample_type, data_type=self.data_type)
+        data.merge_external_cell_type(self.cell_type)
+        data = self._filters(data, thresholds)
+        return data
+
+    def _prepare_data_raw_adding_ctp(self, sample_type, thresholds):
+        file_name = self._get_re_file_name()
+        data = internals.DataTpmValidated(self.validate_with, file=file_name, sample_types="primary cells",
+                                          data_type=self.data_type)
+        data.merge_donors_primary(exclude_target=False)
+        data.merge_external_cell_type(self.cell_type)
+        data.make_data_celltype_specific(self.cell_type)
+        data = self._filters(data, thresholds)
+        return data
+
+
 class Validator:
     """
     Validation methods between already generated VEnCodes and an external set of enhancers.
@@ -484,13 +518,18 @@ class CheckElementExpression:
         self.data_type = data_type
         self.data = self._get_data(sample_type, parsed)
 
-    def export_expression_data(self, path=None, specific_ctp=None):
+    def export_expression_data(self, path=None, specific_ctp=None, method="csv"):
         if specific_ctp == "All":
             pass
         elif isinstance(specific_ctp, list):
             pass
         expression = self._get_expression_data()
-        expression.to_csv(path)
+        if method == "csv":
+            expression.to_csv(path)
+        elif method == "print":
+            print(expression.values)
+        elif method == "return":
+            return expression
 
     def _get_expression_data(self):
         columns = self.data.ctp_analyse_donors[self.data.target_ctp]

@@ -14,20 +14,17 @@ sys.path.append(file_dir)
 
 from VEnCode import internals_extensions as iext
 
-element_list = ("chr9:99976780-99977107", "chr1:213090277-213090696", "chr6:121940262-121940519",
-                "chr7:157103071-157103446", "chr7:131290113-13129045", "chr7:51395107-51395355",
-                "chr15:65101103-65101281", "chr12:31523933-31524084", "chr5:93697867-93698390",
-                "chrX:40016662-40016910", "chrX:40028554-40028949", "chr6:15022090-15022421")
+element_list = ('chr6:94545083-94545465', 'chr11:94480491-94481212', 'chr2:86922220-86922584', 'chr12:20975224-20975562')
 
-cell_type = "epitheloid carcinoma cell line: HelaS3 ENCODE"
-cell_type2 = "embryonic kidney cell line: HEK293/SLAM untreated"
-path_out = "D:/Utilizador HDD/OneDrive - Nova Medical School Faculdade de Ciências Médicas da UNL/1-Research/3-Vencode/Fantom5/Expression Levels/"
+cell_type = "embryonic kidney cell line: HEK293/SLAM untreated"
+path_out = "D:/Utilizador HDD/OneDrive - Nova Medical School Faculdade de Ciências Médicas da UNL/1-Research/" \
+           "3-Vencode/Fantom5/Expression Levels/"
 
-path_out = path_out + cell_type2.replace(":", "-").replace("/", "-") + ".csv"
+path_out = path_out + cell_type.replace(":", "-").replace("/", "-") + ".csv"
 
 if __name__ == "__main__":
     expression = iext.CheckElementExpression(element_list=element_list,
-                                             cell_type=cell_type2,
+                                             cell_type=cell_type,
                                              data_type="enhancers",
                                              parsed=False)
     expression.export_expression_data(path=path_out)

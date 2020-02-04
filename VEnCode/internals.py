@@ -16,6 +16,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import pylab
 from Bio import SeqIO
+from collections import Counter
 
 import VEnCode.utils.dir_and_file_handling as d_f_handling
 from VEnCode import common_variables as cv
@@ -751,9 +752,9 @@ class Vencodes:
         if using is not None:  # allows user to force some REs to be in the VEnCode
             use = self._data_object.data.loc[using]
             if isinstance(using, list):
-                n = self.k-len(using)
+                n = self.k - len(using)
             else:
-                n = self.k-1
+                n = self.k - 1
         else:
             n = self.k
 
@@ -872,7 +873,7 @@ class Vencodes:
                         breaker_index = str(counter_thresholds.index(counter) + 1)
                         breaks["breaker_" + breaker_index] += 1
                         if breaks[
-                                    "breaker_" + breaker_index] > self.stop:  # here, we only test x promoters per node level
+                            "breaker_" + breaker_index] > self.stop:  # here, we only test x promoters per node level
                             breaks["breaker_" + breaker_index] = 0
                             yield []
                     # endregion "early quit if loop is taking too long"
@@ -1015,7 +1016,7 @@ class Vencodes:
 
         coefs = {"a": -164054.1, "b": 0.9998811, "c": 0.000006088948, "d": 1.00051, "m": 0.9527, "e": -0.1131}
         e_value_expected = (coefs["m"] * k + coefs["e"]) * self._data_object.data.shape[1] ** (
-            coefs["d"] + ((coefs["a"] - coefs["d"]) / (1 + (k / coefs["c"]) ** coefs["b"])))
+                coefs["d"] + ((coefs["a"] - coefs["d"]) / (1 + (k / coefs["c"]) ** coefs["b"])))
         e_value_norm = (e_value_raw / e_value_expected) * 100
         if e_value_norm < 100:
             return e_value_norm
@@ -1059,8 +1060,10 @@ class OutsideData:
     Base class for all data from outside sources.
     """
 
-    def __init__(self):
-        self.data_path = os.path.join(str(Path(__file__).parents[2]), "Files", "Validation_files")
+    def __init__(self, folder=None):
+        if folder is None:
+            folder = "Validation_files"
+        self.data_path = os.path.join(str(Path(__file__).parents[2]), "Files", folder)
         self._data_source = None
         self.data = None
 
@@ -1074,7 +1077,7 @@ class OutsideData:
 
     @data_source.setter
     def data_source(self, value):
-        if value.endswith((".broadPeak", ".BED", ".txt", ".FASTA", ".fasta")):
+        if value.endswith((".broadPeak", ".BED", ".txt", ".FASTA", ".fasta", ".csv")):
             self._data_source = value
         else:
             if value == "DennySK2016":
@@ -1315,10 +1318,10 @@ class Fasta(OutsideData):
         for fasta in sequences:
             name = fasta.id
             name = name.split(':')
-            chr, locations = name[0], name[1].split("-")
+            chromosome, locations = name[0], name[1].split("-")
             start, end = locations[0], locations[1]
             end = re.match(r"[0-9]+", end).group()
-            info = [[chr, start, end]]
+            info = [[chromosome, start, end]]
             try:
                 array = np.append(array, info, axis=0)
             except ValueError:
@@ -1327,6 +1330,46 @@ class Fasta(OutsideData):
         self.data = pd.DataFrame(array, columns=columns)
         pd_util.columns_to_numeric(self.data, "Start", "End")
         self._create_range()
+
+
+class Csv(OutsideData):
+    """
+        Parses data from CSV files to use in VEnCode validation studies.
+
+        How to use: data = internals.Csv(source)
+        source can be any source described in baseclass, or a filename ending in .csv.
+        """
+
+    def __init__(self, source=False, positions=(0, 0, 0, 1), splits=(":", "-")):
+        super().__init__(folder="Single Cell analysis")
+        if source:
+            self.data_source = source
+        self.data = self._open_csv_file(self.data_source, sep=";")
+        self._data_cleaner(positions, splits)
+        pd_util.columns_to_numeric(self.data, "Start", "End")
+        self._create_range()
+
+    def _data_cleaner(self, positions, splits):
+        data_final = pd.DataFrame()
+        columns = ["Chromosome", "Start", "End", "tpm"]
+        split_count = 0
+        for item, count in Counter(positions).items():
+            if count > 1:
+                data_to_split = self.data.iloc[:, item]
+                for i in range(count - 1):
+                    data_temp = data_to_split.str.split(splits[split_count], n=1, expand=True)
+                    if columns[split_count] not in data_final.columns:
+                        data_final[columns[split_count]] = data_temp[0]
+                    if count == i+2:
+                        data_final[columns[split_count + 1]] = data_temp[1]
+                    else:
+                        data_final[columns[split_count + 1]] = data_temp[1].str.split(splits[split_count + 1], n=1,
+                                                                                      expand=True)[0]
+                    split_count += 1
+            else:
+                position = positions.index(item)
+                data_final[columns[position]] = self.data.iloc[:, item]
+        self.data = data_final
 
 
 class DataTpmValidated(DataTpm):
@@ -1345,12 +1388,23 @@ class DataTpmValidated(DataTpm):
         """
         Main method to filter the REs in the data, leaving in the data only those that match the external data set.
         """
-        self._interception(self.validate_with.data)
-
-    def _interception(self, data2):
         df_range = self._regulatory_elements_range()
-        mask = self._mask(df_range, data2)
-        self.data = self.data.loc[mask]
+        self._interception(df_range, self.validate_with.data, self.data)
+
+    def merge_external_cell_type(self, cell_type):
+        df_range = self._regulatory_elements_range()
+        self.data = self._interception(df_range, self.validate_with.data, self.data)
+        validate_with = self._interception(self.validate_with.data, df_range, self.validate_with.data)
+        if self.data.shape[0] == validate_with.shape[0]:
+            validate_with.index = self.data.index
+            self.data[cell_type] = validate_with["tpm"]
+        else:
+            self.data[cell_type] = pd.Series(data=[50]*len(self.data.index), index=self.data.index)
+
+    def _interception(self, data1, data2, data_updated):
+        mask = self._mask(data1, data2)
+        data_updated = data_updated.loc[mask]
+        return data_updated
 
     def _regulatory_elements_range(self):
         df_temp = pd.DataFrame()

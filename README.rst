@@ -22,7 +22,8 @@ Installing
 ^^^^^^^^^^
 1. Make sure you have the prerequisites;
 2. Fork this project;
-3. Put the TSS files in a folder called "Files" just outside your local forked repository.
+3. Change the location of the directory "Files" in this package to the parent directory.
+4. Put the FANTOM5 TSS files in that directory called "Files".
 
 Deployment
 -----------------
@@ -32,6 +33,20 @@ To develop your own projects, import objects from .py files (internals.py) using
 
 to then use in your own methods.
 Note: You can see examples of most functions and objects being used by going to the "Scripts" folder. Old scripts can be found in somewhat obsolete directory Legacy Scripts.
+
+Running the Tests
+-----------------
+Tests for this module can be run in several ways; some examples:
+
+1. Run python's standard module "unittest" in the tests directory.
+Basic example in command line:
+
+``python -m unittest test_internals``
+
+2. Install nosetests python package and run nosetests in the "tests" directory.
+Basic example in command line:
+
+``nosetests test_internals.py``
 
 Contributing
 ------------

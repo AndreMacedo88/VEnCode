@@ -2,12 +2,12 @@ import os
 
 from VEnCode.common_variables import promoter_file_name, enhancer_file_name
 from VEnCode.utils import dir_and_file_handling as dfh
-from scripts import num_validated_elements, get_validated_vencodes, vencodes_percent_active
+from scripts import num_validated_elements, get_validated_vencodes, vencodes_percent_active, get_vencodes
 
 
 class SetUp:
     """set up some variables: """
-    cell_type = "embryonic kidney cell line: HEK293/SLAM untreated"
+    cell_type = "lung adenocarcinoma cell line:A549"
     type = "cell lines"
     data_type = "enhancers"
     algorithm = "sampling"
@@ -17,10 +17,10 @@ class SetUp:
     data_set = "enhancer_atlas"  # default: None. Possible: enhancer_atlas, etc
 
     # Paths to export data:
-    name_vencodes = "HEK293-atlas 200 val vencodes"
+    name_vencodes = "A549 200 vencodes - samp"
 
-    name_cell_type = "HEK293-atlas"
-    name_heatmap = "heatmap 200 val vens - {}_inferno".format(name_cell_type)
+    name_cell_type = "A549"
+    name_heatmap = "heatmap 200 vens - {}_samp".format(name_cell_type)
 
     path_out_ven = os.path.join(
         "D:/Utilizador HDD/OneDrive - Nova Medical School Faculdade de Ciências Médicas da UNL/1-Research/"
@@ -56,10 +56,11 @@ class SetUp:
 
 setup = SetUp()
 
-elem = num_validated_elements.ValidatedElements(setup)
-elem.export()
+# elem = num_validated_elements.ValidatedElements(setup)
+# elem.export()
 
-ven = get_validated_vencodes.ValidatedVEnCodes(setup)
+# ven = get_validated_vencodes.ValidatedVEnCodes(setup)
+ven = get_vencodes.GetVEnCodes(setup)
 ven.export()
 
 heat = vencodes_percent_active.ValidatedVEnCodesHeatmap(setup, to_drop=len(ven.data.vencodes.celltype_donors)-1)
