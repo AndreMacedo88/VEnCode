@@ -2,7 +2,8 @@ import os
 
 from VEnCode.common_variables import promoter_file_name, enhancer_file_name
 from VEnCode.utils import dir_and_file_handling as dfh
-from scripts import num_validated_elements, get_validated_vencodes, vencodes_percent_active, get_vencodes
+from VEnCode.scripts import get_vencodes
+from VEnCode.scripts import vencodes_percent_active
 
 
 class SetUp:
@@ -63,5 +64,5 @@ setup = SetUp()
 ven = get_vencodes.GetVEnCodes(setup)
 ven.export()
 
-heat = vencodes_percent_active.ValidatedVEnCodesHeatmap(setup, to_drop=len(ven.data.vencodes.celltype_donors)-1)
+heat = vencodes_percent_active.ValidatedVEnCodesHeatmap(setup, to_drop=len(ven.data.vencodes.celltype_donors) - 1)
 heat.plot()

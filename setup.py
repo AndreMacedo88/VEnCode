@@ -5,9 +5,9 @@ with open("README.rst", "r") as fh:
 
 setuptools.setup(
     name='VEnCode',
-    version='0.0.2',
+    version='0.1.0',
     description='Package to get VEnCodes as in Macedo and Gontijo, 2019',
-    author='Andre Macedo',
+    author='Andre Macedo and Alisson M. Gontijo',
     author_email='andre.lopes.macedo@gmail.com',
     url='https://github.com/AndreMacedo88/VEnCode',
     packages=setuptools.find_packages(),
@@ -17,10 +17,9 @@ setuptools.setup(
         "numpy",
         "pandas",
         "matplotlib",
-        "scipy",
-        "pyvisa",
-        "pylab"
+        "scipy"
     ],
+    include_package_data=True,
     classifiers=[
         "Programming Language :: Python :: 3.6",
         "License :: Free for non-commercial use",

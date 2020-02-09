@@ -29,11 +29,15 @@ class DataTpm:
     filtering methods
     """
 
-    def __init__(self, file="custom", sample_types="primary cells", data_type="promoters", keep_raw=False, nrows=None):
+    def __init__(self, file="custom", sample_types="primary cells", data_type="promoters", keep_raw=False, nrows=None,
+                 files_path="native"):
         self._file, self.sample_type, self.data_type, self._nrows = file, sample_types, data_type, nrows
         self.target_ctp, self.ctp_analyse_donors, self.ctp_not_include, self.data = None, None, None, None
         self._file_path = None
-        self._parent_path = os.path.join(str(Path(__file__).parents[2]), "Files")
+        if files_path == "native":
+            self._parent_path = os.path.join(str(Path(__file__).parents[0]), "Files")
+        else:
+            self._parent_path = files_path
 
         if sample_types in ("cell lines", "tissues"):
             celltype_exclude = None
@@ -942,7 +946,7 @@ class Vencodes:
         data = self.data.loc[vencode]
         labels = data.index.values
         if snapshot is not None:
-            values = eval("data.values[:, :{}]".format(snapshot))
+            values = eval("data.values[:, -{}:]".format(snapshot))
         else:
             values = data.values
         pylab.imshow(values, interpolation=interpolation, cmap=plt.cm.Reds)
