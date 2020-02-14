@@ -90,10 +90,10 @@ class DataNotParsedTest(DataTpmTest):
         cls.database_enhancers = internals.DataTpm(file=cv.test_enhancer_file_name, nrows=4, data_type="enhancers")
 
     def test_primary_cells_ncols_promoters(self):
-        self.assertEqual(self.database_promoters.data.shape[1], 1829)
+        self.assertEqual(self.database_promoters.data.shape[1], 537)
 
     def test_primary_cells_ncols_enhancers(self):
-        self.assertEqual(self.database_enhancers.data.shape[1], 1827)
+        self.assertEqual(self.database_enhancers.data.shape[1], 537)
 
 
 class DataParsedTest(DataTpmTest):
@@ -129,8 +129,7 @@ class MakeCelltypeSpecificTest(DataTpmTest):
         cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse)
 
     def test_donors_promoters(self):
-        expected = {'tpm.Adipocyte%20-%20breast%2c%20donor1.CNhs11051.11376-118A8',
-                    'tpm.Adipocyte%20-%20breast%2c%20donor2.CNhs11969.11327-117E4'}
+        expected = {'Adipocyte - breast, donor1', 'Adipocyte - breast, donor2'}
         self.assertEqual(expected, set(self.database_promoters.ctp_analyse_donors["Adipocyte - breast"]))
 
     def test_donors_enhancers(self):
@@ -175,7 +174,7 @@ class MergeDonorsPrimaryTest(DataTpmTest):
     def test_merged_enhancers_cols(self):
         self.assertEqual(self.database_enhancers.data.shape[1], 155)
 
-    @unittest.skip
+    # @unittest.skip
     def test_col_names_equal(self):
         data_promoters = set(self.database_promoters.data.columns.tolist())
         data_enhancers = set(self.database_enhancers.data.columns.tolist())

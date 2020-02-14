@@ -36,6 +36,8 @@ class DataTpm:
         self._file_path = None
         if files_path == "native":
             self._parent_path = os.path.join(str(Path(__file__).parents[0]), "Files")
+        elif files_path == "outside":
+            self._parent_path = os.path.join(str(Path(__file__).parents[2]), "Files")
         else:
             self._parent_path = files_path
 
@@ -72,7 +74,7 @@ class DataTpm:
             else:
                 raise AttributeError("data_type argument is not supported")
             self.raw_data.apply(pd.to_numeric, downcast='float')  # optimizes memory usage by downcasting to lower float
-            if sample_types in ("cell lines", "cancer", "time courses", "tissues"):
+            if sample_types in ("primary cells", "cell lines", "cancer", "time courses", "tissues"):
                 self.data = self._raw_data_cleaner()
             else:
                 self.data = self.raw_data
