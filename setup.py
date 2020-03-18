@@ -43,7 +43,7 @@ setuptools.setup(
     include_package_data=True,
     classifiers=[
         "Programming Language :: Python :: 3.6",
-        "License :: OSI Approved :: Apache Software License",
+        "License :: OSI Approved :: BSD LICENSE",
         "Operating System :: OS Independent",
     ]
 )
