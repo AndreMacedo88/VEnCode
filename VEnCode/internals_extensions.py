@@ -20,13 +20,15 @@ class GettingVencodes:
     reg_element_sparseness).
     """
 
-    def __init__(self, cell_type, data_type, algorithm, n_regulatory_elements, n_samples=10000, using=None):
+    def __init__(self, cell_type, data_type, algorithm, n_regulatory_elements, n_samples=10000, using=None,
+                 files_path="native"):
         self.cell_type = cell_type
         self.data_type = data_type
         self.algorithm = algorithm
         self.k = n_regulatory_elements
         self.n_samples = n_samples
         self.using = using
+        self.files_path = files_path
 
     def _get_sample_type(self, sample_type):
         if sample_type:
@@ -157,19 +159,22 @@ class GetVencodeValidated(GettingVencodes):
 
 
 class GetVencode(GettingVencodes):
-    def __init__(self, number_vencodes=1, parsed=False, sample_type=None, thresholds=(), *args, **kwargs):
+    def __init__(self, number_vencodes=1, parsed=False, sample_type=None, thresholds=(),
+                 *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.vencodes = self._get_vencode(number_vencodes, sample_type, parsed, thresholds, n_samples=self.n_samples)
 
     def _prepare_data_parsed(self, sample_type, thresholds):
-        data = internals.DataTpm(file="parsed", sample_types=sample_type, data_type=self.data_type)
+        data = internals.DataTpm(file="parsed", sample_types=sample_type, data_type=self.data_type,
+                                 files_path=self.files_path)
         data.make_data_celltype_specific(self.cell_type)
         data = self._filters(data, thresholds)
         return data
 
     def _prepare_data_raw_adding_ctp(self, sample_type, thresholds):
         file_name = self._get_re_file_name()
-        data = internals.DataTpm(file=file_name, sample_types="primary cells", data_type=self.data_type)
+        data = internals.DataTpm(file=file_name, sample_types="primary cells", data_type=self.data_type,
+                                 files_path=self.files_path)
         data.merge_donors_primary(exclude_target=False)
         data.add_celltype(self.cell_type, file=file_name, sample_types=sample_type, data_type=self.data_type)
         data.make_data_celltype_specific(self.cell_type)

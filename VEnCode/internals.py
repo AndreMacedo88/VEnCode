@@ -567,7 +567,7 @@ class Vencodes:
             self.n_samples = n_samples
             self.vencodes_generator = self._sampling_method_vencode_getter(using=using)
 
-    def next(self, amount=1, add_problems=False):
+    def next(self, amount=1):
         """
         Call this function to generate the next VEnCode. The VEnCode is appended to the variable self.vencodes, or
         can be returned as a variable.
@@ -582,7 +582,7 @@ class Vencodes:
             try:
                 vencode = next(self.vencodes_generator)
             except StopIteration:
-                return
+                break
             if self.vencodes:
                 for previous_ven in self.vencodes:
                     if set(previous_ven) == set(vencode):

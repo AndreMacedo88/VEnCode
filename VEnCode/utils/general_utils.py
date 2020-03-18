@@ -106,13 +106,12 @@ def subset_of_span(span1, span2):
 
 
 def partial_subset_of_span(span1, span2):
-    """ Asks whether span1 is a subset of span2, or vice versa. Returns True or False. """
+    """ Asks whether span1 overlaps with span2. Returns True or False. """
     if not span1:
         raise ValueError("{} is empty".format(span1))
     if not span2:
         raise ValueError("{} is empty".format(span2))
-    span1_sub_span2 = (span2[0] <= span1[0] <= span2[1]) or (span2[0] <= span1[1] <= span2[1])
-    condition = span1_sub_span2 or ((span1[0] <= span2[0] <= span1[1]) or (span1[0] <= span2[1] <= span1[1]))
+    condition = span1[1] >= span2[0] and span2[1] >= span1[0]
     return condition
 
 
