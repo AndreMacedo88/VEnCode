@@ -1,7 +1,8 @@
 tqdm
-numpy
 pandas
 matplotlib
+biopython
 scipy
+numpy
 tkinter
 pylab

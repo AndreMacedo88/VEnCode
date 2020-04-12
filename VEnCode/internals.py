@@ -83,6 +83,10 @@ class DataTpm:
         else:
             pass
 
+    @property
+    def shape(self):
+        return self.data.shape
+
     def __eq__(self, other):
         """Allows to check equality between two DataTpm objects"""
         if isinstance(other, DataTpm):
@@ -532,6 +536,18 @@ class DataTpm:
         else:
             self.data.drop(self.ctp_analyse_donors[self.target_ctp], axis=1, inplace=True)
 
+    def binarize_data(self, threshold=0):
+        """
+        Converts all data to 0 and 1, where 1 is any value above threshold.
+        :param threshold: max value for "0"
+        """
+        self.data = self.data.applymap(lambda x: 0 if x <= threshold else 1)
+
+    def to_csv(self, *args, **kwargs):
+        """
+        Generates a csv file. args and kwargs passed must be compatible to Pandas DataFrame.to_csv()
+        """
+        self.data.to_csv(*args, **kwargs)
 
 class Vencodes:
     """
@@ -560,10 +576,10 @@ class Vencodes:
         else:
             self.second_data_object = None
 
-        if self.algorithm is "heuristic":
+        if self.algorithm == "heuristic":
             self.stop = stop
             self.vencodes_generator = self._heuristic_method_vencode_getter()
-        elif self.algorithm is "sampling":
+        elif self.algorithm == "sampling":
             self.n_samples = n_samples
             self.vencodes_generator = self._sampling_method_vencode_getter(using=using)
 
@@ -1383,7 +1399,7 @@ class DataTpmValidated(DataTpm):
     This class provides methods to develop a data set with chromosome coordinates intercepted
     with those of validate_with, which we call validated regulatory elements.
 
-    How to use: After initializing, filter data with validated REs by calling the "filter_validated" method.
+    How to use: After initializing, filter data with validated REs by calling the "select_validated" method.
     """
 
     def __init__(self, validate_with, *args, **kwargs):

@@ -197,3 +197,49 @@ columns_enhancer_matching = ['amniotic epithelial cell', 'astrocyte of the cereb
 
 index_promoter_order_200bp = index_promoter_order.copy()
 index_promoter_order_200bp.append("Basophils")
+
+index_promoter_active = ['Astrocyte - cerebellum',
+                         'CD19+ B Cells',
+                         'Ciliary Epithelial Cells', 'common myeloid progenitor CMP',
+                         'Endothelial Cells - Lymphatic',
+                         'Endothelial Cells - Umbilical vein', 'Fibroblast - Conjunctival',
+                         'Fibroblast - Pulmonary Artery', 'Fibroblast - Villous Mesenchymal',
+                         'Hepatocyte', 'Iris Pigment Epithelial Cells',
+                         'Mammary Epithelial Cell', 'Myoblast', 'Osteoblast',
+                         'Renal Cortical Epithelial Cells',
+                         'Renal Proximal Tubular Epithelial Cell', 'Retinal Pigment Epithelial Cells']
+
+columns_promoter_active = ['astrocyte of the cerebellum',
+                           'B cell',
+                           'non-pigmented ciliary epithelial cell', 'common myeloid progenitor, CD34-positive',
+                           'dermis microvascular lymphatic vessel endothelial cell',
+                           'endothelial cell of umbilical vein',
+                           'fibroblast of the conjunctiva',
+                           'fibroblast of pulmonary artery',
+                           'fibroblast of villous mesenchyme', 'hepatocyte',
+                           'iris pigment epithelial cell', 'mammary epithelial cell',
+                           'skeletal muscle myoblast', 'osteoblast',
+                           'renal cortical epithelial cell',
+                           'epithelial cell of proximal tubule',
+                           'retinal pigment epithelial cell']
+
+index_enhancer_active = ['Astrocyte - cerebellum', 'CD14+ CD16+ Monocytes', 'CD19+ B Cells', 'CD34+ Progenitors',
+                         'Endothelial Cells - Artery', 'Endothelial Cells - Lymphatic',
+                         'Endothelial Cells - Microvascular', 'Endothelial Cells - Umbilical vein',
+                         'Fibroblast - Aortic Adventitial', 'Fibroblast - Conjunctival',
+                         'Fibroblast - Pulmonary Artery', 'Hepatocyte', 'Iris Pigment Epithelial Cells',
+                         'Mammary Epithelial Cell', 'Myoblast', 'Natural Killer Cells', 'Osteoblast', 'Pericytes',
+                         'Prostate Epithelial Cells', 'Renal Cortical Epithelial Cells',
+                         'Retinal Pigment Epithelial Cells']
+
+columns_enhancer_active = ['astrocyte of the cerebellum', 'CD14-positive monocyte',
+                           'B cell', 'common myeloid progenitor, CD34-positive',
+                           'pulmonary artery endothelial cell',
+                           'dermis microvascular lymphatic vessel endothelial cell',
+                           'brain microvascular endothelial cell', 'endothelial cell of umbilical vein',
+                           'fibroblast of the aortic adventitia', 'fibroblast of the conjunctiva',
+                           'fibroblast of pulmonary artery', 'hepatocyte',
+                           'iris pigment epithelial cell', 'mammary epithelial cell',
+                           'skeletal muscle myoblast', 'natural killer cell', 'osteoblast', 'brain pericyte',
+                           'epithelial cell of prostate', 'renal cortical epithelial cell',
+                           'retinal pigment epithelial cell']

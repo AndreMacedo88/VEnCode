@@ -81,9 +81,9 @@ data_curated_properties = Properties(data_curated)
 test_data_curation(data_curated)
 
 file_urls = data_curated["File download URL"]
-# file_name = "change name to Files.txt"
-# file_urls.to_csv(file_name, index=False)
+file_name = "Change name to Files.txt"
+file_urls.to_csv(file_name, index=False)
 
-metadata_name = "Metadata_curated.csv"
+metadata_name = "Metadata_curated_hotspots.csv"
 data_curated.to_csv(metadata_name, sep="\t", index=False)
 
