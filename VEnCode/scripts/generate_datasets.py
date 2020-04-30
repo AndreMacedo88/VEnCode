@@ -37,7 +37,7 @@ init = classes.Promoters(enhancer_file_name,
                          conservative=True, log_level="info", enhancers=enhancer_names_db,
                          skiprows=None, nrows=None)
 
-data = internals.DataTpm(file=promoter_file_name, sample_types="primary cells", data_type="promoters")
+data = internals.DataTpmFantom5(file=promoter_file_name, sample_types="primary cells", data_type="promoters")
 data_copy = data.data.copy()
 # data_copy = init.data.copy()
 # init.data = init.merge_donors_into_celltypes()

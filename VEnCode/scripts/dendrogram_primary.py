@@ -39,8 +39,8 @@ no_ven_enha = ['Bronchial Epithelial Cell', 'CD4+ T Cells', 'CD4+CD25-CD45RA+ na
                'Smooth Muscle Cells - Pulmonary Artery', 'Smooth muscle cells - airway', 'Trabecular Meshwork Cells',
                'common myeloid progenitor CMP', 'granulocyte macrophage progenitor', 'promyelocytes']
 
-data = internals.DataTpm(file=cv.enhancer_file_name, sample_types="primary cells", data_type="enhancers",
-                         files_path="outside")
+data = internals.DataTpmFantom5(file=cv.enhancer_file_name, sample_types="primary cells", data_type="enhancers",
+                                files_path="outside")
 data.merge_donors_primary(exclude_target=False)
 
 columns_to_filter = ['Adipocyte - breast', 'Adipocyte - omental', 'Adipocyte - perirenal', 'Adipocyte - subcutaneous',

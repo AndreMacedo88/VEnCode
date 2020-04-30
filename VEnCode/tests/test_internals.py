@@ -1,5 +1,7 @@
-#!/usr/bin/env python
-# -*- coding: UTF-8 -*-
+"""
+test_internals.py: File containing a set of unittest.TestCase runnable tests for the classes and functions
+in the internals.py file.
+"""
 
 import sys, os
 import unittest
@@ -22,32 +24,39 @@ class DataTpmTest(unittest.TestCase):
         cls.celltype_analyse = "Adipocyte - breast"
 
 
-class FilenameHandlerTest(DataTpmTest):
+class DataTpmFantom5Test(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.celltypes_total = ["Hepatocyte", "Adipocyte - breast"]
+        cls.celltype_analyse = "Adipocyte - breast"
+
+
+class FilenameHandlerFantom5Test(DataTpmFantom5Test):
     @unittest.skip
     def test_custom(self):
         file_type = "custom"
-        database = internals.DataTpm(file=file_type, nrows=4)
+        database = internals.DataTpmFantom5(file=file_type, nrows=4)
         self.assertEqual(os.path.isfile(database._file_path), True)
 
     def test_filename(self):
         file_type = cv.test_promoter_file_name
-        database = internals.DataTpm(file=file_type, nrows=4)
+        database = internals.DataTpmFantom5(file=file_type, nrows=4)
         self.assertEqual(os.path.isfile(database._file_path), True)
 
     def test_parsed(self):
         file_type = "parsed"
-        database = internals.DataTpm(file=file_type, nrows=4)
+        database = internals.DataTpmFantom5(file=file_type, nrows=4)
         database.make_data_celltype_specific(self.celltype_analyse)
         self.assertEqual(os.path.isfile(database._file_path), True)
 
 
-class RawDataTest(DataTpmTest):
+class RawDataFantom5Test(DataTpmFantom5Test):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.database_promoters = internals.DataTpm(file=cv.test_promoter_file_name, nrows=4, keep_raw=True)
-        cls.database_enhancers = internals.DataTpm(file=cv.test_enhancer_file_name, nrows=4, keep_raw=True,
-                                                   data_type="enhancers")
+        cls.database_promoters = internals.DataTpmFantom5(file=cv.test_promoter_file_name, nrows=4, keep_raw=True)
+        cls.database_enhancers = internals.DataTpmFantom5(file=cv.test_enhancer_file_name, nrows=4, keep_raw=True,
+                                                          data_type="enhancers")
 
     def test_open(self):
         self.assertEqual(isinstance(self.database_promoters.raw_data, pd.DataFrame), True)
@@ -82,12 +91,12 @@ class RawDataTest(DataTpmTest):
             self.assertIn(column_name, self.database_enhancers.names_db["celltypes"].values)
 
 
-class DataNotParsedTest(DataTpmTest):
+class DataNotParsedFantom5Test(DataTpmFantom5Test):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.database_promoters = internals.DataTpm(file=cv.test_promoter_file_name, nrows=4)
-        cls.database_enhancers = internals.DataTpm(file=cv.test_enhancer_file_name, nrows=4, data_type="enhancers")
+        cls.database_promoters = internals.DataTpmFantom5(file=cv.test_promoter_file_name, nrows=4)
+        cls.database_enhancers = internals.DataTpmFantom5(file=cv.test_enhancer_file_name, nrows=4, data_type="enhancers")
 
     def test_primary_cells_ncols_promoters(self):
         self.assertEqual(self.database_promoters.data.shape[1], 537)
@@ -96,14 +105,14 @@ class DataNotParsedTest(DataTpmTest):
         self.assertEqual(self.database_enhancers.data.shape[1], 537)
 
 
-class DataParsedTest(DataTpmTest):
+class DataParsedFantom5Test(DataTpmFantom5Test):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
         file_type = "parsed"
-        cls.database_promoters = internals.DataTpm(file=file_type, nrows=4)
+        cls.database_promoters = internals.DataTpmFantom5(file=file_type, nrows=4)
         cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse)
-        cls.database_enhancers = internals.DataTpm(file=file_type, nrows=4, data_type="enhancers")
+        cls.database_enhancers = internals.DataTpmFantom5(file=file_type, nrows=4, data_type="enhancers")
         cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse)
 
     def test_primary_cells_ncols_promoters(self):
@@ -119,13 +128,13 @@ class DataParsedTest(DataTpmTest):
         self.assertEqual(proms, enhs)
 
 
-class MakeCelltypeSpecificTest(DataTpmTest):
+class MakeCelltypeSpecificFantom5Test(DataTpmFantom5Test):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.database_promoters = internals.DataTpm(file=cv.test_promoter_file_name, nrows=4)
+        cls.database_promoters = internals.DataTpmFantom5(file=cv.test_promoter_file_name, nrows=4)
         cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse)
-        cls.database_enhancers = internals.DataTpm(file=cv.test_enhancer_file_name, nrows=4, data_type="enhancers")
+        cls.database_enhancers = internals.DataTpmFantom5(file=cv.test_enhancer_file_name, nrows=4, data_type="enhancers")
         cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse)
 
     def test_donors_promoters(self):
@@ -137,14 +146,14 @@ class MakeCelltypeSpecificTest(DataTpmTest):
         self.assertEqual(expected, set(self.database_enhancers.ctp_analyse_donors["Adipocyte - breast"]))
 
 
-class MakeCelltypeSpecificParsedTest(DataTpmTest):
+class MakeCelltypeSpecificParsedFantom5Test(DataTpmFantom5Test):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
         file_type = "parsed"
-        cls.database_promoters = internals.DataTpm(file=file_type, nrows=4)
+        cls.database_promoters = internals.DataTpmFantom5(file=file_type, nrows=4)
         cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse)
-        cls.database_enhancers = internals.DataTpm(file=file_type, nrows=4, data_type="enhancers")
+        cls.database_enhancers = internals.DataTpmFantom5(file=file_type, nrows=4, data_type="enhancers")
         cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse)
 
     def test_donors_promoters(self):
@@ -157,14 +166,14 @@ class MakeCelltypeSpecificParsedTest(DataTpmTest):
         self.assertEqual(expected, set(self.database_enhancers.ctp_analyse_donors["Adipocyte - breast"]))
 
 
-class MergeDonorsPrimaryTest(DataTpmTest):
+class MergeDonorsPrimaryFantom5Test(DataTpmFantom5Test):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.database_promoters = internals.DataTpm(file=cv.test_promoter_file_name, nrows=4)
+        cls.database_promoters = internals.DataTpmFantom5(file=cv.test_promoter_file_name, nrows=4)
         cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_promoters.merge_donors_primary()
-        cls.database_enhancers = internals.DataTpm(file=cv.test_enhancer_file_name, nrows=4, data_type="enhancers")
+        cls.database_enhancers = internals.DataTpmFantom5(file=cv.test_enhancer_file_name, nrows=4, data_type="enhancers")
         cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_enhancers.merge_donors_primary()
 
@@ -181,14 +190,14 @@ class MergeDonorsPrimaryTest(DataTpmTest):
         self.assertEqual(data_promoters, data_enhancers)
 
 
-class FilterByTargetTest(DataTpmTest):
+class FilterByTargetFantom5Test(DataTpmFantom5Test):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.database_promoters = internals.DataTpm(file=cv.test_promoter_file_name, nrows=10)
+        cls.database_promoters = internals.DataTpmFantom5(file=cv.test_promoter_file_name, nrows=10)
         cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_promoters.merge_donors_primary()
-        cls.database_enhancers = internals.DataTpm(file=cv.test_enhancer_file_name, nrows=10, data_type="enhancers")
+        cls.database_enhancers = internals.DataTpmFantom5(file=cv.test_enhancer_file_name, nrows=10, data_type="enhancers")
         cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_enhancers.merge_donors_primary()
 
@@ -211,15 +220,15 @@ class FilterByTargetTest(DataTpmTest):
         self.assertEqual(expected, to_test)
 
 
-class FilterBySparsenessTest(DataTpmTest):
+class FilterBySparsenessFantom5Test(DataTpmFantom5Test):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.database_promoters = internals.DataTpm(file=cv.test_promoter_file_name, nrows=10)
+        cls.database_promoters = internals.DataTpmFantom5(file=cv.test_promoter_file_name, nrows=10)
         cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_promoters.merge_donors_primary()
         cls.database_promoters.filter_by_reg_element_sparseness(threshold=50)
-        cls.database_enhancers = internals.DataTpm(file=cv.test_enhancer_file_name, nrows=100, data_type="enhancers")
+        cls.database_enhancers = internals.DataTpmFantom5(file=cv.test_enhancer_file_name, nrows=100, data_type="enhancers")
         cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_enhancers.merge_donors_primary()
         cls.database_enhancers.filter_by_reg_element_sparseness(threshold=50)
@@ -246,16 +255,16 @@ class FilterBySparsenessTest(DataTpmTest):
         self.assertFalse(condition)
 
 
-class DefineNonTargetCelltypesInactivityTest(DataTpmTest):
+class DefineNonTargetCelltypesInactivityFantom5Test(DataTpmFantom5Test):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.database_promoters = internals.DataTpm(file=cv.test_promoter_file_name, nrows=10)
+        cls.database_promoters = internals.DataTpmFantom5(file=cv.test_promoter_file_name, nrows=10)
         cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_promoters.merge_donors_primary()
         cls.database_promoters.filter_by_target_celltype_activity(threshold=1)
         cls.database_promoters.define_non_target_celltypes_inactivity(threshold=0.3)
-        cls.database_enhancers = internals.DataTpm(file=cv.test_enhancer_file_name, nrows=10, data_type="enhancers")
+        cls.database_enhancers = internals.DataTpmFantom5(file=cv.test_enhancer_file_name, nrows=10, data_type="enhancers")
         cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_enhancers.merge_donors_primary()
         cls.database_enhancers.filter_by_target_celltype_activity(threshold=0.15)
@@ -276,17 +285,17 @@ class DefineNonTargetCelltypesInactivityTest(DataTpmTest):
         self.assertFalse(np.any(result))
 
 
-class SortSparsenessTest(DataTpmTest):
+class SortSparsenessFantom5Test(DataTpmFantom5Test):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.database_promoters = internals.DataTpm(file=cv.test_promoter_file_name, nrows=20)
+        cls.database_promoters = internals.DataTpmFantom5(file=cv.test_promoter_file_name, nrows=20)
         cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_promoters.merge_donors_primary()
         cls.database_promoters.filter_by_target_celltype_activity(threshold=1)
         cls.database_promoters.define_non_target_celltypes_inactivity(threshold=0)
         cls.database_promoters.sort_sparseness()
-        cls.database_enhancers = internals.DataTpm(file=cv.test_enhancer_file_name, nrows=50, data_type="enhancers")
+        cls.database_enhancers = internals.DataTpmFantom5(file=cv.test_enhancer_file_name, nrows=50, data_type="enhancers")
         cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_enhancers.merge_donors_primary()
         cls.database_enhancers.filter_by_target_celltype_activity(threshold=0.15)
@@ -314,9 +323,9 @@ class SortSparsenessTest(DataTpmTest):
         self.assertEqual(counter, 5)
 
 
-class RemoveCelltypeTest(DataTpmTest):
+class RemoveCelltypeFantom5Test(DataTpmFantom5Test):
     def setUp(self):
-        self.cage_primary = internals.DataTpm(file="parsed", nrows=4)
+        self.cage_primary = internals.DataTpmFantom5(file="parsed", nrows=4)
         self.cage_primary.make_data_celltype_specific(self.celltype_analyse)
 
     def test_remove_hepatocyte(self):
@@ -330,9 +339,9 @@ class RemoveCelltypeTest(DataTpmTest):
         self.assertTrue(condition)
 
 
-class RemoveElementTest(DataTpmTest):
+class RemoveElementFantom5Test(DataTpmFantom5Test):
     def setUp(self):
-        self.cage_primary = internals.DataTpm(file="parsed", nrows=4)
+        self.cage_primary = internals.DataTpmFantom5(file="parsed", nrows=4)
         self.cage_primary.make_data_celltype_specific(self.celltype_analyse)
         self.elements = ['chr10:100027943..100027958,-', 'chr10:100174900..100174956,-']
 
@@ -347,12 +356,12 @@ class RemoveElementTest(DataTpmTest):
         self.assertTrue(condition)
 
 
-class AddCelltypeTest(DataTpmTest):
+class AddCelltypeFantom5Test(DataTpmFantom5Test):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
         # main data
-        cls.cage_primary = internals.DataTpm(file=cv.test_promoter_file_name, nrows=20)
+        cls.cage_primary = internals.DataTpmFantom5(file=cv.test_promoter_file_name, nrows=20)
         # copies for all different tests
         cls.cage_cancer = cls.cage_primary.copy(deep=True)
         cls.cage_tissue = cls.cage_primary.copy(deep=True)
@@ -391,12 +400,12 @@ class AddCelltypeTest(DataTpmTest):
         self.assertEqual(self.cage_primary, self.cage_primary_rescue)
 
 
-class EqualTest(DataTpmTest):
+class EqualFantom5Test(DataTpmFantom5Test):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
         file_type = "parsed"
-        cls.data = internals.DataTpm(file=file_type, nrows=4)
+        cls.data = internals.DataTpmFantom5(file=file_type, nrows=4)
         cls.data.make_data_celltype_specific(cls.celltype_analyse)
         cls.data2 = cls.data.copy(deep=True)
         cls.data2.sample_type = "test"
@@ -417,12 +426,12 @@ class EqualTest(DataTpmTest):
         self.assertTrue(condition)
 
 
-class CopyTest(DataTpmTest):
+class CopyFantom5Test(DataTpmFantom5Test):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
         file_type = "parsed"
-        cls.data = internals.DataTpm(file=file_type, nrows=4)
+        cls.data = internals.DataTpmFantom5(file=file_type, nrows=4)
         cls.data.make_data_celltype_specific(cls.celltype_analyse)
 
     def setUp(self):
@@ -460,10 +469,10 @@ class CopyTest(DataTpmTest):
         self.assertNotEqual(self.data, self.data3)
 
 
-class SortColumnsTest(DataTpmTest):
+class SortColumnsFantom5Test(DataTpmFantom5Test):
     def setUp(self):
         file_type = "parsed"
-        self.cage_tpm = internals.DataTpm(file=file_type, nrows=4)
+        self.cage_tpm = internals.DataTpmFantom5(file=file_type, nrows=4)
         self.cage_tpm.make_data_celltype_specific(self.celltype_analyse)
         self.cols = self.cage_tpm.data.columns.tolist()
 
@@ -493,11 +502,12 @@ class SortColumnsTest(DataTpmTest):
         self.assertTrue(condition)
 
 
+# Next we have the tests for the VEnCodes Class:
 class VenCodesHepatocyteTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.celltype_analyse = "Hepatocyte"
-        cls.data = internals.DataTpm(file="parsed", nrows=None)
+        cls.data = internals.DataTpmFantom5(file="parsed", nrows=None)
         cls.data.make_data_celltype_specific(cls.celltype_analyse)
 
 
@@ -581,7 +591,7 @@ class VenCodesAdipocyteTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.celltype_analyse = "Adipocyte - breast"
-        cls.data = internals.DataTpm(file="parsed", nrows=None)
+        cls.data = internals.DataTpmFantom5(file="parsed", nrows=None)
         cls.data.make_data_celltype_specific(cls.celltype_analyse)
         cls.data.filter_by_target_celltype_activity(threshold=1)
         cls.data.define_non_target_celltypes_inactivity(threshold=0)
@@ -629,7 +639,7 @@ class VenCodesKeratocytesTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.celltype_analyse = "Keratocytes"
-        cls.data = internals.DataTpm(file="parsed", nrows=None)
+        cls.data = internals.DataTpmFantom5(file="parsed", nrows=None)
         cls.data.make_data_celltype_specific(cls.celltype_analyse)
         cls.data.filter_by_target_celltype_activity(threshold=1)
         cls.data.define_non_target_celltypes_inactivity(threshold=0)
@@ -681,7 +691,7 @@ class VenCodesBronchialEpTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.celltype_analyse = "Bronchial Epithelial Cell"
-        cls.data = internals.DataTpm(file="parsed", nrows=None)
+        cls.data = internals.DataTpmFantom5(file="parsed", nrows=None)
         cls.data.make_data_celltype_specific(cls.celltype_analyse)
         cls.data.filter_by_target_celltype_activity(threshold=1)
         cls.data.define_non_target_celltypes_inactivity(threshold=0)
@@ -698,7 +708,7 @@ class VenCodesBronchialEpTest(unittest.TestCase):
 class VencodesMethodsTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.data = internals.DataTpm(file="parsed", sample_types="primary cells", data_type="promoters", nrows=20000)
+        cls.data = internals.DataTpmFantom5(file="parsed", sample_types="primary cells", data_type="promoters", nrows=20000)
         cls.data.make_data_celltype_specific("Hepatocyte")
         cls.data.filter_by_target_celltype_activity(threshold=1)
         cls.data.filter_by_reg_element_sparseness(threshold=0)
