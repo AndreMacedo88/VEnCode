@@ -56,18 +56,18 @@ class ValidatedElements:
                         "percentage": results}
 
     def _data_parsed_cleaner(self):
-        self.data = internals.DataTpmValidated(self.validate_with, file="parsed", sample_types="cell lines",
-                                               data_type=self.set_up.data_type)
+        self.data = internals.DataTpmFantom5Validated(self.validate_with, file="parsed", sample_types="cell lines",
+                                                      data_type=self.set_up.data_type)
         self.data.make_data_celltype_specific(self.set_up.cell_type)
         self.data.filter_by_target_celltype_activity(threshold=self.set_up.target_celltype_activity)
 
     def _data_raw_cleaner(self):
-        data_to_add_ctp = internals.DataTpm(file=self.set_up.file_name, sample_types=self.set_up.type,
-                                            data_type=self.set_up.data_type)
+        data_to_add_ctp = internals.DataTpmFantom5(file=self.set_up.file_name, sample_types=self.set_up.type,
+                                                   data_type=self.set_up.data_type)
 
-        self.data = internals.DataTpmValidated(self.validate_with, file=self.set_up.file_name,
-                                               sample_types="primary cells",
-                                               data_type=self.set_up.data_type)
+        self.data = internals.DataTpmFantom5Validated(self.validate_with, file=self.set_up.file_name,
+                                                      sample_types="primary cells",
+                                                      data_type=self.set_up.data_type)
         self.data.merge_donors_primary(exclude_target=False)
         self.data.add_celltype(self.set_up.cell_type, file=data_to_add_ctp, data_type=self.set_up.data_type)
         self.data.make_data_celltype_specific(self.set_up.cell_type)
@@ -96,7 +96,7 @@ print(validate_with.data.shape)
 
 results = {}
 for celltype in tqdm(setup.celltypes, desc="Completed: "):
-    data = internals.DataTpmValidated(validate_with, file="parsed", sample_types=setup.types,
+    data = internals.DataTpmFantom5Validated(validate_with, file="parsed", sample_types=setup.types,
                                       data_type=setup.data_type)
     data.make_data_celltype_specific(celltype)
     data.filter_by_target_celltype_activity(threshold=setup.target_celltype_activity)

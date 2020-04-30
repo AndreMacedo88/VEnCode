@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: UTF-8 -*-
-
 """ internals.py: Classes module for the VEnCode project """
 
 import os
@@ -25,12 +22,289 @@ from VEnCode.utils import general_utils as gen_util, pandas_utils as pd_util
 
 class DataTpm:
     """
-    An Object representing the initial database with some universal data treatment and with optional
-    filtering methods
+    An Object representing a data set to retrieve VEnCodes from. Contains optional filtering methods and other tools.
+    """
+
+    def __init__(self, file="custom", keep_raw=False, nrows=None,
+                 files_path="native"):
+        self._file, self._nrows = file, nrows
+        self.target_ctp, self.ctp_analyse_donors, self.data = None, None, None
+        self._file_path = None
+        if files_path == "native":
+            self._parent_path = os.path.join(str(Path(__file__).parents[0]), "Files")
+        elif files_path == "outside":
+            self._parent_path = os.path.join(str(Path(__file__).parents[2]), "Files")
+        else:
+            self._parent_path = files_path
+
+    @property
+    def shape(self):
+        """
+        Gives the shape of the data's data frame
+        :return: The shape in (rows, cols) of the data
+        """
+        return self.data.shape
+
+    def __eq__(self, other):
+        """Allows to check equality between two DataTpmFantom5 objects"""
+        if isinstance(other, DataTpmFantom5):
+            args_list = [a for a in dir(self) if not a.startswith('__') and not callable(getattr(self, a))]
+            for arg in args_list:
+                arg_self, arg_other = "self." + arg, "other." + arg
+                if isinstance(eval(arg_self), pd.DataFrame):
+                    try:
+                        condition = eval(arg_self + ".equals(" + arg_other + ")")
+                    except ValueError:
+                        cols = eval(arg_self + ".columns.values.tolist()") == eval(arg_other
+                                                                                   + ".columns.values.tolist()")
+                        rows = eval(arg_self + ".index.values.tolist()") == eval(arg_other
+                                                                                 + ".index.values.tolist()")
+                        condition = cols and rows
+                    except AttributeError as e:
+                        print(e)
+                        return False
+                    if not condition:
+                        return False
+                    else:
+                        continue
+                try:
+                    if eval(arg_self + "==" + arg_other):
+                        continue
+                except ValueError:
+                    return False
+                else:
+                    return False
+            return True
+        return False
+
+    def _filename_handler(self):
+        if self._file == "custom":
+            root = tk.Tk()
+            root.withdraw()
+            file_path = tk.filedialog.askopenfilename()
+        elif re.search(r"\....", self._file[-4:]):
+            file_path = os.path.join(self._parent_path, self._file)
+        elif self._file == "parsed":
+            celltype_name = self.target_ctp.replace(":", "-").replace("/", "-")
+            file_path = os.path.join(self._parent_path, "Dbs", f"{celltype_name}_tpm_{self.data_type}-1.csv")
+        else:
+            raise AttributeError
+        return file_path
+
+    def _code_selector(self, data, celltype, not_include=None, to_dict=False, regex=True):
+        """ Selects celltype codes from database using their general name. """
+        if isinstance(celltype, str):  # celltype can be provided as a list or string
+            celltype = [celltype]
+        codes = []
+        code_dict = {}
+        for item in celltype:
+            codes_df = pd_util.df_regex_columns_searcher(item,
+                                                         data) if regex else \
+                pd_util.df_minimal_regex_columns_searcher(item, data)
+
+            if to_dict:
+                code_dict[item] = codes_df.columns.values.tolist()
+            else:
+                codes.append(codes_df.columns.values)
+        if not to_dict:
+            codes = [item for sublist in codes for item in sublist]  # make one list from nested lists of codes
+
+        if not_include is not None:  # remove some codes that regex might have not been able to differentiate
+            for key, values in not_include.items():
+                if key not in code_dict.keys():
+                    continue
+                codes_df = data[code_dict.get(key)]
+                not_codes = self._not_include_code_getter(values, codes_df)
+                code_dict[key] = list(set(code_dict[key]) - set(not_codes))
+
+        if to_dict:
+            codes = code_dict
+        self._code_tester(codes, celltype)
+        return codes
+
+    @staticmethod
+    def _code_tester(codes, celltype, codes_type="list"):
+        """ Tests if any codes were generated """
+        if codes_type == "list":
+            if not codes:
+                raise Exception("No codes for {}!".format(celltype))
+        elif codes_type == "dict":
+            if bool([a for a in codes.values() if a == []]):
+                print([item for item, value in codes.items() if not value])
+                raise Exception("Some celltypes might not have had codes generated!")
+        elif codes_type == "ndarray":
+            if codes.size == 0:
+                raise Exception("No codes for {}!".format(celltype))
+        else:
+            raise Exception("Wrong codes type to test for the generation of codes!")
+
+    def copy(self, deep=True):
+        """
+        Method to generate a shallow, or deep copy of DataTpmFantom5 object
+
+        :param bool deep: True if deep copy.
+        :return: a copy of the DataTpmFantom5 object
+        """
+        if deep:
+            return deepcopy(self)
+        else:
+            return copy(self)
+
+    def sort_columns(self, col_to_shift=None, pos_to_move=None):
+        """
+        Sorts columns alphabetically
+        """
+        if not col_to_shift or pos_to_move:
+            cols = sorted(self.data.columns, key=str.lower)
+            self.data = self.data.reindex(cols, axis=1)
+        else:
+            arr = self.data.columns.values
+            idx = self.data.columns.get_loc(col_to_shift)
+            if idx == pos_to_move:
+                pass
+            elif idx > pos_to_move:
+                arr[pos_to_move + 1: idx + 1] = arr[pos_to_move: idx]
+            else:
+                arr[idx: pos_to_move] = arr[idx + 1: pos_to_move + 1]
+            arr[pos_to_move] = col_to_shift
+            self.data.columns = arr
+
+    def make_data_celltype_specific(self, target_celltypes):
+        """
+        Determines celltype/donors (columns) of interest to analyse later.
+
+        :param target_celltypes: the celltype to target for analysis
+        """
+        pass
+
+    def filter_by_target_celltype_activity(self, threshold=1, donors="all", binarize=True):
+        """
+        Applies a filter to the Data, retaining only the regulatory elements that are expressed in the celltype of
+        interest at >= x TPM, x being the threshold variable.
+
+        :param Union[int, float] threshold: TPM value used to filter the data.
+        :param list donors: used to select only a few donors out of all from target celltype.
+        :param binarize: Convert target cell type expression to 0 and 1, for values below or above the threshold,
+        respectively
+        """
+        celltype_target = self.ctp_analyse_donors[self.target_ctp]
+        if isinstance(celltype_target, (list, tuple, np.ndarray)):
+            if donors == "all":
+                for donor in celltype_target:
+                    self.data = self.data[self.data[donor] >= threshold]
+            else:
+                for i in donors:
+                    donor = celltype_target[i]
+                    self.data = self.data[self.data[donor] >= threshold]
+        else:
+            self.data = self.data[self.data[celltype_target] >= threshold]
+        if binarize:
+            try:
+                self.data[celltype_target] = self.data[celltype_target].applymap(lambda x: 0 if x <= threshold else 1)
+            except AttributeError:
+                self.data[celltype_target] = self.data[celltype_target].apply(lambda x: 0 if x <= threshold else 1)
+
+    def filter_by_reg_element_sparseness(self, threshold=90):
+        """
+        Applies a filter to the Data, retaining only the regulatory elements in which xth percentile (x being the
+        threshold variable) value is 0 (that is: not expressed).
+        This filter will, then, retain only the REs with most 0 TPM for all celltypes.
+
+        :param int threshold: percentile value used to filter the data.
+        """
+        self.data, column_name = pd_util.df_percentile_calculator(self.data,
+                                                                  self.ctp_analyse_donors[self.target_ctp],
+                                                                  threshold)
+        rows_to_keep = self.data[column_name] == 0
+        while sum(rows_to_keep) < 50 and threshold > 5:
+            threshold -= 5
+            self.data.drop(column_name, axis=1, inplace=True)
+            self.data, column_name = pd_util.df_percentile_calculator(self.data,
+                                                                      self.ctp_analyse_donors[self.target_ctp],
+                                                                      threshold)
+            rows_to_keep = self.data[column_name] == 0
+        if sum(rows_to_keep) >= 50:
+            self.data = pd_util.df_filter_by_column_value(self.data, column_name, value=0)
+            self.data.drop(column_name, axis=1, inplace=True)
+        else:
+            self.data.drop(column_name, axis=1, inplace=True)
+
+    def define_non_target_celltypes_inactivity(self, threshold=0):
+        """
+        Converts the data to binary (0 - inactive; 1- active) given a threshold.
+        :param threshold: Maximum TPM non-target cell types should have to be considered inactive.
+        """
+        celltypes_nontarget = self.data.columns.difference(self.ctp_analyse_donors[self.target_ctp])
+        try:
+            self.data[celltypes_nontarget] = self.data[celltypes_nontarget].applymap(
+                lambda x: 0 if x <= threshold else 1)
+        except AttributeError:
+            self.data[celltypes_nontarget] = self.data[celltypes_nontarget].apply(
+                lambda x: 0 if x <= threshold else 1)
+
+    def sort_sparseness(self):
+        """ Sorts the data by descending sparsest RE """
+        self.data["sum"] = self.data.drop(self.ctp_analyse_donors[self.target_ctp], axis=1).sum(
+            axis=1)  # create a extra column with the sum of 1s for each row (promoter)
+        self.data.sort_values(["sum"], inplace=True)  # sort promoters based on the previous sum. Descending order
+        self.data.drop(["sum"], axis=1, inplace=True)  # now remove the sum column
+
+    def add_celltype(self, celltypes, file="custom"):
+        pass
+
+    def remove_celltype(self, celltypes, merged=True):
+        """
+        Removes a specific celltype from data
+
+        :param celltypes: celltype/s to remove. int or list-type
+        :param merged: If the data has been previously merged into celltypes, True. If columns represent donors, False.
+        """
+        pass
+
+    def remove_element(self, elements):
+        """
+        Removes a specific celltype from data
+
+        :param elements: regulatory element/s to remove. int or list-type
+        """
+        try:
+            self.data.drop(elements, axis=0, inplace=True)
+        except ValueError as e:
+            print("Regulatory elements not removed due to: {}".format(e.args[0]))
+
+    def drop_target_ctp(self):
+        if isinstance(self.target_ctp, list):
+            for target in self.target_ctp:
+                try:
+                    self.data.drop(self.ctp_analyse_donors[target], axis=1, inplace=True)
+                except:
+                    continue
+        else:
+            self.data.drop(self.ctp_analyse_donors[self.target_ctp], axis=1, inplace=True)
+
+    def binarize_data(self, threshold=0):
+        """
+        Converts all data to 0 and 1, where 1 is any value above threshold.
+        :param threshold: max value for "0"
+        """
+        self.data = self.data.applymap(lambda x: 0 if x <= threshold else 1)
+
+    def to_csv(self, *args, **kwargs):
+        """
+        Generates a csv file. args and kwargs passed must be compatible to Pandas DataFrame.to_csv()
+        """
+        self.data.to_csv(*args, **kwargs)
+
+
+class DataTpmFantom5(DataTpm):
+    """
+    An Object specifically representing the initial FANTOM5 CAGE-seq data set with some universal data treatment and
+    with optional filtering methods.
     """
 
     def __init__(self, file="custom", sample_types="primary cells", data_type="promoters", keep_raw=False, nrows=None,
-                 files_path="native"):
+                 files_path="native", *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self._file, self.sample_type, self.data_type, self._nrows = file, sample_types, data_type, nrows
         self.target_ctp, self.ctp_analyse_donors, self.ctp_not_include, self.data = None, None, None, None
         self._file_path = None
@@ -82,42 +356,6 @@ class DataTpm:
                 self.raw_data = None
         else:
             pass
-
-    @property
-    def shape(self):
-        return self.data.shape
-
-    def __eq__(self, other):
-        """Allows to check equality between two DataTpm objects"""
-        if isinstance(other, DataTpm):
-            args_list = [a for a in dir(self) if not a.startswith('__') and not callable(getattr(self, a))]
-            for arg in args_list:
-                arg_self, arg_other = "self." + arg, "other." + arg
-                if isinstance(eval(arg_self), pd.DataFrame):
-                    try:
-                        condition = eval(arg_self + ".equals(" + arg_other + ")")
-                    except ValueError:
-                        cols = eval(arg_self + ".columns.values.tolist()") == eval(arg_other
-                                                                                   + ".columns.values.tolist()")
-                        rows = eval(arg_self + ".index.values.tolist()") == eval(arg_other
-                                                                                 + ".index.values.tolist()")
-                        condition = cols and rows
-                    except AttributeError as e:
-                        print(e)
-                        return False
-                    if not condition:
-                        return False
-                    else:
-                        continue
-                try:
-                    if eval(arg_self + "==" + arg_other):
-                        continue
-                except ValueError:
-                    return False
-                else:
-                    return False
-            return True
-        return False
 
     def _filename_handler(self):
         if self._file == "custom":
@@ -210,38 +448,6 @@ class DataTpm:
                 pass
         return celltypes
 
-    def _code_selector(self, data, celltype, not_include=None, to_dict=False, regex=True):
-        """ Selects celltype codes from database using their general name. """
-        if isinstance(celltype, str):  # celltype can be provided as a list or string
-            celltype = [celltype]
-        codes = []
-        code_dict = {}
-        for item in celltype:
-            codes_df = pd_util.df_regex_columns_searcher(item,
-                                                         data) if regex else pd_util.df_minimal_regex_columns_searcher(
-                item,
-                data)
-
-            if to_dict:
-                code_dict[item] = codes_df.columns.values.tolist()
-            else:
-                codes.append(codes_df.columns.values)
-        if not to_dict:
-            codes = [item for sublist in codes for item in sublist]  # make one list from nested lists of codes
-
-        if not_include is not None:  # remove some codes that regex might have not been able to differentiate
-            for key, values in not_include.items():
-                if key not in code_dict.keys():
-                    continue
-                codes_df = data[code_dict.get(key)]
-                not_codes = self._not_include_code_getter(values, codes_df)
-                code_dict[key] = list(set(code_dict[key]) - set(not_codes))
-
-        if to_dict:
-            codes = code_dict
-        self._code_tester(codes, celltype)
-        return codes
-
     @staticmethod
     def _not_include_code_getter(not_include, data_frame):
         if isinstance(not_include, list):
@@ -254,61 +460,13 @@ class DataTpm:
             not_include_codes = pd_util.df_regex_columns_searcher_list(not_include, data_frame)
         return not_include_codes
 
-    @staticmethod
-    def _code_tester(codes, celltype, codes_type="list"):
-        """ Tests if any codes were generated """
-        if codes_type == "list":
-            if not codes:
-                raise Exception("No codes for {}!".format(celltype))
-        elif codes_type == "dict":
-            if bool([a for a in codes.values() if a == []]):
-                print([item for item, value in codes.items() if not value])
-                raise Exception("Some celltypes might not have had codes generated!")
-        elif codes_type == "ndarray":
-            if codes.size == 0:
-                raise Exception("No codes for {}!".format(celltype))
-        else:
-            raise Exception("Wrong codes type to test for the generation of codes!")
-
-    def copy(self, deep=True):
-        """
-        Method to generate a shallow, or deep copy of DataTpm object
-
-        :param bool deep: True if deep copy.
-        :return: a copy of the DataTpm object
-        """
-        if deep:
-            return deepcopy(self)
-        else:
-            return copy(self)
-
-    def sort_columns(self, col_to_shift=None, pos_to_move=None):
-        """
-        Sorts columns alphabetically
-        """
-        if not col_to_shift or pos_to_move:
-            cols = sorted(self.data.columns, key=str.lower)
-            self.data = self.data.reindex(cols, axis=1)
-        else:
-            arr = self.data.columns.values
-            idx = self.data.columns.get_loc(col_to_shift)
-            if idx == pos_to_move:
-                pass
-            elif idx > pos_to_move:
-                arr[pos_to_move + 1: idx + 1] = arr[pos_to_move: idx]
-            else:
-                arr[idx: pos_to_move] = arr[idx + 1: pos_to_move + 1]
-            arr[pos_to_move] = col_to_shift
-            self.data.columns = arr
-
     def make_data_celltype_specific(self, target_celltypes,
                                     supersets=cv.primary_cells_supersets):
         """
-        Determines donors of interest to analyse later. For previous parsed files, opens the specific file
-        for that celltype.
+        Determines celltype/donors (columns) of interest to analyse later.
+        For previously parsed files, opens the specific file for that celltype.
 
         :param target_celltypes: the celltype to target for analysis
-        :param dict not_include: codes necessary to exclude some non-target celltypes that get caught by regex motif
         :param dict supersets: when a celltype is a subset of other, we must remove that superset celltype to analyse
         the subset.
         """
@@ -390,78 +548,6 @@ class DataTpm:
         self.data = data_merged
         return
 
-    def filter_by_target_celltype_activity(self, threshold=1, donors="all", binarize=True):
-        """
-        Applies a filter to the Data, retaining only the regulatory elements that are expressed in the celltype of
-        interest at >= x TPM, x being the threshold variable.
-
-        :param Union[int, float] threshold: TPM value used to filter the data.
-        :param list donors: used to select only a few donors out of all from target celltype.
-        :param binarize: Convert target cell type expression to 0 and 1, for values below or above the threshold,
-        respectively
-        """
-        celltype_target = self.ctp_analyse_donors[self.target_ctp]
-        if isinstance(celltype_target, (list, tuple, np.ndarray)):
-            if donors == "all":
-                for donor in celltype_target:
-                    self.data = self.data[self.data[donor] >= threshold]
-            else:
-                for i in donors:
-                    donor = celltype_target[i]
-                    self.data = self.data[self.data[donor] >= threshold]
-        else:
-            self.data = self.data[self.data[celltype_target] >= threshold]
-        if binarize:
-            try:
-                self.data[celltype_target] = self.data[celltype_target].applymap(lambda x: 0 if x <= threshold else 1)
-            except AttributeError:
-                self.data[celltype_target] = self.data[celltype_target].apply(lambda x: 0 if x <= threshold else 1)
-
-    def filter_by_reg_element_sparseness(self, threshold=90):
-        """
-        Applies a filter to the Data, retaining only the regulatory elements in which xth percentile (x being the
-        threshold variable) value is 0 (that is: not expressed).
-        This filter will, then, retain only the REs with most 0 TPM for all celltypes.
-
-        :param int threshold: percentile value used to filter the data.
-        """
-        self.data, column_name = pd_util.df_percentile_calculator(self.data,
-                                                                  self.ctp_analyse_donors[self.target_ctp],
-                                                                  threshold)
-        rows_to_keep = self.data[column_name] == 0
-        while sum(rows_to_keep) < 50 and threshold > 5:
-            threshold -= 5
-            self.data.drop(column_name, axis=1, inplace=True)
-            self.data, column_name = pd_util.df_percentile_calculator(self.data,
-                                                                      self.ctp_analyse_donors[self.target_ctp],
-                                                                      threshold)
-            rows_to_keep = self.data[column_name] == 0
-        if sum(rows_to_keep) >= 50:
-            self.data = pd_util.df_filter_by_column_value(self.data, column_name, value=0)
-            self.data.drop(column_name, axis=1, inplace=True)
-        else:
-            self.data.drop(column_name, axis=1, inplace=True)
-
-    def define_non_target_celltypes_inactivity(self, threshold=0):
-        """
-        Converts the data to binary (0 - inactive; 1- active) given a threshold.
-        :param threshold: Maximum TPM non-target cell types should have to be considered inactive.
-        """
-        celltypes_nontarget = self.data.columns.difference(self.ctp_analyse_donors[self.target_ctp])
-        try:
-            self.data[celltypes_nontarget] = self.data[celltypes_nontarget].applymap(
-                lambda x: 0 if x <= threshold else 1)
-        except AttributeError:
-            self.data[celltypes_nontarget] = self.data[celltypes_nontarget].apply(
-                lambda x: 0 if x <= threshold else 1)
-
-    def sort_sparseness(self):
-        """ Sorts the data by descending sparsest RE """
-        self.data["sum"] = self.data.drop(self.ctp_analyse_donors[self.target_ctp], axis=1).sum(
-            axis=1)  # create a extra column with the sum of 1s for each row (promoter)
-        self.data.sort_values(["sum"], inplace=True)  # sort promoters based on the previous sum. Descending order
-        self.data.drop(["sum"], axis=1, inplace=True)  # now remove the sum column
-
     def add_celltype(self, celltypes, file="custom", sample_types="cell lines",
                      data_type="promoters"):
         """
@@ -483,11 +569,11 @@ class DataTpm:
             celltypes = [celltypes]
         elif isinstance(celltypes, dict):  # to deal with situations such as mesothelioma cell line
             celltypes = list(celltypes.values())[0]
-        if isinstance(file, DataTpm):
+        if isinstance(file, DataTpmFantom5):
             data_new = file.copy()
         else:
-            data_new = DataTpm(file=file, sample_types=sample_types, data_type=data_type,
-                               nrows=self._nrows)
+            data_new = DataTpmFantom5(file=file, sample_types=sample_types, data_type=data_type,
+                                      nrows=self._nrows)
         data_copy = data_new.copy(deep=True)
         for celltype in celltypes:
             data_new.make_data_celltype_specific(celltype, supersets=supersets)
@@ -515,39 +601,6 @@ class DataTpm:
             celltypes = [sub_item for item in list(celltypes_dict.values()) for sub_item in item]
         _remove(celltypes)
 
-    def remove_element(self, elements):
-        """
-        Removes a specific celltype from data
-
-        :param elements: regulatory element/s to remove. int or list-type
-        """
-        try:
-            self.data.drop(elements, axis=0, inplace=True)
-        except ValueError as e:
-            print("Regulatory elements not removed due to: {}".format(e.args[0]))
-
-    def drop_target_ctp(self):
-        if isinstance(self.target_ctp, list):
-            for target in self.target_ctp:
-                try:
-                    self.data.drop(self.ctp_analyse_donors[target], axis=1, inplace=True)
-                except:
-                    continue
-        else:
-            self.data.drop(self.ctp_analyse_donors[self.target_ctp], axis=1, inplace=True)
-
-    def binarize_data(self, threshold=0):
-        """
-        Converts all data to 0 and 1, where 1 is any value above threshold.
-        :param threshold: max value for "0"
-        """
-        self.data = self.data.applymap(lambda x: 0 if x <= threshold else 1)
-
-    def to_csv(self, *args, **kwargs):
-        """
-        Generates a csv file. args and kwargs passed must be compatible to Pandas DataFrame.to_csv()
-        """
-        self.data.to_csv(*args, **kwargs)
 
 class Vencodes:
     """
@@ -557,7 +610,7 @@ class Vencodes:
     def __init__(self, data_object, algorithm, number_of_re=4, n_samples=10000, stop=5, second_data_object=None,
                  using=None):
         """
-        :param DataTpm data_object: Must be made celltype specific before calling this method.
+        :param DataTpmFantom5 data_object: Must be made celltype specific before calling this method.
         :param str algorithm: algorithm to find VEnCodes. Currently accepted: heuristic, sampling
         :param int n_samples: number of times to try finding a VEnCode. Used only if algorithm = "sampling"
         :param int stop: number of promoters to test per node level. Used only if algorithm = "heuristic
@@ -569,7 +622,7 @@ class Vencodes:
 
         self.celltype_donors_data = self._data_object.data[self.celltype_donors]
         self.data = self._data_object.data.copy(deep=True)
-        self._data_object.data.drop(self.celltype_donors, axis=1, inplace=True)
+        self.data_not_target = self._data_object.data.drop(self.celltype_donors, axis=1)
 
         if second_data_object:
             self.second_data_object = second_data_object.copy()
@@ -660,7 +713,7 @@ class Vencodes:
 
         if "e-values" in args and "TPP" in args:
             path = kwargs.get("path")
-            self._export_e_values_tpp(path)
+            self._export_e_values_tpp(path)  # TODO: export e_values with Tags per million included
 
     def get_vencode_data(self, method="return", path=None):
         """
@@ -714,7 +767,7 @@ class Vencodes:
         # TODO: needs to get the minimum number of second promoter/enhancers as possible. rn is getting k second RE
         self.second_data_object = second_data_object.copy()
         self.second_data_object.drop_target_ctp()
-        sparsest = self._data_object.data.head(n=self.k)
+        sparsest = self.data_not_target.head(n=self.k)
         mask = sparsest != 0
         cols = sparsest.columns[np.all(mask.values, axis=0)].tolist()
         cols_target = second_data_object.ctp_analyse_donors[second_data_object.target_ctp]
@@ -738,7 +791,7 @@ class Vencodes:
         The VEnCode is appended to the variable self.vencodes.
         """
         # TODO: needs to get the minimum number of second promoter/enhancers as possible. rn is getting k second RE
-        sparsest = self._data_object.data.head(n=self.k)
+        sparsest = self.data_not_target.head(n=self.k)
         mask = sparsest != 0
         cols = sparsest.columns[np.all(mask.values, axis=0)].tolist()
         cols_target = self.second_data_object.ctp_analyse_donors[self.second_data_object.target_ctp]
@@ -766,23 +819,24 @@ class Vencodes:
         """
         if not skip_sparsest:
             # try first to see if sparsest REs aren't already a VEnCode:
-            sparsest = self._data_object.data.head(n=self.k)
+            sparsest = self.data_not_target.head(n=self.k)
             if self._assess_vencode_one_zero_boolean(sparsest, threshold=threshold):
                 yield sparsest.index.values.tolist()
         i = 0
 
         if using is not None:  # allows user to force some REs to be in the VEnCode
-            use = self._data_object.data.loc[using]
+            use = self.data_not_target.loc[using]
             if isinstance(using, list):
                 n = self.k - len(using)
             else:
                 n = self.k - 1
         else:
+            use = None
             n = self.k
 
         while i < self.n_samples:
             try:
-                sample = self._data_object.data.sample(n=n)  # take a sample of n promoters
+                sample = self.data_not_target.sample(n=n)  # take a sample of n promoters
             except ValueError as e:  # Combinations number could be larger than number of RE available.
                 print("Combinations number (k) is probably larger than the number of RE available. {}".format(
                     e.args))
@@ -818,7 +872,7 @@ class Vencodes:
                     yield vencode  # We give the first vencode here
                     if len(i) == self.k:
                         continue
-                    for prom_sparse in self._data_object.data.index.values:
+                    for prom_sparse in self.data_not_target.index.values:
                         if prom_sparse in vencode:
                             continue
                         for prom_filled in reversed(vencode):
@@ -840,8 +894,8 @@ class Vencodes:
         :param str promoter: Previous promoter name(founder node if first time calling this function).
         :param int counter: Counter is equal to the depth of the current node.
         :param (tuple, list) skip: the promoters to skip when finding a VEnCode.
-        :param dict breaks: Dictionary containing keys for the different levels of breaks (one per each combination number)
-        and values corresponding to how many times each combination already cycled. dict type
+        :param dict breaks: Dictionary containing keys for the different levels of breaks (one per each combination
+        number) and values corresponding to how many times each combination already cycled. dict type
         :return: The VEnCode, in list type, if the algorithm found one.
         """
 
@@ -856,7 +910,7 @@ class Vencodes:
 
         vencode_promoters_list = []
         if data is None:
-            data_frame = self._data_object.data.copy()
+            data_frame = self.data_not_target.copy()
         else:
             data_frame = data
         data_frame.drop(skip, axis=0, inplace=True,
@@ -876,7 +930,6 @@ class Vencodes:
             vencode_list = data_frame[nodes].index.values.tolist()
             vencode_promoters_list.append(vencode_list)
             yield vencode_promoters_list  # found at least one VEnCode so it can return a successful answer
-            vencode_promoters_list = []
 
         else:  # if in previous node could not get a definite VEnCode, re-start search with next node
             if self.second_data_object:
@@ -894,8 +947,8 @@ class Vencodes:
                     if breaks is not None and counter in counter_thresholds:
                         breaker_index = str(counter_thresholds.index(counter) + 1)
                         breaks["breaker_" + breaker_index] += 1
-                        if breaks[
-                            "breaker_" + breaker_index] > self.stop:  # here, we only test x promoters per node level
+                        # Here, we only test x promoters per node level (self.stop):
+                        if breaks["breaker_" + breaker_index] > self.stop:
                             breaks["breaker_" + breaker_index] = 0
                             yield []
                     # endregion "early quit if loop is taking too long"
@@ -904,6 +957,7 @@ class Vencodes:
                     try:
                         vencode_possible = next(check_if_ven)
                     except StopIteration:
+                        vencode_possible = False
                         yield []
                     if vencode_possible:
                         vencode_promoters_list.append(vencode_possible)
@@ -924,7 +978,7 @@ class Vencodes:
         assert len(vencode_list) <= self.k, "vencode list len is bigger than wanted RE number"
         if len(vencode_list) == self.k:
             return vencode_list
-        for prom in self._data_object.data.index.values:  # next we'll fill the vencode with the top sparse REs
+        for prom in self.data_not_target.index.values:  # next we'll fill the vencode with the top sparse REs
             if prom in vencode_list:
                 continue
             vencode_list.append(prom)
@@ -941,7 +995,7 @@ class Vencodes:
         :return: e-value, that is, the average number of random changes done to the data that breaks the vencode.
         """
 
-        vencode_data = self._data_object.data.loc[vencode]
+        vencode_data = self.data_not_target.loc[vencode]
         e_value = self.vencode_mc_simulation(vencode_data, reps=reps)
         return e_value
 
@@ -954,7 +1008,7 @@ class Vencodes:
         :return: e-value, that is, the average number of random changes done to the data that breaks the vencode.
         """
 
-        vencode_first_data = self._data_object.data.loc[vencode[0]]
+        vencode_first_data = self.data_not_target.loc[vencode[0]]
         vencode_second_data = self.second_data_object.data.loc[vencode[1]]
         vencode_data = pd.concat([vencode_first_data, vencode_second_data], axis=0)
         e_value = self.vencode_mc_simulation(vencode_data, reps=reps)
@@ -1037,7 +1091,7 @@ class Vencodes:
             k = self.k
 
         coefs = {"a": -164054.1, "b": 0.9998811, "c": 0.000006088948, "d": 1.00051, "m": 0.9527, "e": -0.1131}
-        e_value_expected = (coefs["m"] * k + coefs["e"]) * self._data_object.data.shape[1] ** (
+        e_value_expected = (coefs["m"] * k + coefs["e"]) * self.data_not_target.shape[1] ** (
                 coefs["d"] + ((coefs["a"] - coefs["d"]) / (1 + (k / coefs["c"]) ** coefs["b"])))
         e_value_norm = (e_value_raw / e_value_expected) * 100
         if e_value_norm < 100:
@@ -1382,7 +1436,7 @@ class Csv(OutsideData):
                     data_temp = data_to_split.str.split(splits[split_count], n=1, expand=True)
                     if columns[split_count] not in data_final.columns:
                         data_final[columns[split_count]] = data_temp[0]
-                    if count == i+2:
+                    if count == i + 2:
                         data_final[columns[split_count + 1]] = data_temp[1]
                     else:
                         data_final[columns[split_count + 1]] = data_temp[1].str.split(splits[split_count + 1], n=1,
@@ -1394,7 +1448,7 @@ class Csv(OutsideData):
         self.data = data_final
 
 
-class DataTpmValidated(DataTpm):
+class DataTpmFantom5Validated(DataTpmFantom5):
     """
     This class provides methods to develop a data set with chromosome coordinates intercepted
     with those of validate_with, which we call validated regulatory elements.
@@ -1421,7 +1475,7 @@ class DataTpmValidated(DataTpm):
             validate_with.index = self.data.index
             self.data[cell_type] = validate_with["tpm"]
         else:
-            self.data[cell_type] = pd.Series(data=[50]*len(self.data.index), index=self.data.index)
+            self.data[cell_type] = pd.Series(data=[50] * len(self.data.index), index=self.data.index)
 
     def _interception(self, data1, data2, data_updated):
         mask = self._mask(data1, data2)

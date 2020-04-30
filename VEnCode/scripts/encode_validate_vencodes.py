@@ -208,8 +208,8 @@ class EncodeValidateVencodes:
 
     def _get_data_filtered(self, cell_type, thresholds, files_path="outside", index_filter=None):
         # Get data:
-        data_tpm = internals.DataTpm(file="parsed", sample_types=self.settings.TYPE, data_type=self.settings.DATA_TYPE,
-                                     files_path=files_path)
+        data_tpm = internals.DataTpmFantom5(file="parsed", sample_types=self.settings.TYPE, data_type=self.settings.DATA_TYPE,
+                                            files_path=files_path)
         data_tpm.make_data_celltype_specific(cell_type)
         # Filter data:
         non_tgt_ctp_inact, tgt_ctp_act, reg_el_spsness = thresholds

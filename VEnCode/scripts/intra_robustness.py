@@ -54,7 +54,7 @@ else:
     raise AttributeError("Celltype_type - {} - currently not supported".format(setup.celltype_type))
 
 results = {}
-data = internals.DataTpm(file="parsed", sample_types=sample_types, data_type=setup.data_type)
+data = internals.DataTpmFantom5(file="parsed", sample_types=sample_types, data_type=setup.data_type)
 
 # cycle your list of cell types:
 for celltype in tqdm(celltype_list, desc="Completed: "):

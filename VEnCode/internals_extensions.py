@@ -139,8 +139,8 @@ class GetVencodeValidated(GettingVencodes):
                                           using=self.using)
 
     def _prepare_data_parsed(self, sample_type, thresholds):
-        data = internals.DataTpmValidated(self.validate_with, file="parsed", sample_types=sample_type,
-                                          data_type=self.data_type)
+        data = internals.DataTpmFantom5Validated(self.validate_with, file="parsed", sample_types=sample_type,
+                                                 data_type=self.data_type)
         data.make_data_celltype_specific(self.cell_type)
         data.select_validated()
         data = self._filters(data, thresholds)
@@ -148,8 +148,8 @@ class GetVencodeValidated(GettingVencodes):
 
     def _prepare_data_raw_adding_ctp(self, sample_type, thresholds):
         file_name = self._get_re_file_name()
-        data = internals.DataTpmValidated(self.validate_with, file=file_name, sample_types="primary cells",
-                                          data_type=self.data_type)
+        data = internals.DataTpmFantom5Validated(self.validate_with, file=file_name, sample_types="primary cells",
+                                                 data_type=self.data_type)
         data.merge_donors_primary(exclude_target=False)
         data.add_celltype(self.cell_type, file=file_name, sample_types=sample_type, data_type=self.data_type)
         data.make_data_celltype_specific(self.cell_type)
@@ -165,16 +165,16 @@ class GetVencode(GettingVencodes):
         self.vencodes = self._get_vencode(number_vencodes, sample_type, parsed, thresholds, n_samples=self.n_samples)
 
     def _prepare_data_parsed(self, sample_type, thresholds):
-        data = internals.DataTpm(file="parsed", sample_types=sample_type, data_type=self.data_type,
-                                 files_path=self.files_path)
+        data = internals.DataTpmFantom5(file="parsed", sample_types=sample_type, data_type=self.data_type,
+                                        files_path=self.files_path)
         data.make_data_celltype_specific(self.cell_type)
         data = self._filters(data, thresholds)
         return data
 
     def _prepare_data_raw_adding_ctp(self, sample_type, thresholds):
         file_name = self._get_re_file_name()
-        data = internals.DataTpm(file=file_name, sample_types="primary cells", data_type=self.data_type,
-                                 files_path=self.files_path)
+        data = internals.DataTpmFantom5(file=file_name, sample_types="primary cells", data_type=self.data_type,
+                                        files_path=self.files_path)
         data.merge_donors_primary(exclude_target=False)
         data.add_celltype(self.cell_type, file=file_name, sample_types=sample_type, data_type=self.data_type)
         data.make_data_celltype_specific(self.cell_type)
@@ -196,8 +196,8 @@ class GetVencodeExternalData(GettingVencodes):
                                           using=self.using)
 
     def _prepare_data_parsed(self, sample_type, thresholds):
-        data = internals.DataTpmValidated(self.validate_with, file="parsed", sample_types="primary cells",
-                                          data_type=self.data_type)
+        data = internals.DataTpmFantom5Validated(self.validate_with, file="parsed", sample_types="primary cells",
+                                                 data_type=self.data_type)
         data.make_data_celltype_specific("Hepatocyte")
         data.merge_donors_primary(exclude_target=False)
         # data.add_celltype(self.cell_type, file=file_name, sample_types=sample_type, data_type=self.data_type)
@@ -207,8 +207,8 @@ class GetVencodeExternalData(GettingVencodes):
 
     def _prepare_data_raw_adding_ctp(self, sample_type, thresholds):
         file_name = self._get_re_file_name()
-        data = internals.DataTpmValidated(self.validate_with, file=file_name, sample_types="primary cells",
-                                          data_type=self.data_type)
+        data = internals.DataTpmFantom5Validated(self.validate_with, file=file_name, sample_types="primary cells",
+                                                 data_type=self.data_type)
         data.merge_donors_primary(exclude_target=False)
         data.merge_external_cell_type(self.cell_type)
         data.make_data_celltype_specific(self.cell_type)
@@ -551,13 +551,13 @@ class CheckElementExpression:
         return data
 
     def _prepare_data_parsed(self, sample_type):
-        data = internals.DataTpm(file="parsed", sample_types=sample_type, data_type=self.data_type)
+        data = internals.DataTpmFantom5(file="parsed", sample_types=sample_type, data_type=self.data_type)
         data.make_data_celltype_specific(self.cell_type)
         return data
 
     def _prepare_data_raw(self, sample_type):
         file_name = self._get_re_file_name()
-        data = internals.DataTpm(file=file_name, sample_types=sample_type, data_type=self.data_type)
+        data = internals.DataTpmFantom5(file=file_name, sample_types=sample_type, data_type=self.data_type)
         data.make_data_celltype_specific(self.cell_type)
         return data
 
