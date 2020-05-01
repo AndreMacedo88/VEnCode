@@ -20,23 +20,36 @@ from VEnCode.utils import dir_and_file_handling as dh
 class DataTpmTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.celltypes_total = ["Hepatocyte", "Adipocyte - breast"]
-        cls.celltype_analyse = "Adipocyte - breast"
+        """
+        Sets-up class variables to be used in the tests.
+        """
+        cls.celltype_analyse = "celltypetarget"
+        cls.donor_nomenclature = "_donor"
+        cls.data1 = cv.expression_data1
+        cls.data2 = cv.expression_data2
+
+
+class FilenameHandler(DataTpmTest):
+    @classmethod
+    def setUpClass(cls):
+        """ Sets-up class variables to be used in the tests. """
+        super().setUpClass()
+
+    def test_filename(self):
+        file_type = self.data1
+        database = internals.DataTpm(file=file_type, nrows=4)
+        self.assertEqual(os.path.isfile(database._file_path), True)
 
 
 class DataTpmFantom5Test(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        """ Sets-up class variables to be used in the tests. """
         cls.celltypes_total = ["Hepatocyte", "Adipocyte - breast"]
         cls.celltype_analyse = "Adipocyte - breast"
 
 
 class FilenameHandlerFantom5Test(DataTpmFantom5Test):
-    @unittest.skip
-    def test_custom(self):
-        file_type = "custom"
-        database = internals.DataTpmFantom5(file=file_type, nrows=4)
-        self.assertEqual(os.path.isfile(database._file_path), True)
 
     def test_filename(self):
         file_type = cv.test_promoter_file_name
@@ -53,6 +66,7 @@ class FilenameHandlerFantom5Test(DataTpmFantom5Test):
 class RawDataFantom5Test(DataTpmFantom5Test):
     @classmethod
     def setUpClass(cls):
+        """ Sets-up class variables to be used in the tests. """
         super().setUpClass()
         cls.database_promoters = internals.DataTpmFantom5(file=cv.test_promoter_file_name, nrows=4, keep_raw=True)
         cls.database_enhancers = internals.DataTpmFantom5(file=cv.test_enhancer_file_name, nrows=4, keep_raw=True,
@@ -94,9 +108,11 @@ class RawDataFantom5Test(DataTpmFantom5Test):
 class DataNotParsedFantom5Test(DataTpmFantom5Test):
     @classmethod
     def setUpClass(cls):
+        """ Sets-up class variables to be used in the tests. """
         super().setUpClass()
         cls.database_promoters = internals.DataTpmFantom5(file=cv.test_promoter_file_name, nrows=4)
-        cls.database_enhancers = internals.DataTpmFantom5(file=cv.test_enhancer_file_name, nrows=4, data_type="enhancers")
+        cls.database_enhancers = internals.DataTpmFantom5(file=cv.test_enhancer_file_name, nrows=4,
+                                                          data_type="enhancers")
 
     def test_primary_cells_ncols_promoters(self):
         self.assertEqual(self.database_promoters.data.shape[1], 537)
@@ -108,6 +124,7 @@ class DataNotParsedFantom5Test(DataTpmFantom5Test):
 class DataParsedFantom5Test(DataTpmFantom5Test):
     @classmethod
     def setUpClass(cls):
+        """ Sets-up class variables to be used in the tests. """
         super().setUpClass()
         file_type = "parsed"
         cls.database_promoters = internals.DataTpmFantom5(file=file_type, nrows=4)
@@ -121,20 +138,16 @@ class DataParsedFantom5Test(DataTpmFantom5Test):
     def test_primary_cells_ncols_enhancers(self):
         self.assertEqual(self.database_enhancers.data.shape[1], 155)
 
-    @unittest.skip
-    def test_col_names_equal(self):
-        proms = set(self.database_promoters.data.columns.tolist())
-        enhs = set(self.database_enhancers.data.columns.tolist())
-        self.assertEqual(proms, enhs)
-
 
 class MakeCelltypeSpecificFantom5Test(DataTpmFantom5Test):
     @classmethod
     def setUpClass(cls):
+        """ Sets-up class variables to be used in the tests. """
         super().setUpClass()
         cls.database_promoters = internals.DataTpmFantom5(file=cv.test_promoter_file_name, nrows=4)
         cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse)
-        cls.database_enhancers = internals.DataTpmFantom5(file=cv.test_enhancer_file_name, nrows=4, data_type="enhancers")
+        cls.database_enhancers = internals.DataTpmFantom5(file=cv.test_enhancer_file_name, nrows=4,
+                                                          data_type="enhancers")
         cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse)
 
     def test_donors_promoters(self):
@@ -149,6 +162,7 @@ class MakeCelltypeSpecificFantom5Test(DataTpmFantom5Test):
 class MakeCelltypeSpecificParsedFantom5Test(DataTpmFantom5Test):
     @classmethod
     def setUpClass(cls):
+        """ Sets-up class variables to be used in the tests. """
         super().setUpClass()
         file_type = "parsed"
         cls.database_promoters = internals.DataTpmFantom5(file=file_type, nrows=4)
@@ -169,11 +183,13 @@ class MakeCelltypeSpecificParsedFantom5Test(DataTpmFantom5Test):
 class MergeDonorsPrimaryFantom5Test(DataTpmFantom5Test):
     @classmethod
     def setUpClass(cls):
+        """ Sets-up class variables to be used in the tests. """
         super().setUpClass()
         cls.database_promoters = internals.DataTpmFantom5(file=cv.test_promoter_file_name, nrows=4)
         cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_promoters.merge_donors_primary()
-        cls.database_enhancers = internals.DataTpmFantom5(file=cv.test_enhancer_file_name, nrows=4, data_type="enhancers")
+        cls.database_enhancers = internals.DataTpmFantom5(file=cv.test_enhancer_file_name, nrows=4,
+                                                          data_type="enhancers")
         cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_enhancers.merge_donors_primary()
 
@@ -183,7 +199,6 @@ class MergeDonorsPrimaryFantom5Test(DataTpmFantom5Test):
     def test_merged_enhancers_cols(self):
         self.assertEqual(self.database_enhancers.data.shape[1], 155)
 
-    # @unittest.skip
     def test_col_names_equal(self):
         data_promoters = set(self.database_promoters.data.columns.tolist())
         data_enhancers = set(self.database_enhancers.data.columns.tolist())
@@ -193,11 +208,13 @@ class MergeDonorsPrimaryFantom5Test(DataTpmFantom5Test):
 class FilterByTargetFantom5Test(DataTpmFantom5Test):
     @classmethod
     def setUpClass(cls):
+        """ Sets-up class variables to be used in the tests. """
         super().setUpClass()
         cls.database_promoters = internals.DataTpmFantom5(file=cv.test_promoter_file_name, nrows=10)
         cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_promoters.merge_donors_primary()
-        cls.database_enhancers = internals.DataTpmFantom5(file=cv.test_enhancer_file_name, nrows=10, data_type="enhancers")
+        cls.database_enhancers = internals.DataTpmFantom5(file=cv.test_enhancer_file_name, nrows=10,
+                                                          data_type="enhancers")
         cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_enhancers.merge_donors_primary()
 
@@ -223,12 +240,14 @@ class FilterByTargetFantom5Test(DataTpmFantom5Test):
 class FilterBySparsenessFantom5Test(DataTpmFantom5Test):
     @classmethod
     def setUpClass(cls):
+        """ Sets-up class variables to be used in the tests. """
         super().setUpClass()
         cls.database_promoters = internals.DataTpmFantom5(file=cv.test_promoter_file_name, nrows=10)
         cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_promoters.merge_donors_primary()
         cls.database_promoters.filter_by_reg_element_sparseness(threshold=50)
-        cls.database_enhancers = internals.DataTpmFantom5(file=cv.test_enhancer_file_name, nrows=100, data_type="enhancers")
+        cls.database_enhancers = internals.DataTpmFantom5(file=cv.test_enhancer_file_name, nrows=100,
+                                                          data_type="enhancers")
         cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_enhancers.merge_donors_primary()
         cls.database_enhancers.filter_by_reg_element_sparseness(threshold=50)
@@ -258,13 +277,15 @@ class FilterBySparsenessFantom5Test(DataTpmFantom5Test):
 class DefineNonTargetCelltypesInactivityFantom5Test(DataTpmFantom5Test):
     @classmethod
     def setUpClass(cls):
+        """ Sets-up class variables to be used in the tests. """
         super().setUpClass()
         cls.database_promoters = internals.DataTpmFantom5(file=cv.test_promoter_file_name, nrows=10)
         cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_promoters.merge_donors_primary()
         cls.database_promoters.filter_by_target_celltype_activity(threshold=1)
         cls.database_promoters.define_non_target_celltypes_inactivity(threshold=0.3)
-        cls.database_enhancers = internals.DataTpmFantom5(file=cv.test_enhancer_file_name, nrows=10, data_type="enhancers")
+        cls.database_enhancers = internals.DataTpmFantom5(file=cv.test_enhancer_file_name, nrows=10,
+                                                          data_type="enhancers")
         cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_enhancers.merge_donors_primary()
         cls.database_enhancers.filter_by_target_celltype_activity(threshold=0.15)
@@ -288,6 +309,7 @@ class DefineNonTargetCelltypesInactivityFantom5Test(DataTpmFantom5Test):
 class SortSparsenessFantom5Test(DataTpmFantom5Test):
     @classmethod
     def setUpClass(cls):
+        """ Sets-up class variables to be used in the tests. """
         super().setUpClass()
         cls.database_promoters = internals.DataTpmFantom5(file=cv.test_promoter_file_name, nrows=20)
         cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse)
@@ -295,7 +317,8 @@ class SortSparsenessFantom5Test(DataTpmFantom5Test):
         cls.database_promoters.filter_by_target_celltype_activity(threshold=1)
         cls.database_promoters.define_non_target_celltypes_inactivity(threshold=0)
         cls.database_promoters.sort_sparseness()
-        cls.database_enhancers = internals.DataTpmFantom5(file=cv.test_enhancer_file_name, nrows=50, data_type="enhancers")
+        cls.database_enhancers = internals.DataTpmFantom5(file=cv.test_enhancer_file_name, nrows=50,
+                                                          data_type="enhancers")
         cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse)
         cls.database_enhancers.merge_donors_primary()
         cls.database_enhancers.filter_by_target_celltype_activity(threshold=0.15)
@@ -325,6 +348,7 @@ class SortSparsenessFantom5Test(DataTpmFantom5Test):
 
 class RemoveCelltypeFantom5Test(DataTpmFantom5Test):
     def setUp(self):
+        """ Sets-up variables to be used in the tests. """
         self.cage_primary = internals.DataTpmFantom5(file="parsed", nrows=4)
         self.cage_primary.make_data_celltype_specific(self.celltype_analyse)
 
@@ -341,6 +365,7 @@ class RemoveCelltypeFantom5Test(DataTpmFantom5Test):
 
 class RemoveElementFantom5Test(DataTpmFantom5Test):
     def setUp(self):
+        """ Sets-up  variables to be used in the tests. """
         self.cage_primary = internals.DataTpmFantom5(file="parsed", nrows=4)
         self.cage_primary.make_data_celltype_specific(self.celltype_analyse)
         self.elements = ['chr10:100027943..100027958,-', 'chr10:100174900..100174956,-']
@@ -359,6 +384,7 @@ class RemoveElementFantom5Test(DataTpmFantom5Test):
 class AddCelltypeFantom5Test(DataTpmFantom5Test):
     @classmethod
     def setUpClass(cls):
+        """ Sets-up class variables to be used in the tests. """
         super().setUpClass()
         # main data
         cls.cage_primary = internals.DataTpmFantom5(file=cv.test_promoter_file_name, nrows=20)
@@ -367,14 +393,14 @@ class AddCelltypeFantom5Test(DataTpmFantom5Test):
         cls.cage_tissue = cls.cage_primary.copy(deep=True)
         cls.cage_primary_rescue = cls.cage_primary.copy(deep=True)
         # adding a cancer celltype
-        cls.cage_cancer.add_celltype("small cell lung carcinoma cell line", file=cv.test_promoter_file_name,
+        cls.cage_cancer.add_celltype(celltypes="small cell lung carcinoma cell line", data_from=cv.test_promoter_file_name,
                                      sample_types="cell lines", data_type="promoters")
         # adding a tissue celltype
         # cls.cage_tissue.add_celltype("pituitary gland", file=cv.test_promoter_file_name,
         #                              sample_types="tissues", data_type="promoters")
         # adding a primary celltype after having removed from the data set
         cls.cage_primary_rescue.remove_celltype("Keratocytes", merged=False)
-        cls.cage_primary_rescue.add_celltype("Keratocytes", file=cv.test_promoter_file_name,
+        cls.cage_primary_rescue.add_celltype(celltypes="Keratocytes", data_from=cv.test_promoter_file_name,
                                              sample_types="primary cells", data_type="promoters")
 
     def test_merging(self):
@@ -403,6 +429,7 @@ class AddCelltypeFantom5Test(DataTpmFantom5Test):
 class EqualFantom5Test(DataTpmFantom5Test):
     @classmethod
     def setUpClass(cls):
+        """ Sets-up class variables to be used in the tests. """
         super().setUpClass()
         file_type = "parsed"
         cls.data = internals.DataTpmFantom5(file=file_type, nrows=4)
@@ -429,6 +456,7 @@ class EqualFantom5Test(DataTpmFantom5Test):
 class CopyFantom5Test(DataTpmFantom5Test):
     @classmethod
     def setUpClass(cls):
+        """ Sets-up class variables to be used in the tests. """
         super().setUpClass()
         file_type = "parsed"
         cls.data = internals.DataTpmFantom5(file=file_type, nrows=4)
@@ -471,6 +499,7 @@ class CopyFantom5Test(DataTpmFantom5Test):
 
 class SortColumnsFantom5Test(DataTpmFantom5Test):
     def setUp(self):
+        """ Sets-up variables to be used in the tests. """
         file_type = "parsed"
         self.cage_tpm = internals.DataTpmFantom5(file=file_type, nrows=4)
         self.cage_tpm.make_data_celltype_specific(self.celltype_analyse)
@@ -506,6 +535,7 @@ class SortColumnsFantom5Test(DataTpmFantom5Test):
 class VenCodesHepatocyteTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        """ Sets-up class variables to be used in the tests. """
         cls.celltype_analyse = "Hepatocyte"
         cls.data = internals.DataTpmFantom5(file="parsed", nrows=None)
         cls.data.make_data_celltype_specific(cls.celltype_analyse)
@@ -514,12 +544,14 @@ class VenCodesHepatocyteTest(unittest.TestCase):
 class HepatocyteHeuristicTest(VenCodesHepatocyteTest):
     @classmethod
     def setUpClass(cls):
+        """ Sets-up class variables to be used in the tests. """
         super().setUpClass()
         cls.data.filter_by_target_celltype_activity(threshold=1)
         cls.data.define_non_target_celltypes_inactivity(threshold=0)
         cls.data.sort_sparseness()
 
     def setUp(self):
+        """ Sets-up variables to be used in the tests. """
         self.vencodes = internals.Vencodes(self.data, algorithm="heuristic", number_of_re=4)
 
     def test_first_vencode(self):
@@ -558,12 +590,14 @@ class HepatocyteHeuristicTest(VenCodesHepatocyteTest):
 class HepatocyteSamplingTest(VenCodesHepatocyteTest):
     @classmethod
     def setUpClass(cls):
+        """ Sets-up class variables to be used in the tests. """
         super().setUpClass()
         cls.data.filter_by_target_celltype_activity(threshold=1)
         cls.data.define_non_target_celltypes_inactivity(threshold=0)
         cls.data.sort_sparseness()
 
     def setUp(self):
+        """ Sets-up variables to be used in the tests. """
         self.vencodes = internals.Vencodes(self.data, algorithm="sampling", number_of_re=4, n_samples=10000)
 
     def test_vencode(self):
@@ -590,6 +624,7 @@ class HepatocyteSamplingTest(VenCodesHepatocyteTest):
 class VenCodesAdipocyteTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        """ Sets-up class variables to be used in the tests. """
         cls.celltype_analyse = "Adipocyte - breast"
         cls.data = internals.DataTpmFantom5(file="parsed", nrows=None)
         cls.data.make_data_celltype_specific(cls.celltype_analyse)
@@ -598,6 +633,7 @@ class VenCodesAdipocyteTest(unittest.TestCase):
         cls.data.sort_sparseness()
 
     def setUp(self):
+        """ Sets-up  variables to be used in the tests. """
         self.vencodes = internals.Vencodes(self.data, algorithm="heuristic", number_of_re=4)
 
     def test_first_vencode(self):
@@ -638,6 +674,7 @@ class VenCodesAdipocyteTest(unittest.TestCase):
 class VenCodesKeratocytesTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        """ Sets-up class variables to be used in the tests. """
         cls.celltype_analyse = "Keratocytes"
         cls.data = internals.DataTpmFantom5(file="parsed", nrows=None)
         cls.data.make_data_celltype_specific(cls.celltype_analyse)
@@ -646,6 +683,7 @@ class VenCodesKeratocytesTest(unittest.TestCase):
         cls.data.sort_sparseness()
 
     def setUp(self):
+        """ Sets-up variables to be used in the tests. """
         self.vencodes = internals.Vencodes(self.data, algorithm="heuristic", number_of_re=4)
 
     def test_first_vencode(self):
@@ -690,6 +728,7 @@ class VenCodesKeratocytesTest(unittest.TestCase):
 class VenCodesBronchialEpTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        """ Sets-up class variables to be used in the tests. """
         cls.celltype_analyse = "Bronchial Epithelial Cell"
         cls.data = internals.DataTpmFantom5(file="parsed", nrows=None)
         cls.data.make_data_celltype_specific(cls.celltype_analyse)
@@ -698,6 +737,7 @@ class VenCodesBronchialEpTest(unittest.TestCase):
         cls.data.sort_sparseness()
 
     def setUp(self):
+        """ Sets-up variables to be used in the tests. """
         self.vencodes = internals.Vencodes(self.data, algorithm="heuristic", number_of_re=4)
 
     def test_first_vencode(self):
@@ -708,7 +748,9 @@ class VenCodesBronchialEpTest(unittest.TestCase):
 class VencodesMethodsTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.data = internals.DataTpmFantom5(file="parsed", sample_types="primary cells", data_type="promoters", nrows=20000)
+        """ Sets-up variables to be used in the tests. """
+        cls.data = internals.DataTpmFantom5(file="parsed", sample_types="primary cells", data_type="promoters",
+                                            nrows=20000)
         cls.data.make_data_celltype_specific("Hepatocyte")
         cls.data.filter_by_target_celltype_activity(threshold=1)
         cls.data.filter_by_reg_element_sparseness(threshold=0)

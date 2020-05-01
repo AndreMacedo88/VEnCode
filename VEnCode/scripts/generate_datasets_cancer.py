@@ -37,7 +37,7 @@ data_original = data.copy()
 data_cancer = internals.DataTpmFantom5(file=setup.file_name, sample_types="cell lines", data_type=setup.data_type)
 
 for celltype in tqdm(cancer_celltype_list, desc="Completed: "):
-    data.add_celltype(celltype, file=data_cancer)
+    data.add_celltype(celltype, data_from=data_cancer)
     data.make_data_celltype_specific(celltype)
     data.filter_by_target_celltype_activity(threshold=0.0001, binarize=False)
 

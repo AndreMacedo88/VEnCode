@@ -23,19 +23,49 @@ from VEnCode.utils import general_utils as gen_util, pandas_utils as pd_util
 class DataTpm:
     """
     An Object representing a data set to retrieve VEnCodes from. Contains optional filtering methods and other tools.
+
+    Attributes
+    ----------
+    data : pandas.DataFrame
+        This object is a pandas DataFrame representation of the initial input data set.
+    target_ctp : str
+        The celltype that is going to be the target of the VEnCode search algorithms. By defining it in this object
+        by calling the method make_data_celltype_specific(), the user can then apply activity, inactivity, sparseness
+        filters, and other methods.
+
+    Parameters
+    ----------
+    file : str
+        The file containing the data set to convert into DataTpm object. This can be a complete path to the file,
+        or just the file name, provided the path is given in the argument `files_path`. Alternatively, use 'custom'
+        to open a file dialog to pick the file. Supported file formats are .csv, .txt, .tsv, or any format
+        supported by the pandas read_csv function. Default is 'custom'.
+    sep : str
+        The column separator used in the input file. Default is ','.
+    nrows : int
+        The number of rows to open in the file. Default is 'None' which will open the entire file.
+    files_path : str
+        In case the argument `file` does not contain a complete path, input that path here. This argument is also
+        useful to access the module test files by inputting 'native'. Default is 'None'.
+    kwargs
+         Optional keyword arguments available to use are any used by pandas DataFrame object.
+         Please refer to the pandas DataFrame documentation for specific details.
     """
 
-    def __init__(self, file="custom", keep_raw=False, nrows=None,
-                 files_path="native"):
+    def __init__(self, file="custom", sep=",", nrows=None, files_path=None, **kwargs):
+        """
+
+        """
         self._file, self._nrows = file, nrows
         self.target_ctp, self.ctp_analyse_donors, self.data = None, None, None
-        self._file_path = None
-        if files_path == "native":
+        if files_path == "test":
             self._parent_path = os.path.join(str(Path(__file__).parents[0]), "Files")
         elif files_path == "outside":
             self._parent_path = os.path.join(str(Path(__file__).parents[2]), "Files")
         else:
             self._parent_path = files_path
+        self._file_path = self._filename_handler()
+        self.data = pd.read_csv(self._file_path, sep=sep, index_col=0, nrows=self._nrows, engine="python", **kwargs)
 
     @property
     def shape(self):
@@ -83,10 +113,10 @@ class DataTpm:
             root.withdraw()
             file_path = tk.filedialog.askopenfilename()
         elif re.search(r"\....", self._file[-4:]):
-            file_path = os.path.join(self._parent_path, self._file)
-        elif self._file == "parsed":
-            celltype_name = self.target_ctp.replace(":", "-").replace("/", "-")
-            file_path = os.path.join(self._parent_path, "Dbs", f"{celltype_name}_tpm_{self.data_type}-1.csv")
+            if self._parent_path:
+                file_path = os.path.join(self._parent_path, self._file)
+            else:
+                self._parent_path, file_path = os.path.split(os.path.abspath(self._file))
         else:
             raise AttributeError
         return file_path
@@ -169,13 +199,29 @@ class DataTpm:
             arr[pos_to_move] = col_to_shift
             self.data.columns = arr
 
-    def make_data_celltype_specific(self, target_celltypes):
+    def make_data_celltype_specific(self, target_celltypes, donors=True):
         """
         Determines celltype/donors (columns) of interest to analyse later.
 
-        :param target_celltypes: the celltype to target for analysis
+        Parameters
+        ----------
+        target_celltypes
+            The celltype or celltypes to target for analysis. If the celltypes have donors in the data, either supply
+            `target_celltypes` with a dictionary in the shape dict[celltype] = [donors], or let the function guess
+            the donors by supplying argument `donors` as True.
+        donors : bool
+            If the celltype or celltypes to target have donors in the data, put True. Else, put False. Default is True
         """
-        pass
+        if donors:
+            if isinstance(target_celltypes, dict):
+                self.target_ctp = target_celltypes.keys()
+                self.ctp_analyse_donors = target_celltypes
+            else:
+                self.target_ctp = target_celltypes
+                self.ctp_analyse_donors = self._code_selector(self.data, self.target_ctp, to_dict=True, regex=False)
+        else:
+            self.target_ctp = target_celltypes
+            self.ctp_analyse_donors[target_celltypes] = target_celltypes
 
     def filter_by_target_celltype_activity(self, threshold=1, donors="all", binarize=True):
         """
@@ -249,8 +295,38 @@ class DataTpm:
         self.data.sort_values(["sum"], inplace=True)  # sort promoters based on the previous sum. Descending order
         self.data.drop(["sum"], axis=1, inplace=True)  # now remove the sum column
 
-    def add_celltype(self, celltypes, file="custom"):
-        pass
+    def add_celltype(self, celltypes=False, data_from="custom", **kwargs):
+        """
+        Adds expression data for celltypes from other data sets (with similar regulatory element information).
+        Examples include adding data from a cancer cell type to a primary cell type data set.
+
+        :param celltypes: Cell types to merge with the DataTpm data. If false it will add all provided data.
+        :param data_from: Data containing the cell types to add. "custom" will open a file dialog.
+        Optional parameters (**kwargs) are used to create a new DataTpm object from "data_from" to add to the data set.
+        So, if that is the case, check DataTpm documentation.
+        """
+        # Deal with possible "celltypes" dict input type
+        if isinstance(celltypes, dict):
+            celltypes = list(celltypes.values())[0]
+        # Deal with different "data_from" variable input types
+        if isinstance(data_from, DataTpm):
+            data_new = data_from.copy()
+        else:
+            nrows = kwargs.pop("nrows", None)
+            if nrows is None:
+                nrows = self._nrows
+            data_new = DataTpm(file=data_from, nrows=nrows, **kwargs)
+        assert isinstance(data_new, DataTpm), "data_from parameter should be a DataTpm object, or a path to a file" \
+                                              "capable of being turned into one."
+        # add data to self.data
+        if celltypes:
+            data_concat = data_new.data[celltypes]
+        else:
+            data_concat = data_new.data
+        self.data = pd.concat([self.data, data_concat], axis=1)
+
+
+
 
     def remove_celltype(self, celltypes, merged=True):
         """
@@ -259,7 +335,10 @@ class DataTpm:
         :param celltypes: celltype/s to remove. int or list-type
         :param merged: If the data has been previously merged into celltypes, True. If columns represent donors, False.
         """
-        pass
+        try:
+            self.data.drop(celltypes, axis=1, inplace=True)
+        except (ValueError, KeyError) as e:
+            print("Celltype not removed. {} is not contained in the data".format(e.args[0]))
 
     def remove_element(self, elements):
         """
@@ -303,12 +382,12 @@ class DataTpmFantom5(DataTpm):
     """
 
     def __init__(self, file="custom", sample_types="primary cells", data_type="promoters", keep_raw=False, nrows=None,
-                 files_path="native", *args, **kwargs):
+                 files_path="test", *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._file, self.sample_type, self.data_type, self._nrows = file, sample_types, data_type, nrows
         self.target_ctp, self.ctp_analyse_donors, self.ctp_not_include, self.data = None, None, None, None
         self._file_path = None
-        if files_path == "native":
+        if files_path == "test":
             self._parent_path = os.path.join(str(Path(__file__).parents[0]), "Files")
         elif files_path == "outside":
             self._parent_path = os.path.join(str(Path(__file__).parents[2]), "Files")
@@ -548,38 +627,57 @@ class DataTpmFantom5(DataTpm):
         self.data = data_merged
         return
 
-    def add_celltype(self, celltypes, file="custom", sample_types="cell lines",
-                     data_type="promoters"):
+    def add_celltype(self, celltypes=False, data_from="custom", sample_types="cell lines", fantom=True, **kwargs):
         """
-        Adds expression data for celltypes from other data sets (with similar regulatory element information)
+        Adds expression data for celltypes from other data sets (with similar regulatory element information).
+        Examples include adding data from a cancer cell type to a primary cell type data set.
 
-        :param celltypes: celltypes to merge with database
-        :param file:
-        :param sample_types:
-        :param data_type:
+        :param celltypes: Cell types to merge with the DataTpm data. If false it will add all provided data.
+        :param data_from: Data containing the cell types to add. "custom" will open a file dialog.
+        :param sample_types: sample type ("primary cells", for e.g.) of the data set to add.
+        :param fantom: is your data to add from FANTOM5 CAGE-seq? if so put True. Else, False.
+        Optional parameters (**kwargs) are used to create a new DataTpm object from "data_from" to add to the data set.
+        So, if that is the case, check DataTpm documentation.
         """
+        # handle possible supersets in the data
         if sample_types == "cell lines":
             supersets = None
         elif sample_types == "primary cells":
             supersets = cv.primary_cells_supersets
         else:
-            not_include = None
             supersets = None
+        # Deal with different "celltypes" variable input types
         if isinstance(celltypes, str):
             celltypes = [celltypes]
         elif isinstance(celltypes, dict):  # to deal with situations such as mesothelioma cell line
             celltypes = list(celltypes.values())[0]
-        if isinstance(file, DataTpmFantom5):
-            data_new = file.copy()
+        # Deal with different "data_from" variable input types
+        if isinstance(data_from, DataTpm):
+            data_new = data_from.copy()
         else:
-            data_new = DataTpmFantom5(file=file, sample_types=sample_types, data_type=data_type,
-                                      nrows=self._nrows)
-        data_copy = data_new.copy(deep=True)
-        for celltype in celltypes:
-            data_new.make_data_celltype_specific(celltype, supersets=supersets)
-            data_new.data = data_new.data[data_new.ctp_analyse_donors[celltype]]
+            nrows = kwargs.pop("nrows", None)
+            if nrows is None:
+                nrows = self._nrows
+            if fantom:
+                data_new = DataTpmFantom5(file=data_from, sample_types=sample_types,
+                                          nrows=nrows, **kwargs)
+            else:
+                data_new = DataTpm(file=data_from, nrows=nrows, **kwargs)
+        assert isinstance(data_new, DataTpm), "data_from parameter should be a DataTpm object, or a path to a file" \
+                                              "capable of being turned into one."
+        # add data to self.data
+        if celltypes:
+            data_copy = data_new.copy(deep=True)
+            for celltype in celltypes:
+                if fantom:
+                    data_new.make_data_celltype_specific(celltype, supersets=supersets)
+                    data_new.data = data_new.data[data_new.ctp_analyse_donors[celltype]]
+                else:
+                    data_new.data = data_new.data[celltype]
+                self.data = pd.concat([self.data, data_new.data], axis=1)
+                data_new = data_copy.copy(deep=True)
+        else:
             self.data = pd.concat([self.data, data_new.data], axis=1)
-            data_new = data_copy.copy(deep=True)
 
     def remove_celltype(self, celltypes, merged=True):
         """
@@ -593,7 +691,7 @@ class DataTpmFantom5(DataTpm):
             try:
                 self.data.drop(to_remove, axis=1, inplace=True)
             except (ValueError, KeyError) as e:
-                print("Celltype not removed due to: {}".format(e.args[0]))
+                print("Celltype not removed. {} is not contained in the data".format(e.args[0]))
 
         if not merged:
             celltypes_dict = self._code_selector(self.data, celltypes, not_include=self.ctp_not_include,

@@ -151,7 +151,7 @@ class GetVencodeValidated(GettingVencodes):
         data = internals.DataTpmFantom5Validated(self.validate_with, file=file_name, sample_types="primary cells",
                                                  data_type=self.data_type)
         data.merge_donors_primary(exclude_target=False)
-        data.add_celltype(self.cell_type, file=file_name, sample_types=sample_type, data_type=self.data_type)
+        data.add_celltype(self.cell_type, data_from=file_name, sample_types=sample_type, data_type=self.data_type)
         data.make_data_celltype_specific(self.cell_type)
         data.select_validated()
         data = self._filters(data, thresholds)
@@ -176,7 +176,7 @@ class GetVencode(GettingVencodes):
         data = internals.DataTpmFantom5(file=file_name, sample_types="primary cells", data_type=self.data_type,
                                         files_path=self.files_path)
         data.merge_donors_primary(exclude_target=False)
-        data.add_celltype(self.cell_type, file=file_name, sample_types=sample_type, data_type=self.data_type)
+        data.add_celltype(self.cell_type, data_from=file_name, sample_types=sample_type, data_type=self.data_type)
         data.make_data_celltype_specific(self.cell_type)
         data = self._filters(data, thresholds)
         return data
