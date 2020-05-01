@@ -32,7 +32,7 @@ Installing
 
 If you want to edit the project:
 
-2. Fork this project;
+2. Fork `this project`_;
 3. Put the missing FANTOM5 prerequisite files (only the large TSS files are missing) in the directory called "Files".
 
 If you are a user:
@@ -122,6 +122,7 @@ Acknowledgements
 .. _this one: https://fantom.gsc.riken.jp/5/datafiles/latest/extra/Enhancers/human_permissive_enhancers_phase_1_and_2_expression_tpm_matrix.txt.gz
 .. _ID-sample name: https://fantom.gsc.riken.jp/5/datafiles/latest/extra/Enhancers/Human.sample_name2library_id.txt
 .. _curated sample category file: https://github.com/AndreMacedo88/VEnCode/blob/master/VEnCode/Files/sample%20types%20-%20FANTOM5.csv
+.. _this project: https://github.com/AndreMacedo88/VEnCode
 .. _Python3: https://www.python.org/
 .. _requirements: https://github.com/AndreMacedo88/VEnCode/blob/master/requirements.txt
 .. _SemVer: https://semver.org/

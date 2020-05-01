@@ -69,7 +69,7 @@ class ValidatedElements:
                                                       sample_types="primary cells",
                                                       data_type=self.set_up.data_type)
         self.data.merge_donors_primary(exclude_target=False)
-        self.data.add_celltype(self.set_up.cell_type, file=data_to_add_ctp, data_type=self.set_up.data_type)
+        self.data.add_celltype(self.set_up.cell_type, data_from=data_to_add_ctp, data_type=self.set_up.data_type)
         self.data.make_data_celltype_specific(self.set_up.cell_type)
         self.data.filter_by_target_celltype_activity(threshold=self.set_up.target_celltype_activity)
 

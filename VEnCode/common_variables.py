@@ -533,3 +533,5 @@ primary_cell_list_vencodes_k4_sampling_enhancers = ['Adipocyte - breast', 'Adipo
 # Variables for tests:
 test_promoter_file_name = "test_hg19.cage_peak_phase1and2combined_tpm.osc.txt"
 test_enhancer_file_name = "test_human_permissive_enhancers_phase_1_and_2_expression_tpm_matrix.txt"
+expression_data1 = "expression_data1.csv"
+expression_data2 = "expression_data2.csv"
