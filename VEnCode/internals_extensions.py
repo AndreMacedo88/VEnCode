@@ -537,7 +537,7 @@ class CheckElementExpression:
             return expression
 
     def _get_expression_data(self):
-        columns = self.data.ctp_analyse_donors[self.data.target_ctp]
+        columns = self.data.target_replicates[self.data.target]
         rows = self.element_list
         expression = self.data.data.loc[rows, columns]
         return expression

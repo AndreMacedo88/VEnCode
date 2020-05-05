@@ -50,7 +50,7 @@ for celltype in tqdm(setup.re_list, desc="Completed: "):
         results_celltype = []
         for n in range(50):
             choice = random.sample(range(3), k=k)  # chooses a random int from 0 to 2, to later choose a donor.
-            data.filter_by_target_celltype_activity(threshold=setup.target_celltype_activity, donors=choice)
+            data.filter_by_target_celltype_activity(threshold=setup.target_celltype_activity, replicates=choice)
             data.filter_by_reg_element_sparseness(threshold=setup.reg_element_sparseness)
             data.define_non_target_celltypes_inactivity(threshold=setup.non_target_celltypes_inactivity)
             if setup.algorithm != "sampling":

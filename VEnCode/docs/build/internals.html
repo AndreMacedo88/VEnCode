@@ -195,7 +195,7 @@ source can be any source described in baseclass, or a filename ending in .csv.</
 
 <dl class="py class">
 <dt id="internals.DataTpm">
-<em class="property">class </em><code class="sig-prename descclassname">internals.</code><code class="sig-name descname">DataTpm</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">file</span><span class="o">=</span><span class="default_value">'custom'</span></em>, <em class="sig-param"><span class="n">sep</span><span class="o">=</span><span class="default_value">','</span></em>, <em class="sig-param"><span class="n">nrows</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">files_path</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#internals.DataTpm" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">internals.</code><code class="sig-name descname">DataTpm</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">file</span><span class="o">=</span><span class="default_value">'custom'</span></em>, <em class="sig-param"><span class="n">files_path</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">sep</span><span class="o">=</span><span class="default_value">';'</span></em>, <em class="sig-param"><span class="n">nrows</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#internals.DataTpm" title="Permalink to this definition">¶</a></dt>
 <dd><p>An Object representing a data set to retrieve VEnCodes from. Contains optional filtering methods and other tools.</p>
 <dl class="py attribute">
 <dt id="internals.DataTpm.data">
@@ -209,11 +209,11 @@ source can be any source described in baseclass, or a filename ending in .csv.</
 </dd></dl>
 
 <dl class="py attribute">
-<dt id="internals.DataTpm.target_ctp">
-<code class="sig-name descname">target_ctp</code><a class="headerlink" href="#internals.DataTpm.target_ctp" title="Permalink to this definition">¶</a></dt>
-<dd><p>The celltype that is going to be the target of the VEnCode search algorithms. By defining it in this object
-by calling the method make_data_celltype_specific(), the user can then apply activity, inactivity, sparseness
-filters, and other methods.</p>
+<dt id="internals.DataTpm.target">
+<code class="sig-name descname">target</code><a class="headerlink" href="#internals.DataTpm.target" title="Permalink to this definition">¶</a></dt>
+<dd><p>The celltype or celltypes that are going to be the target of the VEnCode search algorithms.
+By calling the method make_data_celltype_specific(), the user can define this object and then apply activity,
+inactivity, sparseness filters, and other methods.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type</dt>
 <dd class="field-odd"><p>str</p>
@@ -221,17 +221,29 @@ filters, and other methods.</p>
 </dl>
 </dd></dl>
 
+<dl class="py attribute">
+<dt id="internals.DataTpm.target_replicates">
+<code class="sig-name descname">target_replicates</code><a class="headerlink" href="#internals.DataTpm.target_replicates" title="Permalink to this definition">¶</a></dt>
+<dd><p>The target celltype/s replicates in the data.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="internals.DataTpm.shape">
+<code class="sig-name descname">shape</code><a class="headerlink" href="#internals.DataTpm.shape" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>file</strong> – The file containing the data set to convert into DataTpm object. This can be a complete path to the file,
+<li><p><strong>file</strong> (<em>str</em>) – The file containing the data set to convert into DataTpm object. This can be a complete path to the file,
 or just the file name, provided the path is given in the argument <cite>files_path</cite>. Alternatively, use ‘custom’
 to open a file dialog to pick the file. Supported file formats are .csv, .txt, .tsv, or any format
-supported by pandas</p></li>
-<li><p><strong>sep</strong> (<em>str</em>) – The separator style for the</p></li>
-<li><p><strong>nrows</strong> – </p></li>
-<li><p><strong>files_path</strong> – </p></li>
-<li><p><strong>kwargs</strong> – Optional keyword arguments available to use are any used by Pandas DataFrame object.
+supported by the pandas read_csv function. Default is ‘custom’.</p></li>
+<li><p><strong>sep</strong> (<em>str</em>) – The column separator used in the input file. Default is ‘,’.</p></li>
+<li><p><strong>nrows</strong> (<em>int</em>) – The number of rows to open in the file. Default is ‘None’ which will open the entire file.</p></li>
+<li><p><strong>files_path</strong> (<em>str</em><em>, </em><em>None</em>) – In case the argument <cite>file</cite> does not contain a complete path, input that path here. This argument is also
+useful to access the module test files by inputting ‘native’. Default is ‘None’.</p></li>
+<li><p><strong>kwargs</strong> – Optional keyword arguments available to use are any used by pandas DataFrame object.
 Please refer to the pandas DataFrame documentation for specific details.</p></li>
 </ul>
 </dd>
@@ -313,11 +325,50 @@ interest at &gt;= x TPM, x being the threshold variable.</p>
 
 <dl class="py method">
 <dt id="internals.DataTpm.make_data_celltype_specific">
-<code class="sig-name descname">make_data_celltype_specific</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">target_celltypes</span></em><span class="sig-paren">)</span><a class="headerlink" href="#internals.DataTpm.make_data_celltype_specific" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">make_data_celltype_specific</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">target_celltype</span></em>, <em class="sig-param"><span class="n">replicates</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#internals.DataTpm.make_data_celltype_specific" title="Permalink to this definition">¶</a></dt>
 <dd><p>Determines celltype/donors (columns) of interest to analyse later.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>target_celltypes</strong> – the celltype to target for analysis</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target_celltype</strong> – The celltype to target for analysis, as a string. If the celltype has replicates in the data, either supply
+<cite>target_celltype</cite> with a dictionary in the shape dict[celltype] = [replicates], or let the function
+guess the replicates by supplying the argument <cite>replicates</cite> as True.</p></li>
+<li><p><strong>replicates</strong> (<em>bool</em>) – If the celltype to target have replicates in the data, use True. Else, use False.
+Default is True.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="internals.DataTpm.merge_replicates">
+<code class="sig-name descname">merge_replicates</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">replicate_suffix</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">celltype_list</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">replicate_dict</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">exclude_target</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">not_include</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#internals.DataTpm.merge_replicates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Merges replicate samples into one celltype.
+A more conservative, but faster approach to data set mining.
+Cell type columns are created by merging all replicates for that cell type. The value for the merged
+column corresponds the average of all donors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>replicate_suffix</strong> (<em>str</em><em>, </em><em>None</em>) – If the replicates have a defined suffix, this parameter helps the algorithm to find the correct replicates.
+e.g. if the samples are in the format - celltype_rep1, then use <cite>replicate_suffix=’_rep’</cite>. Note that after
+the suffix there must be the unique number for that replicate.</p></li>
+<li><p><strong>celltype_list</strong> (<em>list</em>) – Alternatively, provide the common characters in each group of replicates to merge and the function will try
+to merge by inference. Make sure to provide the list of characters as a complete list of columns to merge.</p></li>
+<li><p><strong>replicate_dict</strong> (<em>dict</em>) – <p>As a last alternative, provide a dictionary with the names for the merged celltypes and their corresponding
+replicates. Use full names for the replicates here.
+e.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rep_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">celltype1</span><span class="p">:</span> <span class="p">[</span><span class="n">rep1</span><span class="p">,</span> <span class="n">rep2</span><span class="p">,</span> <span class="n">rep3</span><span class="p">],</span> <span class="n">celltype2</span><span class="p">:</span> <span class="p">[</span><span class="n">rep1</span><span class="p">,</span> <span class="n">rep2</span><span class="p">]}</span>
+</pre></div>
+</div>
+</p></li>
+<li><p><strong>exclude_target</strong> (<em>bool</em>) – True if the target celltype replicates are not to be merged. Otherwise, False.</p></li>
+<li><p><strong>not_include</strong> (<em>dict</em>) – Dictionary containing key:value pairs where key are the celltype names (as provided in the first arguments)
+and values are partial- or complete-matching strings to columns that are not to be merged with the others
+for that celltype, but could be getting caught up by the algorithm. e.g. celltype “adipocyte” could be
+merging all replicates for the pre-adipocytes. In this case supplying the dictionary {adipocyte: [“pre”]
+would exclude all pre-adipocyte replicates from merging with the adipocyte replicates}. Default is <cite>None</cite>.</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -348,10 +399,17 @@ interest at &gt;= x TPM, x being the threshold variable.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="internals.DataTpm.shape">
-<em class="property">property </em><code class="sig-name descname">shape</code><a class="headerlink" href="#internals.DataTpm.shape" title="Permalink to this definition">¶</a></dt>
-<dd><p>Gives the shape of the data’s data frame
-:return: The shape in (rows, cols) of the data</p>
+<dt id="id0">
+<em class="property">property </em><code class="sig-name descname">shape</code><a class="headerlink" href="#id0" title="Permalink to this definition">¶</a></dt>
+<dd><p>Outputs the shape of the data’s data frame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The shape of the data in (rows, cols).</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>list</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -400,26 +458,27 @@ So, if that is the case, check DataTpm documentation.</p>
 
 <dl class="py method">
 <dt id="internals.DataTpmFantom5.make_data_celltype_specific">
-<code class="sig-name descname">make_data_celltype_specific</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">target_celltypes</span></em>, <em class="sig-param"><span class="n">supersets</span><span class="o">=</span><span class="default_value">{'CD14+ CD16+ Monocytes': 'CD14+ Monocytes', 'CD14+ CD16- Monocytes': 'CD14+ Monocytes', 'CD4+CD25+CD45RA+ naive regulatory T cells': 'CD4+ T Cells', 'CD4+CD25+CD45RA- memory regulatory T cells': 'CD4+ T Cells', 'CD4+CD25-CD45RA+ naive conventional T cells': 'CD4+ T Cells', 'CD4+CD25-CD45RA- memory conventional T cells': 'CD4+ T Cells'}</span></em><span class="sig-paren">)</span><a class="headerlink" href="#internals.DataTpmFantom5.make_data_celltype_specific" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">make_data_celltype_specific</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">target_celltype</span></em>, <em class="sig-param"><span class="n">supersets</span><span class="o">=</span><span class="default_value">{'CD14+ CD16+ Monocytes': 'CD14+ Monocytes', 'CD14+ CD16- Monocytes': 'CD14+ Monocytes', 'CD4+CD25+CD45RA+ naive regulatory T cells': 'CD4+ T Cells', 'CD4+CD25+CD45RA- memory regulatory T cells': 'CD4+ T Cells', 'CD4+CD25-CD45RA+ naive conventional T cells': 'CD4+ T Cells', 'CD4+CD25-CD45RA- memory conventional T cells': 'CD4+ T Cells'}</span></em><span class="sig-paren">)</span><a class="headerlink" href="#internals.DataTpmFantom5.make_data_celltype_specific" title="Permalink to this definition">¶</a></dt>
 <dd><p>Determines celltype/donors (columns) of interest to analyse later.
 For previously parsed files, opens the specific file for that celltype.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>target_celltypes</strong> – the celltype to target for analysis</p></li>
-<li><p><strong>supersets</strong> (<em>dict</em>) – when a celltype is a subset of other, we must remove that superset celltype to analyse</p></li>
+<li><p><strong>target_celltype</strong> – The celltype to target for analysis.</p></li>
+<li><p><strong>supersets</strong> (<em>dict</em>) – When a celltype is a subset of other, we must remove that superset celltype to analyse
+the subset.</p></li>
 </ul>
 </dd>
 </dl>
-<p>the subset.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt id="internals.DataTpmFantom5.merge_donors_primary">
 <code class="sig-name descname">merge_donors_primary</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">exclude_target</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#internals.DataTpmFantom5.merge_donors_primary" title="Permalink to this definition">¶</a></dt>
-<dd><p>Applies a more conservative, but faster approach to data set mining:
-cell type columns are created by merging all donors for that cell type. The value for the merged column
-corresponds the average of all donors.</p>
+<dd><p>Merges replicate samples into one celltype.
+A more conservative, but faster approach to data set mining.
+Cell type columns are created by merging all replicates/donors for that cell type. The value for the merged
+column corresponds the average of all donors.</p>
 </dd></dl>
 
 <dl class="py method">
