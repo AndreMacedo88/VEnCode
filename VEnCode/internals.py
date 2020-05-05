@@ -7,6 +7,7 @@ import tkinter as tk
 from tkinter import filedialog
 from copy import copy, deepcopy
 from pathlib import Path
+from collections import defaultdict
 
 import numpy as np
 import pandas as pd
@@ -28,10 +29,13 @@ class DataTpm:
     ----------
     data : pandas.DataFrame
         This object is a pandas DataFrame representation of the initial input data set.
-    target_ctp : str
-        The celltype that is going to be the target of the VEnCode search algorithms. By defining it in this object
-        by calling the method make_data_celltype_specific(), the user can then apply activity, inactivity, sparseness
-        filters, and other methods.
+    target : str
+        The celltype or celltypes that are going to be the target of the VEnCode search algorithms.
+        By calling the method make_data_celltype_specific(), the user can define this object and then apply activity,
+        inactivity, sparseness filters, and other methods.
+    target_replicates
+        The target celltype/s replicates in the data.
+    shape
 
     Parameters
     ----------
@@ -44,40 +48,46 @@ class DataTpm:
         The column separator used in the input file. Default is ','.
     nrows : int
         The number of rows to open in the file. Default is 'None' which will open the entire file.
-    files_path : str
+    files_path : str, None
         In case the argument `file` does not contain a complete path, input that path here. This argument is also
         useful to access the module test files by inputting 'native'. Default is 'None'.
     kwargs
          Optional keyword arguments available to use are any used by pandas DataFrame object.
          Please refer to the pandas DataFrame documentation for specific details.
+
+    Methods
+    -------
+    load_data()
+        Essential method to call after DataTpm class object generation. Data is not automatically opened at object
+        generation to give this class more flexibility to subclassing.
     """
 
-    def __init__(self, file="custom", sep=",", nrows=None, files_path=None, **kwargs):
-        """
-
-        """
-        self._file, self._nrows = file, nrows
-        self.target_ctp, self.ctp_analyse_donors, self.data = None, None, None
+    def __init__(self, file="custom", files_path=None, sep=";", nrows=None, **kwargs):
+        self._file, self._nrows, self._sep, self.kwargs = file, nrows, sep, kwargs
+        self.target, self.target_replicates, self.data = None, defaultdict(list), None
         if files_path == "test":
             self._parent_path = os.path.join(str(Path(__file__).parents[0]), "Files")
         elif files_path == "outside":
             self._parent_path = os.path.join(str(Path(__file__).parents[2]), "Files")
         else:
             self._parent_path = files_path
-        self._file_path = self._filename_handler()
-        self.data = pd.read_csv(self._file_path, sep=sep, index_col=0, nrows=self._nrows, engine="python", **kwargs)
+        self._file_path, self.data = None, None
 
     @property
     def shape(self):
         """
-        Gives the shape of the data's data frame
-        :return: The shape in (rows, cols) of the data
+        Outputs the shape of the data's data frame.
+
+        Returns
+        -------
+        list
+            The shape of the data in (rows, cols).
         """
         return self.data.shape
 
     def __eq__(self, other):
-        """Allows to check equality between two DataTpmFantom5 objects"""
-        if isinstance(other, DataTpmFantom5):
+        """ Allows to check equality between two DataTpmFantom5 objects. """
+        if isinstance(other, DataTpm):
             args_list = [a for a in dir(self) if not a.startswith('__') and not callable(getattr(self, a))]
             for arg in args_list:
                 arg_self, arg_other = "self." + arg, "other." + arg
@@ -108,15 +118,17 @@ class DataTpm:
         return False
 
     def _filename_handler(self):
+        """ Handles different file names inputs in the arguments. """
         if self._file == "custom":
             root = tk.Tk()
             root.withdraw()
             file_path = tk.filedialog.askopenfilename()
         elif re.search(r"\....", self._file[-4:]):
-            if self._parent_path:
+            if self._parent_path is not None:
                 file_path = os.path.join(self._parent_path, self._file)
             else:
-                self._parent_path, file_path = os.path.split(os.path.abspath(self._file))
+                file_path = self._file
+                self._parent_path, self._file = os.path.split(os.path.abspath(self._file))
         else:
             raise AttributeError
         return file_path
@@ -128,14 +140,15 @@ class DataTpm:
         codes = []
         code_dict = {}
         for item in celltype:
-            codes_df = pd_util.df_regex_columns_searcher(item,
-                                                         data) if regex else \
-                pd_util.df_minimal_regex_columns_searcher(item, data)
+            if regex:
+                codes_list = pd_util.df_complete_regex_columns_finder(item, data)
+            else:
+                codes_list = pd_util.df_minimal_regex_columns_finder(item, data)
 
             if to_dict:
-                code_dict[item] = codes_df.columns.values.tolist()
+                code_dict[item] = codes_list
             else:
-                codes.append(codes_df.columns.values)
+                codes.append(codes_list)
         if not to_dict:
             codes = [item for sublist in codes for item in sublist]  # make one list from nested lists of codes
 
@@ -153,8 +166,24 @@ class DataTpm:
         return codes
 
     @staticmethod
+    def _not_include_code_getter(not_include, data_frame):
+        """
+        Function streamlined to deduce the names of columns from `DataTpm.data` for celltypes that are not to be
+        included.
+        """
+        if isinstance(not_include, list):
+            not_include_codes = []
+            for item in not_include:
+                not_codes_item = pd_util.df_regex_columns_finder(item, data_frame)
+                not_include_codes.append(not_codes_item)
+            not_include_codes = [item for sublist in not_include_codes for item in sublist]
+        else:
+            not_include_codes = pd_util.df_regex_columns_finder(not_include, data_frame)
+        return not_include_codes
+
+    @staticmethod
     def _code_tester(codes, celltype, codes_type="list"):
-        """ Tests if any codes were generated """
+        """ Tests if any codes were generated. """
         if codes_type == "list":
             if not codes:
                 raise Exception("No codes for {}!".format(celltype))
@@ -168,12 +197,36 @@ class DataTpm:
         else:
             raise Exception("Wrong codes type to test for the generation of codes!")
 
+    def _merging_main(self, codes_dict, exclude_target=False):
+        if exclude_target:
+            codes_dict.pop(self.target, None)
+        data_merged = pd.DataFrame(index=self.data.index.values, columns=[key for key in codes_dict.keys()])
+        if exclude_target:
+            data_merged = pd.concat([data_merged, self.data[self.target_replicates[self.target]]], axis=1)
+        for code, donors in codes_dict.items():
+            celltypes_averaged = self.data[donors].apply(np.mean, axis=1)
+            data_merged[code] = celltypes_averaged
+        data = data_merged
+        return data
+
+    def load_data(self):
+        """
+        Opens the data file with the previously provided arguments, storing the data set into the class attribute
+        `data`.
+        This method is not called during initialization to allow the DataTpm object to be easily extended by users.
+        """
+        self._file_path = self._filename_handler()
+        self.data = pd.read_csv(self._file_path, sep=self._sep, index_col=0, nrows=self._nrows, engine="python",
+                                **self.kwargs)
+
     def copy(self, deep=True):
         """
-        Method to generate a shallow, or deep copy of DataTpmFantom5 object
+        Method to generate a shallow, or deep copy of DataTpm object.
 
-        :param bool deep: True if deep copy.
-        :return: a copy of the DataTpmFantom5 object
+        Parameters
+        ----------
+        deep : bool
+            True if deep copy.
         """
         if deep:
             return deepcopy(self)
@@ -182,7 +235,7 @@ class DataTpm:
 
     def sort_columns(self, col_to_shift=None, pos_to_move=None):
         """
-        Sorts columns alphabetically
+        Sorts columns alphabetically.
         """
         if not col_to_shift or pos_to_move:
             cols = sorted(self.data.columns, key=str.lower)
@@ -199,49 +252,118 @@ class DataTpm:
             arr[pos_to_move] = col_to_shift
             self.data.columns = arr
 
-    def make_data_celltype_specific(self, target_celltypes, donors=True):
+    def make_data_celltype_specific(self, target_celltype, replicates=True):
         """
         Determines celltype/donors (columns) of interest to analyse later.
 
         Parameters
         ----------
-        target_celltypes
-            The celltype or celltypes to target for analysis. If the celltypes have donors in the data, either supply
-            `target_celltypes` with a dictionary in the shape dict[celltype] = [donors], or let the function guess
-            the donors by supplying argument `donors` as True.
-        donors : bool
-            If the celltype or celltypes to target have donors in the data, put True. Else, put False. Default is True
+        target_celltype : str, dict
+            The celltype to target for analysis, as a string. If the celltype has replicates in the data, either supply
+            `target_celltype` with a dictionary in the shape dict[celltype] = [replicates], or let the function
+            guess the replicates by supplying the argument `replicates` as True.
+        replicates : bool
+            If the celltype to target have replicates in the data, use True. Else, use False.
+            Default is True.
         """
-        if donors:
-            if isinstance(target_celltypes, dict):
-                self.target_ctp = target_celltypes.keys()
-                self.ctp_analyse_donors = target_celltypes
+        if replicates:
+            if isinstance(target_celltype, dict):
+                self.target = list(target_celltype.keys())[0]
+                self.target_replicates = target_celltype
             else:
-                self.target_ctp = target_celltypes
-                self.ctp_analyse_donors = self._code_selector(self.data, self.target_ctp, to_dict=True, regex=False)
+                self.target = target_celltype
+                self.target_replicates = self._code_selector(self.data, self.target, to_dict=True, regex=False)
         else:
-            self.target_ctp = target_celltypes
-            self.ctp_analyse_donors[target_celltypes] = target_celltypes
+            self.target = target_celltype
+            self.target_replicates[target_celltype] = target_celltype
 
-    def filter_by_target_celltype_activity(self, threshold=1, donors="all", binarize=True):
+    def merge_replicates(self, replicate_suffix=None, celltype_list=None, replicate_dict=None, exclude_target=False,
+                         not_include=None):
+        """
+        Merges replicate samples into one celltype.
+        A more conservative, but faster approach to data set mining.
+        Cell type columns are created by merging all replicates for that cell type. The value for the merged
+        column corresponds the average of all donors.
+
+        Parameters
+        ----------
+        replicate_suffix : str, None
+            If the replicates have a defined suffix, this parameter helps the algorithm to find the correct replicates.
+            e.g. if the samples are in the format - celltype_rep1, then use `replicate_suffix='_rep'`. Note that after
+            the suffix there must be the unique number for that replicate.
+        celltype_list: list
+            Alternatively, provide the common characters in each group of replicates to merge and the function will try
+            to merge by inference. Make sure to provide the list of characters as a complete list of columns to merge.
+        replicate_dict: dict
+            As a last alternative, provide a dictionary with the names for the merged celltypes and their corresponding
+            replicates. Use full names for the replicates here.
+            e.g.::
+
+                rep_dict = {celltype1: [rep1, rep2, rep3], celltype2: [rep1, rep2]}
+
+        exclude_target : bool
+            True if the target celltype replicates are not to be merged. Otherwise, False.
+        not_include : dict
+            Dictionary containing key:value pairs where key are the celltype names (as provided in the first arguments)
+            and values are partial- or complete-matching strings to columns that are not to be merged with the others
+            for that celltype, but could be getting caught up by the algorithm. e.g. celltype "adipocyte" could be
+            merging all replicates for the pre-adipocytes. In this case supplying the dictionary {adipocyte: ["pre"]
+            would exclude all pre-adipocyte replicates from merging with the adipocyte replicates}. Default is `None`.
+        """
+        if replicate_suffix is not None:
+            codes_merging = defaultdict(list)
+            regex_pattern = r"(.+){}".format(replicate_suffix)
+            for col in self.data.columns:
+                match = re.match(regex_pattern, col)
+                if match:
+                    codes_merging[match.group(1)].append(col)
+            if not_include is not None:  # remove some codes that regex might have not been able to differentiate
+                for key, values in not_include.items():
+                    if key not in codes_merging.keys():
+                        continue
+                    codes_df = self.data[codes_merging.get(key)]
+                    not_codes = self._not_include_code_getter(values, codes_df)
+                    codes_merging[key] = list(set(codes_merging[key]) - set(not_codes))
+            self.data = self._merging_main(codes_dict=codes_merging, exclude_target=exclude_target)
+
+        elif celltype_list is not None:
+            codes_merging = self._code_selector(self.data, celltype_list, not_include=not_include, to_dict=True,
+                                                regex=False)
+            self.data = self._merging_main(codes_dict=codes_merging, exclude_target=exclude_target)
+
+        elif replicate_dict is not None:
+            self.data = self._merging_main(codes_dict=replicate_dict, exclude_target=exclude_target)
+
+        if not exclude_target:
+            self.target_replicates[self.target] = self.target  # The replicates are gone from data.
+
+    def filter_by_target_celltype_activity(self, threshold=1, replicates="all", binarize=True):
         """
         Applies a filter to the Data, retaining only the regulatory elements that are expressed in the celltype of
         interest at >= x TPM, x being the threshold variable.
 
-        :param Union[int, float] threshold: TPM value used to filter the data.
-        :param list donors: used to select only a few donors out of all from target celltype.
-        :param binarize: Convert target cell type expression to 0 and 1, for values below or above the threshold,
-        respectively
+        Parameters
+        ----------
+        threshold : int, float
+            TPM value used to filter the data.
+        replicates : list
+            Used to select only a few replicates from all the target celltype replicates. Can be the full name of the
+            replicates to use in the filter, or their column index numbers relative to all that celltype's replicates.
+        binarize : bool
+            Convert target cell type expression to 0 and 1, for values below or above the threshold, respectively.
         """
-        celltype_target = self.ctp_analyse_donors[self.target_ctp]
+        celltype_target = self.target_replicates[self.target]
         if isinstance(celltype_target, (list, tuple, np.ndarray)):
-            if donors == "all":
-                for donor in celltype_target:
-                    self.data = self.data[self.data[donor] >= threshold]
+            if replicates == "all":
+                for rep in celltype_target:
+                    self.data = self.data[self.data[rep] >= threshold]
             else:
-                for i in donors:
-                    donor = celltype_target[i]
-                    self.data = self.data[self.data[donor] >= threshold]
+                for i in replicates:
+                    try:
+                        rep = celltype_target[i]
+                    except TypeError:
+                        rep = i
+                    self.data = self.data[self.data[rep] >= threshold]
         else:
             self.data = self.data[self.data[celltype_target] >= threshold]
         if binarize:
@@ -250,90 +372,94 @@ class DataTpm:
             except AttributeError:
                 self.data[celltype_target] = self.data[celltype_target].apply(lambda x: 0 if x <= threshold else 1)
 
-    def filter_by_reg_element_sparseness(self, threshold=90):
+    def define_non_target_celltypes_inactivity(self, threshold=0):
+        """
+        Converts the non-target celltypes' data to binary (0 - inactive; 1- active) given a threshold.
+
+        Parameters
+        ----------
+        threshold : int, float
+            Maximum TPM that non-target celltypes can have to be considered inactive.
+        """
+        try:
+            celltypes_non_target = self.data.columns.difference(self.target_replicates[self.target])
+        except TypeError:
+            celltypes_non_target = self.data.columns.difference([self.target_replicates[self.target]])
+        try:
+            self.data[celltypes_non_target] = self.data[celltypes_non_target].applymap(
+                lambda x: 0 if x <= threshold else 1)
+        except AttributeError:
+            self.data[celltypes_non_target] = self.data[celltypes_non_target].apply(
+                lambda x: 0 if x <= threshold else 1)
+
+    def filter_by_reg_element_sparseness(self, threshold=90, min_re=50, exclude_target=True):
         """
         Applies a filter to the Data, retaining only the regulatory elements in which xth percentile (x being the
-        threshold variable) value is 0 (that is: not expressed).
-        This filter will, then, retain only the REs with most 0 TPM for all celltypes.
+        threshold variable) value is 0 (that is: not expressed). It will exclude the target celltype from the
+        calculations. This filter will, then, retain only the REs with most 0 TPM for all non-target celltypes.
+        The data must be made celltype specific first.
 
-        :param int threshold: percentile value used to filter the data.
+        Parameters
+        ----------
+        threshold : int
+            Percentile value used to filter the data.
+        min_re : int
+            Minimum number of regulatory elements (RE) to keep in the data.
+        exclude_target : bool
+            Usually we want target expression to be the opposite of sparse, but in case the opposite is true, inputting
+            `False` in this parameter will include the target in the sparseness filter.
         """
-        self.data, column_name = pd_util.df_percentile_calculator(self.data,
-                                                                  self.ctp_analyse_donors[self.target_ctp],
-                                                                  threshold)
+        if exclude_target:
+            self.data, column_name = pd_util.df_percentile_calculator(self.data, threshold,
+                                                                      celltype=self.target_replicates[self.target])
+        else:
+            self.data, column_name = pd_util.df_percentile_calculator(self.data, threshold,
+                                                                      celltype=None)
         rows_to_keep = self.data[column_name] == 0
-        while sum(rows_to_keep) < 50 and threshold > 5:
+        while sum(rows_to_keep) < min_re and threshold > 5:
             threshold -= 5
             self.data.drop(column_name, axis=1, inplace=True)
-            self.data, column_name = pd_util.df_percentile_calculator(self.data,
-                                                                      self.ctp_analyse_donors[self.target_ctp],
-                                                                      threshold)
+            if exclude_target:
+                self.data, column_name = pd_util.df_percentile_calculator(self.data, threshold,
+                                                                          celltype=self.target_replicates[self.target])
+            else:
+                self.data, column_name = pd_util.df_percentile_calculator(self.data, threshold,
+                                                                          celltype=None)
             rows_to_keep = self.data[column_name] == 0
-        if sum(rows_to_keep) >= 50:
+        if sum(rows_to_keep) >= min_re:
             self.data = pd_util.df_filter_by_column_value(self.data, column_name, value=0)
             self.data.drop(column_name, axis=1, inplace=True)
         else:
             self.data.drop(column_name, axis=1, inplace=True)
 
-    def define_non_target_celltypes_inactivity(self, threshold=0):
+    def sort_sparseness(self, exclude_target=True, descending=True):
         """
-        Converts the data to binary (0 - inactive; 1- active) given a threshold.
-        :param threshold: Maximum TPM non-target cell types should have to be considered inactive.
-        """
-        celltypes_nontarget = self.data.columns.difference(self.ctp_analyse_donors[self.target_ctp])
-        try:
-            self.data[celltypes_nontarget] = self.data[celltypes_nontarget].applymap(
-                lambda x: 0 if x <= threshold else 1)
-        except AttributeError:
-            self.data[celltypes_nontarget] = self.data[celltypes_nontarget].apply(
-                lambda x: 0 if x <= threshold else 1)
+        Sorts the data by sparsest RE.
 
-    def sort_sparseness(self):
-        """ Sorts the data by descending sparsest RE """
-        self.data["sum"] = self.data.drop(self.ctp_analyse_donors[self.target_ctp], axis=1).sum(
-            axis=1)  # create a extra column with the sum of 1s for each row (promoter)
-        self.data.sort_values(["sum"], inplace=True)  # sort promoters based on the previous sum. Descending order
+        Parameters
+        ----------
+        exclude_target : bool
+            Usually we want to sort the sparseness of just the non-target celltypes, but in case the opposite is true,
+            inputting `False` in this parameter will include the target in the sorting method.
+        descending : bool
+            `True` if the data is to be sorted in descending sparseness (most sparse appear on top). `False` otherwise.
+        """
+        if exclude_target:
+            self.data["sum"] = self.data.drop(self.target_replicates[self.target], axis=1).sum(
+                axis=1)  # create a extra column with the sum of 1s for each row (Reg. Element)
+        else:
+            self.data["sum"] = self.data.sum(axis=1)  # create a extra column with the sum of 1s for each row (RE)
+        self.data.sort_values(["sum"], inplace=True, ascending=descending)  # sort REs based on the previous sum.
         self.data.drop(["sum"], axis=1, inplace=True)  # now remove the sum column
 
-    def add_celltype(self, celltypes=False, data_from="custom", **kwargs):
+    def remove_celltype(self, celltypes):
         """
-        Adds expression data for celltypes from other data sets (with similar regulatory element information).
-        Examples include adding data from a cancer cell type to a primary cell type data set.
+        Removes a specific celltype (column) from data.
 
-        :param celltypes: Cell types to merge with the DataTpm data. If false it will add all provided data.
-        :param data_from: Data containing the cell types to add. "custom" will open a file dialog.
-        Optional parameters (**kwargs) are used to create a new DataTpm object from "data_from" to add to the data set.
-        So, if that is the case, check DataTpm documentation.
-        """
-        # Deal with possible "celltypes" dict input type
-        if isinstance(celltypes, dict):
-            celltypes = list(celltypes.values())[0]
-        # Deal with different "data_from" variable input types
-        if isinstance(data_from, DataTpm):
-            data_new = data_from.copy()
-        else:
-            nrows = kwargs.pop("nrows", None)
-            if nrows is None:
-                nrows = self._nrows
-            data_new = DataTpm(file=data_from, nrows=nrows, **kwargs)
-        assert isinstance(data_new, DataTpm), "data_from parameter should be a DataTpm object, or a path to a file" \
-                                              "capable of being turned into one."
-        # add data to self.data
-        if celltypes:
-            data_concat = data_new.data[celltypes]
-        else:
-            data_concat = data_new.data
-        self.data = pd.concat([self.data, data_concat], axis=1)
-
-
-
-
-    def remove_celltype(self, celltypes, merged=True):
-        """
-        Removes a specific celltype from data
-
-        :param celltypes: celltype/s to remove. int or list-type
-        :param merged: If the data has been previously merged into celltypes, True. If columns represent donors, False.
+        Parameters
+        ----------
+        celltypes : str, list
+            celltype/s to remove (columns).
         """
         try:
             self.data.drop(celltypes, axis=1, inplace=True)
@@ -342,35 +468,96 @@ class DataTpm:
 
     def remove_element(self, elements):
         """
-        Removes a specific celltype from data
+        Removes a specific regulatory element (row) from data.
 
-        :param elements: regulatory element/s to remove. int or list-type
+        Parameters
+        ----------
+        elements : str, list
+            Regulatory element/s to remove (rows).
         """
         try:
             self.data.drop(elements, axis=0, inplace=True)
         except ValueError as e:
             print("Regulatory elements not removed due to: {}".format(e.args[0]))
 
-    def drop_target_ctp(self):
-        if isinstance(self.target_ctp, list):
-            for target in self.target_ctp:
-                try:
-                    self.data.drop(self.ctp_analyse_donors[target], axis=1, inplace=True)
-                except:
-                    continue
+    def add_celltype(self, celltypes=False, data_from="custom", **kwargs):
+        """
+        Adds expression data for celltypes from other data sets (with similar regulatory element information).
+        Examples include adding data from a cancer celltype to a primary celltype data set.
+
+        Parameters
+        ----------
+        celltypes : str, list, dict
+            Celltypes to merge with the DataTpm data. If false it will add all provided data.
+        data_from:
+            Data containing the celltypes to add. Can be either another DataTpm object or the path to a file eligible
+            to be converted into a DataTpm object.
+            "custom" will open a file dialog.
+        kwargs :
+            Are used to create a new DataTpm object from "data_from" to add to the data set.
+            So, if that is the case, check DataTpm documentation.
+        """
+        # Deal with possible "celltypes" dict input type:
+        if isinstance(celltypes, dict):
+            celltypes = list(celltypes.values())[0]
+        # Deal with different "data_from" variable input types:
+        if isinstance(data_from, DataTpm):
+            data_new = data_from.copy(deep=True)
         else:
-            self.data.drop(self.ctp_analyse_donors[self.target_ctp], axis=1, inplace=True)
+            nrows = kwargs.pop("nrows", None)
+            if nrows is None:
+                nrows = self._nrows
+            data_new = DataTpm(file=data_from, nrows=nrows, **kwargs)
+            data_new.load_data()
+        assert isinstance(data_new, DataTpm), "data_from parameter should be a DataTpm object, or a path to a file" \
+                                              "capable of being turned into one."
+        # add data to self.data:
+        if celltypes:
+            data_concat = data_new.data[celltypes]
+        else:
+            data_concat = data_new.data
+        self.data = pd.concat([self.data, data_concat], axis=1)
+
+    def drop_target_ctp(self, inplace=True):
+        """
+        Shortcut function to drop the target celltypes from the data set. It handles the fact that the data may have
+        been merged or not.
+
+        Parameters
+        ----------
+        inplace : bool
+            `True` modifies the class attribute `data` in place, and the function returns `None`. `False` tells the
+            function to return the data after dropping the target celltypes.
+
+        Returns
+        -------
+        DataTpm
+            The data without the target celltypes. But also modifies it in place
+        """
+        data = self.data.drop(self.target_replicates[self.target], axis=1, inplace=inplace)
+        return data
 
     def binarize_data(self, threshold=0):
         """
         Converts all data to 0 and 1, where 1 is any value above threshold.
-        :param threshold: max value for "0"
+
+        Parameters
+        ----------
+        threshold : int
+            Maximum expression value for a RE to be considered inactive.
         """
         self.data = self.data.applymap(lambda x: 0 if x <= threshold else 1)
 
     def to_csv(self, *args, **kwargs):
         """
         Generates a csv file. args and kwargs passed must be compatible to Pandas DataFrame.to_csv()
+
+        Parameters
+        ----------
+        args
+            Arguments to be passed on to pandas DataFrame.to_csv()
+        kwargs
+            Keyword arguments to be passed on to pandas DataFrame.to_csv()
         """
         self.data.to_csv(*args, **kwargs)
 
@@ -385,7 +572,7 @@ class DataTpmFantom5(DataTpm):
                  files_path="test", *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._file, self.sample_type, self.data_type, self._nrows = file, sample_types, data_type, nrows
-        self.target_ctp, self.ctp_analyse_donors, self.ctp_not_include, self.data = None, None, None, None
+        self.target, self.target_replicates, self.ctp_not_include, self.data = None, None, None, None
         self._file_path = None
         if files_path == "test":
             self._parent_path = os.path.join(str(Path(__file__).parents[0]), "Files")
@@ -444,7 +631,7 @@ class DataTpmFantom5(DataTpm):
         elif re.search(r"\....", self._file[-4:]):
             file_path = os.path.join(self._parent_path, self._file)
         elif self._file == "parsed":
-            celltype_name = self.target_ctp.replace(":", "-").replace("/", "-")
+            celltype_name = self.target.replace(":", "-").replace("/", "-")
             file_path = os.path.join(self._parent_path, "Dbs", f"{celltype_name}_tpm_{self.data_type}-1.csv")
         else:
             raise AttributeError
@@ -527,27 +714,19 @@ class DataTpmFantom5(DataTpm):
                 pass
         return celltypes
 
-    @staticmethod
-    def _not_include_code_getter(not_include, data_frame):
-        if isinstance(not_include, list):
-            not_include_codes = []
-            for item in not_include:
-                not_codes_item = pd_util.df_regex_columns_searcher_list(item, data_frame)
-                not_include_codes.append(not_codes_item)
-            not_include_codes = [item for sublist in not_include_codes for item in sublist]
-        else:
-            not_include_codes = pd_util.df_regex_columns_searcher_list(not_include, data_frame)
-        return not_include_codes
-
-    def make_data_celltype_specific(self, target_celltypes,
+    def make_data_celltype_specific(self, target_celltype,
                                     supersets=cv.primary_cells_supersets):
         """
         Determines celltype/donors (columns) of interest to analyse later.
         For previously parsed files, opens the specific file for that celltype.
 
-        :param target_celltypes: the celltype to target for analysis
-        :param dict supersets: when a celltype is a subset of other, we must remove that superset celltype to analyse
-        the subset.
+        Parameters
+        ----------
+        target_celltype
+            The celltype to target for analysis.
+        supersets : dict
+            When a celltype is a subset of other, we must remove that superset celltype to analyse
+            the subset.
         """
         if self.sample_type == "cell lines":
             self.ctp_not_include = cv.cancer_not_include_codes
@@ -557,74 +736,67 @@ class DataTpmFantom5(DataTpm):
             self.ctp_not_include = cv.time_courses_not_include_codes
         else:
             self.ctp_not_include = None
-        if isinstance(target_celltypes, dict):  # to deal with situations such as mesothelioma cell line
-            target_ctp_in_data = list(target_celltypes.values())[0]
+        if isinstance(target_celltype, dict):  # to deal with situations such as mesothelioma cell line
+            target_ctp_in_data = list(target_celltype.values())[0]
         else:
-            target_ctp_in_data = target_celltypes
+            target_ctp_in_data = target_celltype
 
         if self._file == "parsed":
-            if isinstance(target_celltypes, dict):
-                self.target_ctp = list(target_celltypes.keys())[0]
+            if isinstance(target_celltype, dict):
+                self.target = list(target_celltype.keys())[0]
             else:
-                self.target_ctp = target_celltypes
+                self.target = target_celltype
             self._file_path = self._filename_handler()
             self.data = pd.read_csv(self._file_path, sep=";", index_col=0,
                                     skiprows=None, nrows=self._nrows, engine="python")
-            self.ctp_analyse_donors = self._code_selector(self.data, target_ctp_in_data,
-                                                          not_include=self.ctp_not_include,
-                                                          to_dict=True, regex=True)
+            self.target_replicates = self._code_selector(self.data, target_ctp_in_data,
+                                                         not_include=self.ctp_not_include,
+                                                         to_dict=True, regex=True)
             # enhancers might need regex to be False:
             if isinstance(target_ctp_in_data, str):
                 target_ctp_in_data = [target_ctp_in_data]
             else:
                 target_ctp_in_data = target_ctp_in_data
             for celltype in target_ctp_in_data:
-                if not self.ctp_analyse_donors[celltype]:
-                    self.ctp_analyse_donors = self._code_selector(self.data, target_ctp_in_data,
-                                                                  not_include=self.ctp_not_include,
-                                                                  to_dict=True, regex=False)
+                if not self.target_replicates[celltype]:
+                    self.target_replicates = self._code_selector(self.data, target_ctp_in_data,
+                                                                 not_include=self.ctp_not_include,
+                                                                 to_dict=True, regex=False)
                     break
                 else:
                     continue
-            if isinstance(target_celltypes, dict):
-                temp_dict = {self.target_ctp: list(
-                    gen_util.flatten_irregular_nested_lists(list(self.ctp_analyse_donors.values())))}
-                self.ctp_analyse_donors = temp_dict
+            if isinstance(target_celltype, dict):
+                temp_dict = {self.target: list(
+                    gen_util.flatten_irregular_nested_lists(list(self.target_replicates.values())))}
+                self.target_replicates = temp_dict
 
         else:
-            self.ctp_analyse_donors = self._code_selector(self.data, target_ctp_in_data,
-                                                          not_include=self.ctp_not_include,
-                                                          to_dict=True, regex=False)
-            if isinstance(target_celltypes, dict):  # to deal with situations such as mesothelioma cell line
-                self.target_ctp = list(target_celltypes.keys())[0]
+            self.target_replicates = self._code_selector(self.data, target_ctp_in_data,
+                                                         not_include=self.ctp_not_include,
+                                                         to_dict=True, regex=False)
+            if isinstance(target_celltype, dict):  # to deal with situations such as mesothelioma cell line
+                self.target = list(target_celltype.keys())[0]
                 temp_dict = \
-                    {self.target_ctp: list(
-                        gen_util.flatten_irregular_nested_lists(list(self.ctp_analyse_donors.values())))}
-                self.ctp_analyse_donors = temp_dict
+                    {self.target: list(
+                        gen_util.flatten_irregular_nested_lists(list(self.target_replicates.values())))}
+                self.target_replicates = temp_dict
             else:
-                self.target_ctp = target_celltypes
-        if supersets and self.target_ctp in supersets.keys():
-            self.data.drop(supersets[self.target_ctp], axis=1, inplace=True)
+                self.target = target_celltype
+        if supersets and self.target in supersets.keys():
+            self.data.drop(supersets[self.target], axis=1, inplace=True)
 
     def merge_donors_primary(self, exclude_target=True):
         """
-        Applies a more conservative, but faster approach to data set mining:
-        cell type columns are created by merging all donors for that cell type. The value for the merged column
-        corresponds the average of all donors.
+        Merges replicate samples into one celltype.
+        A more conservative, but faster approach to data set mining.
+        Cell type columns are created by merging all replicates/donors for that cell type. The value for the merged
+        column corresponds the average of all donors.
         """
         if self._file == "parsed":
             return
         codes = self._code_selector(self.data, cv.primary_cell_list, not_include=cv.primary_not_include_codes,
                                     to_dict=True, regex=False)
-        if exclude_target:
-            codes.pop(self.target_ctp, None)
-        data_merged = pd.DataFrame(index=self.data.index.values, columns=[key for key in codes.keys()])
-        if exclude_target:
-            data_merged = pd.concat([data_merged, self.data[self.ctp_analyse_donors[self.target_ctp]]], axis=1)
-        for code, donors in codes.items():
-            celltypes_averaged = self.data[donors].apply(np.mean, axis=1)
-            data_merged[code] = celltypes_averaged
-        self.data = data_merged
+        self.data = self._merging_main(codes, exclude_target=exclude_target)
         return
 
     def add_celltype(self, celltypes=False, data_from="custom", sample_types="cell lines", fantom=True, **kwargs):
@@ -671,7 +843,7 @@ class DataTpmFantom5(DataTpm):
             for celltype in celltypes:
                 if fantom:
                     data_new.make_data_celltype_specific(celltype, supersets=supersets)
-                    data_new.data = data_new.data[data_new.ctp_analyse_donors[celltype]]
+                    data_new.data = data_new.data[data_new.target_replicates[celltype]]
                 else:
                     data_new.data = data_new.data[celltype]
                 self.data = pd.concat([self.data, data_new.data], axis=1)
@@ -708,19 +880,20 @@ class Vencodes:
     def __init__(self, data_object, algorithm, number_of_re=4, n_samples=10000, stop=5, second_data_object=None,
                  using=None):
         """
-        :param DataTpmFantom5 data_object: Must be made celltype specific before calling this method.
+        :param DataTpm data_object: Must be made celltype specific before calling this method.
         :param str algorithm: algorithm to find VEnCodes. Currently accepted: heuristic, sampling
         :param int n_samples: number of times to try finding a VEnCode. Used only if algorithm = "sampling"
         :param int stop: number of promoters to test per node level. Used only if algorithm = "heuristic
         """
         self._data_object, self.algorithm, self.k = data_object.copy(), algorithm, number_of_re
-        self.celltype_donors = self._data_object.ctp_analyse_donors[data_object.target_ctp]
+        self.celltype_donors = self._data_object.target_replicates[data_object.target]
         self.problems, self.vencodes, self.e_values = None, [], {}
         self._parent_path = os.path.join(str(Path(__file__).parents[2]), "VEnCodes")
 
         self.celltype_donors_data = self._data_object.data[self.celltype_donors]
         self.data = self._data_object.data.copy(deep=True)
-        self.data_not_target = self._data_object.data.drop(self.celltype_donors, axis=1)
+        self.data_not_target = self._data_object.drop_target_ctp(inplace=False)
+        # self.data_not_target = self._data_object.data.drop(self.celltype_donors, axis=1)
 
         if second_data_object:
             self.second_data_object = second_data_object.copy()
@@ -831,7 +1004,7 @@ class Vencodes:
                     path = self._parent_path
                 else:
                     pass
-                file_name = "{}_vencode".format(self._data_object.target_ctp)
+                file_name = "{}_vencode".format(self._data_object.target)
                 file_name = d_f_handling.str_replace_multi(
                     file_name, {":": "-", "*": "-", "?": "-", "<": "-", ">": "-", "/": "-"})
                 file_path = d_f_handling.check_if_and_makefile(file_name, path=path, file_type=".csv")
@@ -864,7 +1037,7 @@ class Vencodes:
 
         # TODO: needs to get the minimum number of second promoter/enhancers as possible. rn is getting k second RE
         self.second_data_object = second_data_object.copy()
-        self.second_data_object.drop_target_ctp()
+        self.second_data_object.drop_target_ctp(inplace=True)
         sparsest = self.data_not_target.head(n=self.k)
         mask = sparsest != 0
         cols = sparsest.columns[np.all(mask.values, axis=0)].tolist()
@@ -1127,7 +1300,7 @@ class Vencodes:
                 path = self._parent_path
             else:
                 pass
-            file_name = "{}_heat_map".format(self._data_object.target_ctp)
+            file_name = "{}_heat_map".format(self._data_object.target)
             file_path = d_f_handling.check_if_and_makefile(file_name, path=path, file_type=".png")
         else:
             file_path = None
@@ -1221,7 +1394,7 @@ class Vencodes:
             self.determine_e_values()
         if path is None:
             path = self._parent_path
-        file_name = "{}_evalues".format(self._data_object.target_ctp)
+        file_name = "{}_evalues".format(self._data_object.target)
         file_name = d_f_handling.str_replace_multi(
             file_name, {":": "-", "*": "-", "?": "-", "<": "-", ">": "-", "/": "-"})
         file_path = d_f_handling.check_if_and_makefile(file_name, path=path, file_type=".csv")

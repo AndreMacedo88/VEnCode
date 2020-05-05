@@ -69,12 +69,12 @@ for celltype in tqdm(setup.celltypes_list, desc="Completed: "):
         celltype = list(celltype.keys())[0]
 
     # cycle possible number of combinations of donors:
-    donors_number = len(data.ctp_analyse_donors[celltype])
+    donors_number = len(data.target_replicates[celltype])
     for k in range(1, donors_number):
         results_celltype = []
         for n in range(50):
             choice = random.sample(range(donors_number), k=k)  # chooses a random int from 0 to 2, to later choose a donor.
-            data.filter_by_target_celltype_activity(threshold=setup.target_celltype_activity, donors=choice)
+            data.filter_by_target_celltype_activity(threshold=setup.target_celltype_activity, replicates=choice)
             data.filter_by_reg_element_sparseness(threshold=setup.reg_element_sparseness)
             data.define_non_target_celltypes_inactivity(threshold=setup.non_target_celltypes_inactivity)
             if setup.algorithm != "sampling":

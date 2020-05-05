@@ -3,8 +3,10 @@ test_internals.py: File containing a set of unittest.TestCase runnable tests for
 in the internals.py file.
 """
 
-import sys, os
+import os
+import sys
 import unittest
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -17,6 +19,7 @@ from VEnCode import common_variables as cv
 from VEnCode.utils import dir_and_file_handling as dh
 
 
+# First come the tests for the data set container, DataTpm:
 class DataTpmTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -24,7 +27,7 @@ class DataTpmTest(unittest.TestCase):
         Sets-up class variables to be used in the tests.
         """
         cls.celltype_analyse = "celltypetarget"
-        cls.donor_nomenclature = "_donor"
+        cls.replicate_suffix = "_donor"
         cls.data1 = cv.expression_data1
         cls.data2 = cv.expression_data2
 
@@ -34,13 +37,632 @@ class FilenameHandler(DataTpmTest):
     def setUpClass(cls):
         """ Sets-up class variables to be used in the tests. """
         super().setUpClass()
+        path = os.path.join(str(Path(__file__).parents[1]), "Files")
+        cls.data_tpm_path_div = internals.DataTpm(file=cls.data1, files_path=path)
+        cls.data_tpm_path_div.load_data()
+        cls.data_tpm_path_full = internals.DataTpm(file=os.path.join(path, cls.data1), files_path=None)
+        cls.data_tpm_path_full.load_data()
 
     def test_filename(self):
-        file_type = self.data1
-        database = internals.DataTpm(file=file_type, nrows=4)
-        self.assertEqual(os.path.isfile(database._file_path), True)
+        data_tpm = internals.DataTpm(file=self.data1, files_path="test", nrows=4)
+        data_tpm.load_data()
+        self.assertEqual(os.path.isfile(data_tpm._file_path), True)
+
+    def test_files_path(self):
+        self.assertEqual(os.path.isfile(self.data_tpm_path_div._file_path), True)
+
+    def test_file_full(self):
+        self.assertEqual(os.path.isfile(self.data_tpm_path_full._file_path), True)
 
 
+class DataTest(DataTpmTest):
+    @classmethod
+    def setUpClass(cls):
+        """ Sets-up class variables to be used in the tests. """
+        super().setUpClass()
+        cls.data_tpm = internals.DataTpm(file=cls.data1, files_path="test", sep=";")
+        cls.data_tpm.load_data()
+        cls.data_tpm_4row = internals.DataTpm(file=cls.data1, files_path="test", sep=";", nrows=4)
+        cls.data_tpm_4row.load_data()
+
+    def test_open(self):
+        self.assertEqual(isinstance(self.data_tpm.data, pd.DataFrame), True)
+
+    def test_rows(self):
+        self.assertEqual(69, self.data_tpm.shape[0])
+
+    def test_nrows(self):
+        self.assertEqual(4, self.data_tpm_4row.shape[0])
+
+    def test_cols(self):
+        self.assertEqual(28, self.data_tpm.shape[1])
+
+    def test_row_names(self):
+        expected = ["chr10:100027943..100027958,-", "chr10:100174900..100174956,-",
+                    "chr12:109548967..109549024,+", "chr12:109554241..109554255,+"]
+        self.assertEqual(expected, self.data_tpm_4row.data.index.values.tolist())
+
+    def test_col_names(self):
+        expected = ["celltypetarget_donor1", "celltypetarget_donor2", "celltypetarget_donor3"]
+        self.assertCountEqual(expected, self.data_tpm.data.columns[:3])
+
+
+class MakeCelltypeSpecificTest(DataTpmTest):
+    def setUp(self):
+        """ Sets-up variables to be used in the tests. """
+        self.data_tpm = internals.DataTpm(file=self.data1, files_path="test", sep=";")
+        self.data_tpm.load_data()
+        self.data_tpm.make_data_celltype_specific(self.celltype_analyse)
+
+    def test_target_replicates(self):
+        expected = {'celltypetarget_donor1', 'celltypetarget_donor2', 'celltypetarget_donor3'}
+        self.assertEqual(expected, set(self.data_tpm.target_replicates["celltypetarget"]))
+
+    def test_target(self):
+        expected = 'celltypetarget'
+        self.assertEqual(expected, self.data_tpm.target)
+
+
+class ReplicatesFalseTest(MakeCelltypeSpecificTest):
+    def setUp(self):
+        """ Sets-up variables to be used in the tests. """
+        self.data_tpm = internals.DataTpm(file=self.data1, files_path="test", sep=";")
+        self.data_tpm.load_data()
+        self.data_tpm.make_data_celltype_specific(self.celltype_analyse, replicates=False)
+
+    def test_target_replicates(self):
+        expected = 'celltypetarget'
+        self.assertEqual(expected, self.data_tpm.target_replicates["celltypetarget"])
+
+    def test_target(self):
+        expected = 'celltypetarget'
+        self.assertEqual(expected, self.data_tpm.target)
+
+
+class MergeReplicatesTest(DataTpmTest):
+    COLUMN_NAMES = ['celltypetarget', 'celltype2', 'celltype3', 'celltype4', 'celltype5', 'celltype6',
+                    'celltype7', 'celltype8', 'celltype9', 'celltype10', 'celltype11', 'celltype12']
+
+
+class ReplicateSuffixTest(MergeReplicatesTest):
+    def setUp(self):
+        """ Sets-up variables to be used in the tests. """
+        self.data_tpm = internals.DataTpm(file=self.data1, files_path="test", sep=";")
+        self.data_tpm.load_data()
+
+    def test_shape(self):
+        self.data_tpm.merge_replicates(replicate_suffix=self.replicate_suffix)
+        expected = (69, 12)
+        self.assertEqual(expected, self.data_tpm.shape)
+
+    def test_average(self):
+        expected = np.mean(self.data_tpm.data.iloc[0, 0:3].values)
+        self.data_tpm.merge_replicates(replicate_suffix=self.replicate_suffix)
+        self.assertAlmostEqual(expected, self.data_tpm.data.iloc[0, 0])
+
+    def test_column_names(self):
+        self.data_tpm.merge_replicates(replicate_suffix=self.replicate_suffix)
+        self.assertCountEqual(self.COLUMN_NAMES, self.data_tpm.data.columns)
+
+
+class CelltypeListTest(MergeReplicatesTest):
+    def setUp(self):
+        """ Sets-up variables to be used in the tests. """
+        self.data_tpm = internals.DataTpm(file=self.data1, files_path="test", sep=";")
+        self.data_tpm.load_data()
+        self.celltype_list = ['celltypetarget', 'celltype2', 'celltype3', 'celltype4', 'celltype5', 'celltype6',
+                              'celltype7', 'celltype8', 'celltype9', 'celltype10', 'celltype11', 'celltype12']
+
+    def test_shape(self):
+        self.data_tpm.merge_replicates(celltype_list=self.celltype_list)
+        expected = (69, 12)
+        self.assertEqual(expected, self.data_tpm.shape)
+
+    def test_average(self):
+        expected = np.mean(self.data_tpm.data.iloc[0, 0:3].values)
+        self.data_tpm.merge_replicates(celltype_list=self.celltype_list)
+        self.assertAlmostEqual(expected, self.data_tpm.data.iloc[0, 0])
+
+    def test_column_names(self):
+        self.data_tpm.merge_replicates(celltype_list=self.celltype_list)
+        self.assertCountEqual(self.COLUMN_NAMES, self.data_tpm.data.columns)
+
+
+class ReplicateDictTest(MergeReplicatesTest):
+    def setUp(self):
+        """ Sets-up variables to be used in the tests. """
+        self.data_tpm = internals.DataTpm(file=self.data1, files_path="test", sep=";")
+        self.data_tpm.load_data()
+        self.replicate_dict = {
+            'celltypetarget': ['celltypetarget_donor1', 'celltypetarget_donor2', 'celltypetarget_donor3'],
+            'celltype2': ['celltype2_donor1', 'celltype2_donor2'],
+            'celltype3': ['celltype3_donor1'],
+            'celltype4': ['celltype4_donor1', 'celltype4_donor2', 'celltype4_donor3'],
+            'celltype5': ['celltype5_donor1', 'celltype5_donor2'],
+            'celltype6': ['celltype6_donor1', 'celltype6_donor2'],
+            'celltype7': ['celltype7_donor1'],
+            'celltype8': ['celltype8_donor1', 'celltype8_donor2', 'celltype8_donor3'],
+            'celltype9': ['celltype9_donor1', 'celltype9_donor2', 'celltype9_donor3', 'celltype9_donor4',
+                          'celltype9_donor5'],
+            'celltype10': ['celltype10_donor1', 'celltype10_donor2'],
+            'celltype11': ['celltype11_donor1', 'celltype11_donor2'],
+            'celltype12': ['celltype12_donor1', 'celltype12_donor2']
+        }
+
+    def test_shape(self):
+        self.data_tpm.merge_replicates(replicate_dict=self.replicate_dict)
+        expected = (69, 12)
+        self.assertEqual(expected, self.data_tpm.shape)
+
+    def test_average(self):
+        expected = np.mean(self.data_tpm.data.iloc[0, 0:3].values)
+        self.data_tpm.merge_replicates(replicate_dict=self.replicate_dict)
+        self.assertAlmostEqual(expected, self.data_tpm.data.iloc[0, 0])
+
+    def test_column_names(self):
+        self.data_tpm.merge_replicates(replicate_dict=self.replicate_dict)
+        self.assertCountEqual(self.COLUMN_NAMES, self.data_tpm.data.columns)
+
+
+class NotIncludeTest(MergeReplicatesTest):
+    NOT_INCLUDE = {"celltypetarget": ["donor1"], "celltype9": ["donor3", "5"]}
+
+    def setUp(self):
+        """ Sets-up variables to be used in the tests. """
+        self.data_tpm = internals.DataTpm(file=self.data1, files_path="test", sep=";")
+        self.data_tpm.load_data()
+
+    def test_shape(self):
+        self.data_tpm.merge_replicates(replicate_suffix=self.replicate_suffix, not_include=self.NOT_INCLUDE)
+        expected = (69, 12)
+        self.assertEqual(expected, self.data_tpm.shape)
+
+    def test_average_target(self):
+        expected = np.mean(self.data_tpm.data.iloc[0, 1:3].values)
+        self.data_tpm.merge_replicates(replicate_suffix=self.replicate_suffix, not_include=self.NOT_INCLUDE)
+        self.assertAlmostEqual(expected, self.data_tpm.data.iloc[0, 0])
+
+    def test_average_9(self):
+        ctp_9 = self.data_tpm.data.iloc[1, 17:21].values
+        ctp_9 = np.delete(ctp_9, [2, 4])
+        expected = np.mean(ctp_9)
+        self.data_tpm.merge_replicates(replicate_suffix=self.replicate_suffix, not_include=self.NOT_INCLUDE)
+        self.assertAlmostEqual(expected, self.data_tpm.data.iloc[1, 8])
+
+    def test_column_names(self):
+        self.data_tpm.merge_replicates(replicate_suffix=self.replicate_suffix, not_include=self.NOT_INCLUDE)
+        self.assertCountEqual(self.COLUMN_NAMES, self.data_tpm.data.columns)
+
+
+class ExcludeTargetTest(MergeReplicatesTest):
+    COLUMN_NAMES = ['celltypetarget_donor1', 'celltypetarget_donor2', 'celltypetarget_donor3', 'celltype2', 'celltype3',
+                    'celltype4', 'celltype5', 'celltype6', 'celltype7', 'celltype8', 'celltype9', 'celltype10',
+                    'celltype11', 'celltype12']
+
+    def setUp(self):
+        """ Sets-up variables to be used in the tests. """
+        self.data_tpm = internals.DataTpm(file=self.data1, files_path="test", sep=";")
+        self.data_tpm.load_data()
+        self.data_tpm.make_data_celltype_specific(self.celltype_analyse)
+
+    def test_shape(self):
+        self.data_tpm.merge_replicates(replicate_suffix=self.replicate_suffix, exclude_target=True)
+        expected = (69, 14)
+        self.assertEqual(expected, self.data_tpm.shape)
+
+    def test_average(self):
+        before = np.mean(self.data_tpm.data.iloc[0, 0:3].values)
+        self.data_tpm.merge_replicates(replicate_suffix=self.replicate_suffix, exclude_target=True)
+        after = np.mean(
+            self.data_tpm.data[
+                ['celltypetarget_donor1', 'celltypetarget_donor2', 'celltypetarget_donor3']].iloc[0].values)
+        self.assertAlmostEqual(before, after)
+
+    def test_column_names(self):
+        self.data_tpm.merge_replicates(replicate_suffix=self.replicate_suffix, exclude_target=True)
+        self.assertCountEqual(self.COLUMN_NAMES, self.data_tpm.data.columns)
+
+
+class CopyTest(DataTpmTest):
+    @classmethod
+    def setUpClass(cls):
+        """ Sets-up class variables to be used in the tests. """
+        super().setUpClass()
+        cls.data_tpm = internals.DataTpm(file=cls.data1, files_path="test", sep=";")
+        cls.data_tpm.load_data()
+        cls.data_tpm.make_data_celltype_specific(cls.celltype_analyse)
+
+    def setUp(self):
+        """ Sets-up variables to be used in the tests. """
+        self.data_tpm2 = self.data_tpm.copy(deep=False)
+        self.data_tpm3 = self.data_tpm.copy(deep=True)
+
+    def test_shallow_creation(self):
+        self.assertEqual(self.data_tpm, self.data_tpm2)
+
+    def test_shallow_equal_data(self):
+        condition = self.data_tpm.data.equals(self.data_tpm2.data)
+        self.assertTrue(condition)
+
+    def test_deep_creation(self):
+        self.assertEqual(self.data_tpm, self.data_tpm3)
+
+    def test_deep_equal_data(self):
+        condition = self.data_tpm.data.equals(self.data_tpm3.data)
+        self.assertTrue(condition)
+
+    def test_change_arg_shallow(self):
+        self.data_tpm2.target = "test"
+        self.assertNotEqual(self.data_tpm, self.data_tpm2)
+
+    def test_change_arg_deep(self):
+        self.data_tpm3.target = "test"
+        self.assertNotEqual(self.data_tpm, self.data_tpm3)
+
+    def test_change_data_shallow(self):
+        self.data_tpm2.data.iloc[1, 1] = "test"
+        self.assertEqual(self.data_tpm, self.data_tpm2)
+
+    def test_change_data_deep(self):
+        self.data_tpm3.data.iloc[1, 1] = "test"
+        self.assertNotEqual(self.data_tpm, self.data_tpm3)
+
+
+class EqualTest(DataTpmTest):
+    def setUp(self):
+        """ Sets-up variables to be used in the tests. """
+        self.data_tpm = internals.DataTpm(file=self.data1, files_path="test", sep=";")
+        self.data_tpm.load_data()
+        self.data_tpm.make_data_celltype_specific(self.celltype_analyse)
+
+    def test_unequal_arg(self):
+        data_tpm2 = self.data_tpm.copy(deep=True)
+        data_tpm2.target = "test"
+        condition = self.data_tpm == data_tpm2
+        self.assertFalse(condition)
+
+    def test_unequal_data(self):
+        data_tpm3 = self.data_tpm.copy(deep=True)
+        data_tpm3.data.iloc[0, 0] = 3
+        condition = self.data_tpm == data_tpm3
+        self.assertFalse(condition)
+
+    def test_equal_data(self):
+        data_tpm4 = self.data_tpm.copy(deep=True)
+        condition = self.data_tpm == data_tpm4
+        self.assertTrue(condition)
+
+
+class SortColumnsTest(DataTpmTest):
+    def setUp(self):
+        """ Sets-up variables to be used in the tests. """
+        self.data_tpm = internals.DataTpm(file=self.data1, files_path="test", sep=";")
+        self.data_tpm.load_data()
+        self.data_tpm.make_data_celltype_specific(self.celltype_analyse)
+        self.data_tpm.merge_replicates(replicate_suffix=self.replicate_suffix)
+        self.cols = self.data_tpm.data.columns.tolist()
+
+    def test_sort_alphabetically(self):
+        self.data_tpm.sort_columns()
+        cols = self.data_tpm.data.columns.tolist()
+        for i in (self.cols, sorted(self.cols, key=str.lower)):
+            condition = (i == cols)
+            with self.subTest(i=i):
+                if i == self.cols:
+                    self.assertFalse(condition)
+                else:
+                    self.assertTrue(condition)
+
+    def test_values_remain(self):
+        before = self.data_tpm.data[self.celltype_analyse].values.tolist()
+        self.data_tpm.sort_columns()
+        after = self.data_tpm.data[self.celltype_analyse].values.tolist()
+        self.assertEqual(before, after)
+
+    def test_sort_to_first(self):
+        celltype = "celltype5"
+        before = self.data_tpm.data.columns.tolist().index(celltype)
+        self.data_tpm.sort_columns(col_to_shift=celltype, pos_to_move=0)
+        after = self.data_tpm.data.columns.tolist().index(celltype)
+        condition = (before != after) and (after == 0)
+        self.assertTrue(condition)
+
+
+class FilterByTargetTest(DataTpmTest):
+    def setUp(self):
+        """ Sets-up class variables to be used in the tests. """
+        self.data_tpm = internals.DataTpm(file=self.data1, files_path="test", sep=";")
+        self.data_tpm.load_data()
+        self.data_tpm.make_data_celltype_specific(self.celltype_analyse)
+
+    def test_above_threshold(self, threshold=1):
+        _temp = self.data_tpm.data[self.data_tpm.target_replicates[self.celltype_analyse]].values.tolist()
+        expected = [i for i in _temp if (all(f >= threshold for f in i))]
+        self.data_tpm.filter_by_target_celltype_activity(threshold=threshold, binarize=False)
+        to_test = self.data_tpm.data[self.data_tpm.target_replicates[self.celltype_analyse]].values.tolist()
+        self.assertCountEqual(expected, to_test)
+
+    def test_replicates(self, threshold=2):
+        _temp = self.data_tpm.data[self.data_tpm.target_replicates[self.celltype_analyse][:2]].values.tolist()
+        expected = [i for i in _temp if (all(f >= threshold for f in i))]
+        replicates = ["celltypetarget_donor1", "celltypetarget_donor2"]
+        self.data_tpm.filter_by_target_celltype_activity(threshold=threshold, binarize=False, replicates=replicates)
+        to_test = self.data_tpm.data[self.data_tpm.target_replicates[self.celltype_analyse][:2]].values.tolist()
+        self.assertCountEqual(expected, to_test)
+
+    def test_binarize(self, threshold=1):
+        self.data_tpm.filter_by_target_celltype_activity(threshold=threshold, binarize=True)
+        values = np.unique(self.data_tpm.data[self.data_tpm.target_replicates[self.celltype_analyse]].values)
+        self.assertCountEqual([1], values)
+
+    def test_merged_data(self, threshold=1):
+        self.data_tpm.merge_replicates(replicate_suffix=self.replicate_suffix)
+        _temp = self.data_tpm.data[self.celltype_analyse].values.tolist()
+        expected = [i for i in _temp if i >= threshold]
+        self.data_tpm.filter_by_target_celltype_activity(threshold=threshold, binarize=False)
+        to_test = self.data_tpm.data[self.data_tpm.target_replicates[self.celltype_analyse]].values.tolist()
+        self.assertCountEqual(expected, to_test)
+
+
+class DefineNonTargetCelltypesInactivityTest(DataTpmTest):
+    @classmethod
+    def setUpClass(cls):
+        """ Sets-up class variables to be used in the tests. """
+        super().setUpClass()
+        cls.data_tpm = internals.DataTpm(file=cls.data1, files_path="test", sep=";")
+        cls.data_tpm.load_data()
+        cls.data_tpm.make_data_celltype_specific(cls.celltype_analyse)
+
+    def test_if_int_promoters(self):
+        self.data_tpm.merge_replicates(replicate_suffix=self.replicate_suffix, exclude_target=False)
+        self.data_tpm.define_non_target_celltypes_inactivity(threshold=0.3)
+        self.assertFalse([True for item in self.data_tpm.data[
+            self.data_tpm.data.columns[1:]].dtypes if item != np.int64])
+
+    def test_no_bigger_than_one(self):
+        self.data_tpm.merge_replicates(replicate_suffix=self.replicate_suffix, exclude_target=False)
+        self.data_tpm.define_non_target_celltypes_inactivity(threshold=0.3)
+        non_target_data = self.data_tpm.data[self.data_tpm.data.columns[1:]]
+        result = pd.eval("non_target_data.values > 1")
+        self.assertFalse(np.any(result))
+
+    def test_non_merged_data(self):
+        self.data_tpm.define_non_target_celltypes_inactivity(threshold=0.3)
+        non_target_data = self.data_tpm.data[self.data_tpm.data.columns[3:]]
+        result = pd.eval("non_target_data.values > 1")
+        self.assertFalse(np.any(result))
+
+
+class FilterBySparsenessTest(DataTpmTest):
+    @classmethod
+    def setUpClass(cls):
+        """ Sets-up class variables to be used in the tests. """
+        super().setUpClass()
+        cls.data_tpm = internals.DataTpm(file=cls.data1, files_path="test", sep=";")
+        cls.data_tpm.load_data()
+        cls.data_tpm.make_data_celltype_specific(cls.celltype_analyse)
+        cls.data_tpm.merge_replicates(replicate_suffix=cls.replicate_suffix, exclude_target=False)
+
+
+class FilterBySparsenessMainTest(FilterBySparsenessTest):
+    def setUp(self):
+        """ Sets-up variables to be used in the tests. """
+        self.data_tpm.filter_by_reg_element_sparseness(threshold=50, min_re=10, exclude_target=True)
+
+    def test_ctp_still_in_df(self):
+        condition = all([x for x in self.data_tpm.target_replicates[
+            self.celltype_analyse] if x in self.data_tpm.data.columns.tolist()])
+        self.assertTrue(condition)
+
+    def test_number_cols(self):
+        self.assertEqual(28, self.data_tpm.data.shape[0])
+
+    def test_percentile_col_not_in_df(self):
+        column = "Percentile_col"
+        condition = column in self.data_tpm.data.columns.tolist()
+        self.assertFalse(condition)
+
+
+class MinReTest(FilterBySparsenessTest):
+    def setUp(self):
+        """ Sets-up variables to be used in the tests. """
+        self.data_tpm.filter_by_reg_element_sparseness(threshold=50, min_re=40, exclude_target=True)
+
+    def test_ctp_still_in_df(self):
+        condition = all([x for x in self.data_tpm.target_replicates[
+            self.celltype_analyse] if x in self.data_tpm.data.columns.tolist()])
+        self.assertTrue(condition)
+
+    def test_number_cols(self):
+        self.assertEqual(40, self.data_tpm.data.shape[0])
+
+    def test_percentile_col_not_in_df(self):
+        column = "Percentile_col"
+        condition = column in self.data_tpm.data.columns.tolist()
+        self.assertFalse(condition)
+
+
+class NotExcludeTargetTest(FilterBySparsenessTest):
+    def setUp(self):
+        """ Sets-up variables to be used in the tests. """
+        self.data_tpm.filter_by_reg_element_sparseness(threshold=50, min_re=10, exclude_target=False)
+
+    def test_ctp_still_in_df(self):
+        condition = all([x for x in self.data_tpm.target_replicates[
+            self.celltype_analyse] if x in self.data_tpm.data.columns.tolist()])
+        self.assertTrue(condition)
+
+    def test_number_cols(self):
+        self.assertEqual(22, self.data_tpm.data.shape[0])
+
+    def test_percentile_col_not_in_df(self):
+        column = "Percentile_col"
+        condition = column in self.data_tpm.data.columns.tolist()
+        self.assertFalse(condition)
+
+
+class SortSparsenessTest(DataTpmTest):
+    def setUp(self):
+        """ Sets-up variables to be used in the tests. """
+        self.data_tpm = internals.DataTpm(file=self.data1, files_path="test", sep=";")
+        self.data_tpm.load_data()
+        self.data_tpm.make_data_celltype_specific(self.celltype_analyse)
+        self.data_tpm.merge_replicates(replicate_suffix=self.replicate_suffix, exclude_target=False)
+
+    def test_sort_exclude_target(self):
+        self.data_tpm.sort_sparseness(exclude_target=True)
+        self.data_tpm.data["Sum"] = self.data_tpm.data.drop(self.celltype_analyse, axis=1).sum(axis=1)
+        counter = 0
+        previous_row = None
+        for row_sum in self.data_tpm.data["Sum"].values:
+            if previous_row is None or row_sum >= previous_row:
+                counter += 1
+                previous_row = row_sum
+        self.assertEqual(counter, 69)
+
+    def test_sort_not_exclude_target(self):
+        self.data_tpm.sort_sparseness(exclude_target=False)
+        self.data_tpm.data["Sum"] = self.data_tpm.data.sum(axis=1)
+        counter = 0
+        previous_row = None
+        for row_sum in self.data_tpm.data["Sum"].values:
+            if previous_row is None or row_sum >= previous_row:
+                counter += 1
+                previous_row = row_sum
+        self.assertEqual(counter, 69)
+
+
+class RemoveCelltypeTest(DataTpmTest):
+    def setUp(self):
+        """ Sets-up variables to be used in the tests. """
+        self.data_tpm = internals.DataTpm(file=self.data1, files_path="test", sep=";")
+        self.data_tpm.load_data()
+        self.data_tpm.make_data_celltype_specific(self.celltype_analyse)
+
+    def test_remove_celltype(self):
+        self.data_tpm.remove_celltype("celltype2_donor2")
+        self.assertNotIn("celltype2_donor2", self.data_tpm.data.columns)
+
+    def test_remove_list_celltypes(self):
+        self.data_tpm.remove_celltype(["celltype2_donor1", "celltype2_donor2"])
+        with self.assertRaises(KeyError):
+            test = self.data_tpm.data[["celltype2_donor1", "celltype2_donor2"]]
+
+    def test_incorrect_celltype(self):
+        self.data_tpm.remove_celltype("cellype2_dr2")
+        condition = not self.data_tpm.data["celltype2_donor2"].empty
+        self.assertTrue(condition)
+
+
+class RemoveElementTest(DataTpmTest):
+    def setUp(self):
+        """ Sets-up  variables to be used in the tests. """
+        self.data_tpm = internals.DataTpm(file=self.data1, files_path="test", sep=";")
+        self.data_tpm.load_data()
+        self.data_tpm.make_data_celltype_specific(self.celltype_analyse)
+        self.elements = ['chr10:100027943..100027958,-', 'chr10:100174900..100174956,-']
+
+    def test_remove_elements(self):
+        self.data_tpm.remove_element(self.elements)
+        with self.assertRaises(KeyError):
+            test = self.data_tpm.data.loc[self.elements]
+
+    def test_incorrect_elements(self):
+        self.data_tpm.remove_celltype("test incorrect RE")
+        condition = not self.data_tpm.data.loc[self.elements].empty
+        self.assertTrue(condition)
+
+
+class AddCelltypeTest(DataTpmTest):
+    @classmethod
+    def setUpClass(cls):
+        """ Sets-up class variables to be used in the tests. """
+        super().setUpClass()
+        # main data
+        cls.data_tpm = internals.DataTpm(file=cls.data1, files_path="test", sep=";")
+        cls.data_tpm.load_data()
+        # copy for use in tests
+        cls.data_tpm_added = cls.data_tpm.copy(deep=True)
+        # adding a celltype
+        cls.data_tpm_added.add_celltype(celltypes=["celltype13_donor1", "celltype13_donor2"],
+                                        data_from=cls.data2, files_path="test", sep=";")
+
+    def test_adding(self):
+        expected = ["celltype13_donor1", "celltype13_donor2"]
+        for i in expected:
+            with self.subTest(i=i):
+                self.assertIn(i, self.data_tpm_added.data.columns)
+
+    def test_celltype_only_added(self):
+        expected_difference = ["celltype13_donor1", "celltype13_donor2"]
+        difference = set(self.data_tpm_added.data.columns.values) - set(self.data_tpm.data.columns.values)
+        self.assertCountEqual(expected_difference, difference)
+
+    def test_any_nan(self):
+        self.assertFalse(self.data_tpm_added.data.isnull().values.any())
+
+    def test_adding_back_primary(self):
+        data_tpm_rescue = self.data_tpm.copy(deep=True)
+        # adding a celltype after having removed from the data set
+        data_tpm_rescue.remove_celltype("celltype3_donor1")
+        data_tpm_rescue.add_celltype(celltypes="celltype3_donor1", data_from=self.data_tpm)
+        self.data_tpm.sort_columns()
+        data_tpm_rescue.sort_columns()
+        self.assertEqual(self.data_tpm, data_tpm_rescue)
+
+
+class DropTargetTest(DataTpmTest):
+    def setUp(self):
+        """ Sets-up variables to be used in the tests. """
+        self.data_tpm = internals.DataTpm(file=self.data1, files_path="test", sep=";")
+        self.data_tpm.load_data()
+        self.data_tpm.make_data_celltype_specific(self.celltype_analyse)
+
+    def test_drop(self):
+        data_test = self.data_tpm.drop_target_ctp(inplace=False)
+        difference = set(self.data_tpm.data.columns.values) - set(data_test.columns.values)
+        self.assertCountEqual(self.data_tpm.target_replicates[self.data_tpm.target], difference)
+
+    def test_merged_drop(self):
+        self.data_tpm.merge_replicates(replicate_suffix=self.replicate_suffix, exclude_target=False)
+        data_test = self.data_tpm.drop_target_ctp(inplace=False)
+        difference = set(self.data_tpm.data.columns.values) - set(data_test.columns.values)
+        self.assertCountEqual({self.celltype_analyse}, difference)
+
+    def test_inplace_drop(self):
+        self.data_tpm.merge_replicates(replicate_suffix=self.replicate_suffix, exclude_target=False)
+        self.data_tpm.drop_target_ctp(inplace=True)
+        self.assertNotIn(self.celltype_analyse, self.data_tpm.data.columns)
+
+
+class BinarizeDataTest(DataTpmTest):
+    def setUp(self):
+        """ Sets-up variables to be used in the tests. """
+        self.data_tpm = internals.DataTpm(file=self.data1, files_path="test", sep=";")
+        self.data_tpm.load_data()
+        self.data_tpm.binarize_data(threshold=0)
+
+    def test_binarize_data(self):
+        values = np.unique(self.data_tpm.data.values)
+        self.assertCountEqual([0, 1], values)
+
+
+class ToCsvTest(DataTpmTest):
+    def setUp(self):
+        """ Sets-up variables to be used in the tests. """
+        self.data_tpm = internals.DataTpm(file=self.data1, files_path="test", sep=";")
+        self.data_tpm.load_data()
+        self.data_tpm.binarize_data(threshold=0)
+
+    def test_to_csv(self):
+        self.data_tpm.to_csv("test.csv")
+        data_exported = pd.read_csv("test.csv", index_col=0, engine="python")
+        condition = data_exported.equals(self.data_tpm.data)
+        self.assertTrue(condition)
+        os.remove("test.csv")
+
+
+# Here we start testing the FANTOM5 CAGE-seq specific methods:
 class DataTpmFantom5Test(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -152,11 +774,11 @@ class MakeCelltypeSpecificFantom5Test(DataTpmFantom5Test):
 
     def test_donors_promoters(self):
         expected = {'Adipocyte - breast, donor1', 'Adipocyte - breast, donor2'}
-        self.assertEqual(expected, set(self.database_promoters.ctp_analyse_donors["Adipocyte - breast"]))
+        self.assertEqual(expected, set(self.database_promoters.target_replicates["Adipocyte - breast"]))
 
     def test_donors_enhancers(self):
         expected = {'Adipocyte - breast, donor1', 'Adipocyte - breast, donor2'}
-        self.assertEqual(expected, set(self.database_enhancers.ctp_analyse_donors["Adipocyte - breast"]))
+        self.assertEqual(expected, set(self.database_enhancers.target_replicates["Adipocyte - breast"]))
 
 
 class MakeCelltypeSpecificParsedFantom5Test(DataTpmFantom5Test):
@@ -173,11 +795,11 @@ class MakeCelltypeSpecificParsedFantom5Test(DataTpmFantom5Test):
     def test_donors_promoters(self):
         expected = {'tpm.Adipocyte%20-%20breast%2c%20donor1.CNhs11051.11376-118A8',
                     'tpm.Adipocyte%20-%20breast%2c%20donor2.CNhs11969.11327-117E4'}
-        self.assertEqual(expected, set(self.database_promoters.ctp_analyse_donors["Adipocyte - breast"]))
+        self.assertEqual(expected, set(self.database_promoters.target_replicates["Adipocyte - breast"]))
 
     def test_donors_enhancers(self):
         expected = {'Adipocyte - breast, donor1', 'Adipocyte - breast, donor2'}
-        self.assertEqual(expected, set(self.database_enhancers.ctp_analyse_donors["Adipocyte - breast"]))
+        self.assertEqual(expected, set(self.database_enhancers.target_replicates["Adipocyte - breast"]))
 
 
 class MergeDonorsPrimaryFantom5Test(DataTpmFantom5Test):
@@ -219,59 +841,22 @@ class FilterByTargetFantom5Test(DataTpmFantom5Test):
         cls.database_enhancers.merge_donors_primary()
 
     def test_above_threshold_promoters(self, threshold=1):
-        _temp = self.database_promoters.data[self.database_promoters.ctp_analyse_donors[self.celltype_analyse]] \
+        _temp = self.database_promoters.data[self.database_promoters.target_replicates[self.celltype_analyse]] \
             .values.tolist()
         expected = [i for i in _temp if (all(f >= threshold for f in i))]
         self.database_promoters.filter_by_target_celltype_activity(threshold=threshold, binarize=False)
-        to_test = self.database_promoters.data[self.database_promoters.ctp_analyse_donors[self.celltype_analyse]] \
+        to_test = self.database_promoters.data[self.database_promoters.target_replicates[self.celltype_analyse]] \
             .values.tolist()
         self.assertEqual(expected, to_test)
 
     def test_above_threshold_enhancers(self, threshold=0.15):
-        _temp = self.database_enhancers.data[self.database_enhancers.ctp_analyse_donors[self.celltype_analyse]] \
+        _temp = self.database_enhancers.data[self.database_enhancers.target_replicates[self.celltype_analyse]] \
             .values.tolist()
         expected = [i for i in _temp if (all(f >= threshold for f in i))]
         self.database_enhancers.filter_by_target_celltype_activity(threshold=threshold, binarize=False)
-        to_test = self.database_enhancers.data[self.database_enhancers.ctp_analyse_donors[self.celltype_analyse]] \
+        to_test = self.database_enhancers.data[self.database_enhancers.target_replicates[self.celltype_analyse]] \
             .values.tolist()
         self.assertEqual(expected, to_test)
-
-
-class FilterBySparsenessFantom5Test(DataTpmFantom5Test):
-    @classmethod
-    def setUpClass(cls):
-        """ Sets-up class variables to be used in the tests. """
-        super().setUpClass()
-        cls.database_promoters = internals.DataTpmFantom5(file=cv.test_promoter_file_name, nrows=10)
-        cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse)
-        cls.database_promoters.merge_donors_primary()
-        cls.database_promoters.filter_by_reg_element_sparseness(threshold=50)
-        cls.database_enhancers = internals.DataTpmFantom5(file=cv.test_enhancer_file_name, nrows=100,
-                                                          data_type="enhancers")
-        cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse)
-        cls.database_enhancers.merge_donors_primary()
-        cls.database_enhancers.filter_by_reg_element_sparseness(threshold=50)
-
-    def test_ctp_still_in_df_promoters(self):
-        condition = all([x for x in self.database_promoters.ctp_analyse_donors[
-            self.celltype_analyse] if x in self.database_promoters.data.columns.tolist()])
-        self.assertTrue(condition)
-
-    def test_ctp_still_in_df_enhancers(self):
-        condition = all([x for x in self.database_enhancers.ctp_analyse_donors[
-            self.celltype_analyse] if x in self.database_enhancers.data.columns.tolist()])
-        self.assertTrue(condition)
-
-    def test_number_cols_promoters(self):
-        self.assertEqual(10, self.database_promoters.data.shape[0])
-
-    def test_number_cols_enhancers(self):
-        self.assertEqual(87, self.database_enhancers.data.shape[0])
-
-    def test_percentile_col_not_in_df(self):
-        column = "Percentile_col"
-        condition = column in self.database_promoters.data.columns.tolist()
-        self.assertFalse(condition)
 
 
 class DefineNonTargetCelltypesInactivityFantom5Test(DataTpmFantom5Test):
@@ -304,6 +889,43 @@ class DefineNonTargetCelltypesInactivityFantom5Test(DataTpmFantom5Test):
     def test_no_bigger_than_one_enhancers(self):
         result = pd.eval("self.database_enhancers.data.values > 1")
         self.assertFalse(np.any(result))
+
+
+class FilterBySparsenessFantom5Test(DataTpmFantom5Test):
+    @classmethod
+    def setUpClass(cls):
+        """ Sets-up class variables to be used in the tests. """
+        super().setUpClass()
+        cls.database_promoters = internals.DataTpmFantom5(file=cv.test_promoter_file_name, nrows=10)
+        cls.database_promoters.make_data_celltype_specific(cls.celltype_analyse)
+        cls.database_promoters.merge_donors_primary()
+        cls.database_promoters.filter_by_reg_element_sparseness(threshold=50)
+        cls.database_enhancers = internals.DataTpmFantom5(file=cv.test_enhancer_file_name, nrows=100,
+                                                          data_type="enhancers")
+        cls.database_enhancers.make_data_celltype_specific(cls.celltype_analyse)
+        cls.database_enhancers.merge_donors_primary()
+        cls.database_enhancers.filter_by_reg_element_sparseness(threshold=50)
+
+    def test_ctp_still_in_df_promoters(self):
+        condition = all([x for x in self.database_promoters.target_replicates[
+            self.celltype_analyse] if x in self.database_promoters.data.columns.tolist()])
+        self.assertTrue(condition)
+
+    def test_ctp_still_in_df_enhancers(self):
+        condition = all([x for x in self.database_enhancers.target_replicates[
+            self.celltype_analyse] if x in self.database_enhancers.data.columns.tolist()])
+        self.assertTrue(condition)
+
+    def test_number_cols_promoters(self):
+        self.assertEqual(10, self.database_promoters.data.shape[0])
+
+    def test_number_cols_enhancers(self):
+        self.assertEqual(87, self.database_enhancers.data.shape[0])
+
+    def test_percentile_col_not_in_df(self):
+        column = "Percentile_col"
+        condition = column in self.database_promoters.data.columns.tolist()
+        self.assertFalse(condition)
 
 
 class SortSparsenessFantom5Test(DataTpmFantom5Test):
@@ -390,14 +1012,11 @@ class AddCelltypeFantom5Test(DataTpmFantom5Test):
         cls.cage_primary = internals.DataTpmFantom5(file=cv.test_promoter_file_name, nrows=20)
         # copies for all different tests
         cls.cage_cancer = cls.cage_primary.copy(deep=True)
-        cls.cage_tissue = cls.cage_primary.copy(deep=True)
         cls.cage_primary_rescue = cls.cage_primary.copy(deep=True)
         # adding a cancer celltype
-        cls.cage_cancer.add_celltype(celltypes="small cell lung carcinoma cell line", data_from=cv.test_promoter_file_name,
+        cls.cage_cancer.add_celltype(celltypes="small cell lung carcinoma cell line",
+                                     data_from=cv.test_promoter_file_name,
                                      sample_types="cell lines", data_type="promoters")
-        # adding a tissue celltype
-        # cls.cage_tissue.add_celltype("pituitary gland", file=cv.test_promoter_file_name,
-        #                              sample_types="tissues", data_type="promoters")
         # adding a primary celltype after having removed from the data set
         cls.cage_primary_rescue.remove_celltype("Keratocytes", merged=False)
         cls.cage_primary_rescue.add_celltype(celltypes="Keratocytes", data_from=cv.test_promoter_file_name,
@@ -481,11 +1100,11 @@ class CopyFantom5Test(DataTpmFantom5Test):
         self.assertTrue(condition)
 
     def test_change_arg_shallow(self):
-        self.data2.target_ctp = "test"
+        self.data2.target = "test"
         self.assertNotEqual(self.data, self.data2)
 
     def test_change_arg_deep(self):
-        self.data3.target_ctp = "test"
+        self.data3.target = "test"
         self.assertNotEqual(self.data, self.data3)
 
     def test_change_data_shallow(self):

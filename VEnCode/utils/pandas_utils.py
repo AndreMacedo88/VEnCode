@@ -20,33 +20,54 @@ def multi_set_data_frame(data, arrays, set_value):
         data.at[i[0], i[1]] = set_value
 
 
-def df_regex_columns_searcher_list(string, database):
+def df_regex_columns_finder(string, data):
     """ Returns a list containing only the columns of a data frame which contain the string somewhere
-    in its label """
-    regular = ".*" + string.replace(" ", ".*").replace("+", "%2b") + ".*"
-    idx = database.columns.str.contains(regular, flags=re.IGNORECASE, regex=True, na=False)
-    regex_filtered_df = database.loc[:, idx]
-    regex_filtered = regex_filtered_df.columns.values.tolist()
+    in its label. """
+    regex_exp = ".*" + string.replace(" ", ".*").replace("+", "%2b") + ".*"
+    idx = data.columns.str.contains(regex_exp, flags=re.IGNORECASE, regex=True, na=False)
+    regex_filtered_df = data.loc[:, idx]
+    regex_filtered = regex_filtered_df.columns.values.tolist()  # retrieves the list of columns
     return regex_filtered
 
 
-def df_regex_columns_searcher(string, database):
-    """ Returns a df containing only the columns which contain the string somewhere in its label """
-    regular = ".*" + string.replace(" ", ".*").replace("+", "%2b").replace(":", "%3a").replace("(",
-                                                                                               "%28").replace(
+def df_complete_regex_columns_finder(string, data):
+    """ Returns a list containing only the columns of a data frame which contain the string somewhere
+    in its label. """
+    regex_exp = ".*" + string.replace(" ", ".*").replace("+", "%2b").replace(":", "%3a").replace("(",
+                                                                                                 "%28").replace(
         ")", "%29").replace("/", "%2f") + ".*"  # sets up regex pattern
-    idx = database.columns.str.contains(regular, flags=re.IGNORECASE, regex=True, na=False)  # searches cols for str
-    regex_filtered_df = database.loc[:, idx]  # cols that are True (have the expression str) remain in data set
-    return regex_filtered_df
+    idx = data.columns.str.contains(regex_exp, flags=re.IGNORECASE, regex=True, na=False)  # searches cols for str
+    regex_filtered_df = data.loc[:, idx]  # cols that are True (have the expression str) remain in data set
+    regex_filtered = regex_filtered_df.columns.values.tolist()  # retrieves the list of columns
+    return regex_filtered
 
 
-def df_minimal_regex_columns_searcher(string, database):
-    """ Returns a df containing only the columns which contain the string somewhere in its label
+def df_minimal_regex_columns_finder(string, data):
+    """ Returns a list containing only the columns of a data frame which contain the string somewhere
+    in its label. Used for enhancer data set. """
+    regex_exp = ".*" + string.replace(" ", ".*").replace("+", "\+") + ".*"  # sets up regex pattern
+    idx = data.columns.str.contains(regex_exp, flags=re.IGNORECASE, regex=True, na=False)  # searches cols for str
+    regex_filtered_df = data.loc[:, idx]  # cols that are True (have the expression str) remain in data set
+    regex_filtered = regex_filtered_df.columns.values.tolist()  # retrieves the list of columns
+    return regex_filtered
+
+
+def df_minimal_regex_columns_searcher(string, data):
+    """ Returns a df containing only the columns which contain the string somewhere in its label.
     Used for enhancer data set. """
-    expression = ".*" + string.replace(" ", ".*").replace("+", "\+") + ".*"  # sets up regex pattern
-    idx = database.columns.str.contains(expression, flags=re.IGNORECASE, regex=True, na=False)  # searches cols for str
-    regex_filtered_df = database.loc[:, idx]  # cols that are True (have the expression str) remain in data set
+    regex_exp = ".*" + string.replace(" ", ".*").replace("+", "\+") + ".*"  # sets up regex pattern
+    idx = data.columns.str.contains(regex_exp, flags=re.IGNORECASE, regex=True, na=False)  # searches cols for str
+    regex_filtered_df = data.loc[:, idx]  # cols that are True (have the expression str) remain in data set
     return regex_filtered_df
+
+
+def df_custom_regex_columns_finder(regex_pattern, data):
+    """ Returns a list containing only the columns of a data frame which contain the string somewhere
+        in its label. """
+    idx = data.columns.str.contains(regex_pattern, flags=re.IGNORECASE, regex=True, na=False)  # searches cols for str
+    regex_filtered_df = data.loc[:, idx]  # cols that are True (have the expression str) remain in data set
+    regex_filtered = regex_filtered_df.columns.values.tolist()  # retrieves the list of columns
+    return regex_filtered
 
 
 def df_filter_by_expression(data, codes, expression):
@@ -59,7 +80,7 @@ def df_filter_by_expression(data, codes, expression):
     return data
 
 
-def df_percentile_calculator(data_frame, celltype, start_percent, define_percentile=False):
+def df_percentile_calculator(data_frame, start_percent, celltype=None, define_percentile=False):
     """
     Returns a df with one extra column containing the value of the data at percentile start_percent and the label
     of such column.
@@ -68,7 +89,10 @@ def df_percentile_calculator(data_frame, celltype, start_percent, define_percent
         column_label = "Percentile {}".format(start_percent)
     else:
         column_label = "Percentile_col"
-    data_frame[column_label] = np.percentile(data_frame.drop(celltype, axis=1).values, start_percent, axis=1)
+    if celltype is not None:
+        data_frame[column_label] = np.percentile(data_frame.drop(celltype, axis=1).values, start_percent, axis=1)
+    else:
+        data_frame[column_label] = np.percentile(data_frame.values, start_percent, axis=1)
     return data_frame, column_label
 
 
@@ -91,7 +115,7 @@ def series_frequency(series, value, percent=True):
     :return: The frequency of a value in a list
     """
     number_of_value = series.values.tolist().count(value)
-    frequency_ = number_of_value/len(series)
+    frequency_ = number_of_value / len(series)
     if percent:
         frequency_ *= 100
     return frequency_
