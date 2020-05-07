@@ -5,6 +5,9 @@
 
 import os
 import sys
+
+import VEnCode.outside_data
+
 file_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(file_dir)
 
@@ -87,7 +90,7 @@ pc_3_assay_val = iext.Assay("LiuY2017", "sampling", celltype="prostate cancer ce
                             validate_with=validate_with)
 pc_3_assay_val.to_csv()
 """
-validate_with = internals.BroadPeak("LiuY2017")
+validate_with = VEnCode.outside_data.BroadPeak("LiuY2017")
 prostate_cancer_assay_val = iext.Assay("LiuY2017", "sampling", cell_type="prostate cancer cell line", parsed=True,
                                        validate_with=validate_with)
 prostate_cancer_assay_val.to_csv()

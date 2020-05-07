@@ -1,3 +1,4 @@
+import VEnCode.outside_data
 from VEnCode import internals
 from VEnCode import common_variables as cv
 
@@ -27,40 +28,40 @@ def get_data_to_validate(cell_type, file_name=None, **kwargs):
     splits = kwargs.get("splits")
 
     if cell_type == "hIPS":
-        return internals.BarakatTS2018Data(data="core")
+        return VEnCode.outside_data.BarakatTS2018Data(data="core")
     elif cell_type == "hepatocellular carcinoma cell line: HepG2 ENCODE":
         if optional == "enhancer_atlas":
-            return internals.Fasta("EnhancerAtlas-HepG2")
+            return VEnCode.outside_data.Fasta("EnhancerAtlas-HepG2")
         elif optional == "both":
-            data = internals.InoueF2017Data()
-            data.join_data_sets(internals.Fasta("EnhancerAtlas-HepG2"))
+            data = VEnCode.outside_data.InoueF2017Data()
+            data.join_data_sets(VEnCode.outside_data.Fasta("EnhancerAtlas-HepG2"))
             return data
         else:
-            return internals.InoueF2017Data()
+            return VEnCode.outside_data.InoueF2017Data()
     elif cell_type == "B lymphoblastoid cell line: GM12878 ENCODE":
         if optional == "enhancer_atlas":
-            return internals.Fasta("EnhancerAtlas-GM12878-Blymph")
+            return VEnCode.outside_data.Fasta("EnhancerAtlas-GM12878-Blymph")
         elif optional == "both":
-            data = internals.Bed("WangX2018")
-            data.join_data_sets(internals.Fasta("EnhancerAtlas-GM12878-Blymph"))
+            data = VEnCode.outside_data.Bed("WangX2018")
+            data.join_data_sets(VEnCode.outside_data.Fasta("EnhancerAtlas-GM12878-Blymph"))
             return data
         else:
-            return internals.Bed("WangX2018")
+            return VEnCode.outside_data.Bed("WangX2018")
     elif cell_type == "prostate cancer cell line":
-        return internals.BroadPeak("LiuY2017")
+        return VEnCode.outside_data.BroadPeak("LiuY2017")
     elif cell_type == "small cell lung carcinoma cell line":
         if optional == "ChristensenCL2014":
-            return internals.ChristensenCL2014Data()
+            return VEnCode.outside_data.ChristensenCL2014Data()
         elif optional == "DennySK2016":
-            return internals.BroadPeak("DennySK2016")
+            return VEnCode.outside_data.BroadPeak("DennySK2016")
         elif optional == "both":
-            return [internals.BroadPeak("DennySK2016"), internals.ChristensenCL2014Data()]
+            return [VEnCode.outside_data.BroadPeak("DennySK2016"), VEnCode.outside_data.ChristensenCL2014Data()]
     elif cell_type == "small cell lung carcinoma cell line:NCI-H82":
-        return internals.ChristensenCL2014Data(data="H82")
+        return VEnCode.outside_data.ChristensenCL2014Data(data="H82")
     elif cell_type in enhancer_atlas_lines:
-        return internals.Fasta("EnhancerAtlas-{}".format(enhancer_atlas_lines.get(cell_type)))
+        return VEnCode.outside_data.Fasta("EnhancerAtlas-{}".format(enhancer_atlas_lines.get(cell_type)))
     elif "singlecell" in cell_type:
-        return internals.Csv(source=file_name, positions=positions, splits=splits)
+        return VEnCode.outside_data.Csv(source=file_name, positions=positions, splits=splits)
     else:
         raise AttributeError("Cell Type {} to get validated VEnCodes still not supported".format(cell_type))
 
