@@ -37,11 +37,7 @@ class FilenameHandler(DataTpmTest):
     def setUpClass(cls):
         """ Sets-up class variables to be used in the tests. """
         super().setUpClass()
-        path = os.path.join(str(Path(__file__).parents[1]), "Files")
-        cls.data_tpm_path_div = internals.DataTpm(file=cls.data1, files_path=path)
-        cls.data_tpm_path_div.load_data()
-        cls.data_tpm_path_full = internals.DataTpm(file=os.path.join(path, cls.data1), files_path=None)
-        cls.data_tpm_path_full.load_data()
+        cls.path = os.path.join(str(Path(__file__).parents[1]), "Files")
 
     def test_filename(self):
         data_tpm = internals.DataTpm(file=self.data1, files_path="test", nrows=4)
@@ -49,10 +45,20 @@ class FilenameHandler(DataTpmTest):
         self.assertEqual(os.path.isfile(data_tpm._file_path), True)
 
     def test_files_path(self):
-        self.assertEqual(os.path.isfile(self.data_tpm_path_div._file_path), True)
+        data_tpm_path_div = internals.DataTpm(file=self.data1, files_path=self.path)
+        data_tpm_path_div.load_data()
+        self.assertEqual(os.path.isfile(data_tpm_path_div._file_path), True)
 
     def test_file_full(self):
-        self.assertEqual(os.path.isfile(self.data_tpm_path_full._file_path), True)
+        data_tpm_path_full = internals.DataTpm(file=os.path.join(self.path, self.data1), files_path=None)
+        data_tpm_path_full.load_data()
+        self.assertEqual(os.path.isfile(data_tpm_path_full._file_path), True)
+
+    def test_data_frame_input(self):
+        df = pd.DataFrame(data=[[0, 1, 0], [1, 1, 0]], index=["first", "second"], columns=["A", "B", "C"])
+        data_tpm = internals.DataTpm(file=df, files_path=None)
+        data_tpm.load_data()
+        self.assertEqual(data_tpm._file_path, None)
 
 
 class DataTest(DataTpmTest):
@@ -87,23 +93,78 @@ class DataTest(DataTpmTest):
         self.assertCountEqual(expected, self.data_tpm.data.columns[:3])
 
 
+class FromDataFrameTest(DataTpmTest):
+    def setUp(self):
+        """ Sets-up variables to be used in the tests. """
+        df = pd.DataFrame(data=[[0, 1, 0], [1, 1, 0]], index=["first", "second"], columns=["A", "B", "C"])
+        self.data_tpm = internals.DataTpm(file=df)
+        self.data_tpm.load_data()
+
+    def test_open(self):
+        self.assertEqual(isinstance(self.data_tpm.data, pd.DataFrame), True)
+
+    def test_rows(self):
+        self.assertEqual(2, self.data_tpm.shape[0])
+
+    def test_cols(self):
+        self.assertEqual(3, self.data_tpm.shape[1])
+
+    def test_row_names(self):
+        expected = ["first", "second"]
+        self.assertEqual(expected, self.data_tpm.data.index.values.tolist())
+
+    def test_col_names(self):
+        expected = ["A", "B", "C"]
+        self.assertCountEqual(expected, self.data_tpm.data.columns)
+
+
 class MakeCelltypeSpecificTest(DataTpmTest):
     def setUp(self):
         """ Sets-up variables to be used in the tests. """
+        self.target_dict = {self.celltype_analyse: {'celltypetarget_donor1', 'celltypetarget_donor2',
+                                                    'celltypetarget_donor3'}}
         self.data_tpm = internals.DataTpm(file=self.data1, files_path="test", sep=";")
         self.data_tpm.load_data()
-        self.data_tpm.make_data_celltype_specific(self.celltype_analyse)
 
     def test_target_replicates(self):
+        self.data_tpm.make_data_celltype_specific(self.celltype_analyse, replicates=True)
         expected = {'celltypetarget_donor1', 'celltypetarget_donor2', 'celltypetarget_donor3'}
         self.assertEqual(expected, set(self.data_tpm.target_replicates["celltypetarget"]))
 
     def test_target(self):
+        self.data_tpm.make_data_celltype_specific(self.celltype_analyse, replicates=True)
+        expected = 'celltypetarget'
+        self.assertEqual(expected, self.data_tpm.target)
+
+    def test_target_replicates_dict(self):
+        self.data_tpm.make_data_celltype_specific(self.target_dict, replicates=True)
+        expected = {'celltypetarget_donor1', 'celltypetarget_donor2', 'celltypetarget_donor3'}
+        self.assertEqual(expected, set(self.data_tpm.target_replicates["celltypetarget"]))
+
+    def test_target_dict(self):
+        self.data_tpm.make_data_celltype_specific(self.target_dict, replicates=True)
         expected = 'celltypetarget'
         self.assertEqual(expected, self.data_tpm.target)
 
 
-class ReplicatesFalseTest(MakeCelltypeSpecificTest):
+class MakeCelltypeSpecificFromDfTest(DataTpmTest):
+    def setUp(self):
+        """ Sets-up variables to be used in the tests. """
+        df = pd.DataFrame(data=[[0, 1, 0], [1, 1, 0]], index=["first", "second"], columns=["A", "A_1", "C"])
+        self.data_tpm = internals.DataTpm(file=df)
+        self.data_tpm.load_data()
+        self.data_tpm.make_data_celltype_specific("A", replicates=True)
+
+    def test_target_replicates(self):
+        expected = {"A", "A_1"}
+        self.assertEqual(expected, set(self.data_tpm.target_replicates["A"]))
+
+    def test_target(self):
+        expected = "A"
+        self.assertEqual(expected, self.data_tpm.target)
+
+
+class ReplicatesFalseTest(DataTpmTest):
     def setUp(self):
         """ Sets-up variables to be used in the tests. """
         self.data_tpm = internals.DataTpm(file=self.data1, files_path="test", sep=";")
@@ -1151,7 +1212,147 @@ class SortColumnsFantom5Test(DataTpmFantom5Test):
 
 
 # Next we have the tests for the VEnCodes Class:
-class VenCodesHepatocyteTest(unittest.TestCase):
+class VencodeData(unittest.TestCase):
+    def setUp(self):
+        """ Sets-up variables to be used in the tests. """
+        self.celltype_analyse = "celltypetarget"
+        self.data1 = cv.expression_data1
+        self.data_tpm = internals.DataTpm(file=self.data1, files_path="test", sep=";")
+        self.data_tpm.load_data()
+
+    def test_data_not_celltype_specific(self):
+        vencodes = internals.Vencodes(self.data_tpm, algorithm="heuristic", target=self.celltype_analyse)
+        condition = vencodes.data.equals(self.data_tpm.data)
+        self.assertTrue(condition)
+
+    def test_data_prepared(self):
+        self.data_tpm.make_data_celltype_specific(self.celltype_analyse)
+        vencodes = internals.Vencodes(self.data_tpm, algorithm="heuristic")
+        condition = vencodes.data.equals(self.data_tpm.data)
+        self.assertTrue(condition)
+
+    def test_both_methods_equals(self):
+        vencodes1 = internals.Vencodes(self.data_tpm, algorithm="heuristic", target=self.celltype_analyse)
+        self.data_tpm.make_data_celltype_specific(self.celltype_analyse)
+        vencodes2 = internals.Vencodes(self.data_tpm, algorithm="heuristic")
+        condition = vencodes1 == vencodes2
+        self.assertTrue(condition)
+
+
+class VencodeFromDataFrame(unittest.TestCase):
+    def setUp(self):
+        """ Sets-up variables to be used in the tests. """
+        self.df = pd.DataFrame(data=[[0, 1, 0], [1, 1, 0]], index=["first", "second"], columns=["A", "B", "C"])
+        self.vencodes = internals.Vencodes(self.df, algorithm="heuristic", target="A")
+
+    def test_data_from_data_frame(self):
+        condition = self.df.equals(self.vencodes._data_object.data)
+        self.assertTrue(condition)
+
+    def test_equal(self):
+        test = internals.Vencodes(self.df, algorithm="heuristic", target="A")
+        condition = self.vencodes == test
+        self.assertTrue(condition)
+
+
+class VencodeEquality(unittest.TestCase):
+    def setUp(self):
+        """ Sets-up variables to be used in the tests. """
+        self.df = pd.DataFrame(data=[[0, 1, 0], [1, 1, 0]], index=["first", "second"], columns=["A", "B", "C"])
+        self.vencodes = internals.Vencodes(self.df, algorithm="heuristic", target="A")
+
+    def test_unequal_arg(self):
+        vencodes2 = internals.Vencodes(self.df, algorithm="heuristic", target="A")
+        vencodes2.algorithm = "test"
+        condition = self.vencodes == vencodes2
+        self.assertFalse(condition)
+
+    def test_unequal_data(self):
+        vencodes3 = internals.Vencodes(self.df, algorithm="heuristic", target="A")
+        vencodes3.data.iloc[0, 0] = 3
+        condition = self.vencodes == vencodes3
+        self.assertFalse(condition)
+
+    def test_equal_data(self):
+        vencodes4 = internals.Vencodes(self.df, algorithm="heuristic", target="A")
+        condition = self.vencodes == vencodes4
+        self.assertTrue(condition)
+
+
+class VencodesTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        """ Sets-up class variables to be used in the tests. """
+        cls.celltype_analyse = "celltypetarget"
+        cls.data1 = cv.expression_data1
+        cls.data_tpm = internals.DataTpm(file=cls.data1, files_path="test", sep=";")
+        cls.data_tpm.load_data()
+
+
+class VencodesHeuristicTest(VencodesTest):
+    def setUp(self):
+        """ Sets-up variables to be used in the tests. """
+        self.vencodes = internals.Vencodes(self.data_tpm, algorithm="heuristic", target=self.celltype_analyse)
+
+    def test_first_vencode(self):
+        self.vencodes.next(amount=1)
+        expected = ['chr12:109554241..109554255,+', 'chr10:100027943..100027958,-', 'chr10:100174900..100174956,-',
+                    'chr12:109548967..109549024,+']
+        self.assertCountEqual(expected, self.vencodes.vencodes[0])
+
+    def test_second_vencode(self):
+        self.vencodes.next(amount=1)
+        vencode = self.vencodes.next(amount=1)
+        expected = ['chr12:109554241..109554255,+', 'chr10:100027943..100027958,-', 'chr10:100174900..100174956,-',
+                    'chr12:109568972..109568988,+']
+        for i in (self.vencodes.vencodes[1], vencode[0]):
+            with self.subTest(i=i):
+                self.assertCountEqual(expected, i)
+
+    def test_if_correct_vencodes(self):
+        self.vencodes.next(amount=4)
+        for vencode_data in self.vencodes.get_vencode_data(method="return"):
+            vencode_data.drop(self.vencodes.target_replicates, axis=1, inplace=True)
+            with self.subTest(i=vencode_data.index.values.tolist()):
+                condition = self.vencodes._assess_vencode_one_zero_boolean(vencode_data)
+                self.assertTrue(condition)
+
+    def test_e_values_created(self):
+        self.vencodes.next(amount=3)
+        self.vencodes.determine_e_values()
+        maximum, minimum = 100, 0
+        for i in self.vencodes.e_values.values():
+            with self.subTest(i=i):
+                self.assertTrue(maximum >= i >= minimum, msg="{} is not between {} and {}".format(i, minimum, maximum))
+
+
+class VencodeSamplingTest(VencodesTest):
+    def setUp(self):
+        """ Sets-up variables to be used in the tests. """
+        self.vencodes = internals.Vencodes(self.data_tpm, algorithm="sampling", target=self.celltype_analyse)
+
+    def test_vencode(self):
+        self.vencodes.next(amount=1)
+        expected = ['chr12:109554241..109554255,+', 'chr10:100027943..100027958,-', 'chr10:100174900..100174956,-',
+                    'chr12:109548967..109549024,+']
+        self.assertCountEqual(expected, self.vencodes.vencodes[0])
+
+    def test_second_vencode(self):
+        self.vencodes.next(amount=1)
+        self.vencodes.next(amount=1)  # by calling two times, this test is also testing that aspect of the generator
+        expected = 4
+        self.assertEqual(expected, len(self.vencodes.vencodes[1]))
+
+    def test_if_correct_vencodes(self):
+        self.vencodes.next(amount=5)
+        for vencode_data in self.vencodes.get_vencode_data(method="return"):
+            vencode_data.drop(self.vencodes.target_replicates, axis=1, inplace=True)
+            with self.subTest(i=vencode_data.index.values.tolist()):
+                condition = self.vencodes._assess_vencode_one_zero_boolean(vencode_data)
+                self.assertTrue(condition)
+
+
+class VencodesHepatocyteTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """ Sets-up class variables to be used in the tests. """
@@ -1160,7 +1361,7 @@ class VenCodesHepatocyteTest(unittest.TestCase):
         cls.data.make_data_celltype_specific(cls.celltype_analyse)
 
 
-class HepatocyteHeuristicTest(VenCodesHepatocyteTest):
+class HepatocyteHeuristicTest(VencodesHepatocyteTest):
     @classmethod
     def setUpClass(cls):
         """ Sets-up class variables to be used in the tests. """
@@ -1191,7 +1392,7 @@ class HepatocyteHeuristicTest(VenCodesHepatocyteTest):
     def test_if_correct_vencodes(self):
         self.vencodes.next(amount=3)
         for vencode_data in self.vencodes.get_vencode_data(method="return"):
-            vencode_data.drop(self.vencodes.celltype_donors, axis=1, inplace=True)
+            vencode_data.drop(self.vencodes.target_replicates, axis=1, inplace=True)
             with self.subTest(i=vencode_data.index.values.tolist()):
                 condition = self.vencodes._assess_vencode_one_zero_boolean(vencode_data)
                 self.assertTrue(condition)
@@ -1203,10 +1404,10 @@ class HepatocyteHeuristicTest(VenCodesHepatocyteTest):
         minimum = 0
         for i in self.vencodes.e_values.values():
             with self.subTest(i=i):
-                self.assertTrue(maximum >= i >= minimum)
+                self.assertTrue(maximum >= i >= minimum, msg="{} is not between {} and {}".format(i, minimum, maximum))
 
 
-class HepatocyteSamplingTest(VenCodesHepatocyteTest):
+class HepatocyteSamplingTest(VencodesHepatocyteTest):
     @classmethod
     def setUpClass(cls):
         """ Sets-up class variables to be used in the tests. """
@@ -1234,13 +1435,13 @@ class HepatocyteSamplingTest(VenCodesHepatocyteTest):
     def test_if_correct_vencodes(self):
         self.vencodes.next(amount=3)
         for vencode_data in self.vencodes.get_vencode_data(method="return"):
-            vencode_data.drop(self.vencodes.celltype_donors, axis=1, inplace=True)
+            vencode_data.drop(self.vencodes.target_replicates, axis=1, inplace=True)
             with self.subTest(i=vencode_data.index.values.tolist()):
                 condition = self.vencodes._assess_vencode_one_zero_boolean(vencode_data)
                 self.assertTrue(condition)
 
 
-class VenCodesAdipocyteTest(unittest.TestCase):
+class VencodesAdipocyteTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """ Sets-up class variables to be used in the tests. """
@@ -1275,7 +1476,7 @@ class VenCodesAdipocyteTest(unittest.TestCase):
     def test_if_correct_vencodes(self):
         self.vencodes.next(amount=3)
         for vencode_data in self.vencodes.get_vencode_data(method="return"):
-            vencode_data.drop(self.vencodes.celltype_donors, axis=1, inplace=True)
+            vencode_data.drop(self.vencodes.target_replicates, axis=1, inplace=True)
             with self.subTest(i=vencode_data.index.values.tolist()):
                 condition = self.vencodes._assess_vencode_one_zero_boolean(vencode_data)
                 self.assertTrue(condition)
@@ -1290,7 +1491,7 @@ class VenCodesAdipocyteTest(unittest.TestCase):
                 self.assertTrue(maximum >= i >= minimum)
 
 
-class VenCodesKeratocytesTest(unittest.TestCase):
+class VencodesKeratocytesTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """ Sets-up class variables to be used in the tests. """
@@ -1329,7 +1530,7 @@ class VenCodesKeratocytesTest(unittest.TestCase):
     def test_if_correct_vencodes(self):
         self.vencodes.next(amount=3)
         for vencode_data in self.vencodes.get_vencode_data(method="return"):
-            vencode_data.drop(self.vencodes.celltype_donors, axis=1, inplace=True)
+            vencode_data.drop(self.vencodes.target_replicates, axis=1, inplace=True)
             with self.subTest(i=vencode_data.index.values.tolist()):
                 condition = self.vencodes._assess_vencode_one_zero_boolean(vencode_data)
                 self.assertTrue(condition)
@@ -1344,7 +1545,7 @@ class VenCodesKeratocytesTest(unittest.TestCase):
                 self.assertTrue(maximum >= i >= minimum)
 
 
-class VenCodesBronchialEpTest(unittest.TestCase):
+class VencodesBronchialEpTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """ Sets-up class variables to be used in the tests. """
@@ -1364,7 +1565,7 @@ class VenCodesBronchialEpTest(unittest.TestCase):
         self.assertFalse(self.vencodes.vencodes)
 
 
-class VencodesMethodsTest(unittest.TestCase):
+class VencodesOtherMethodsTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """ Sets-up variables to be used in the tests. """
@@ -1379,7 +1580,7 @@ class VencodesMethodsTest(unittest.TestCase):
         cls.vencodes.next(amount=2)
 
     def test_view_vencodes(self):
-        self.vencodes.view_vencodes(method="write", snapshot=30)
+        self.vencodes.view_vencodes(method="write", snapshot=30, verbose=False)
         folder_path = self.vencodes._parent_path
         file_path_1 = os.path.join(folder_path, "Hepatocyte_heat_map.png")
         file_path_2 = os.path.join(folder_path, "Hepatocyte_heat_map-1.png")
@@ -1389,7 +1590,7 @@ class VencodesMethodsTest(unittest.TestCase):
                 dh.remove_file(i)
 
     def test_get_vencodes_write(self):
-        self.vencodes.get_vencode_data(method="write")
+        self.vencodes.get_vencode_data(method="write", verbose=False)
         folder_path = self.vencodes._parent_path
         file_path_1 = os.path.join(folder_path, "Hepatocyte_vencode.csv")
         file_path_2 = os.path.join(folder_path, "Hepatocyte_vencode-1.csv")
@@ -1405,6 +1606,11 @@ class VencodesMethodsTest(unittest.TestCase):
             properties = (type(vencode_data), vencode_data.shape)
             with self.subTest(i=vencode_data):
                 self.assertEqual(properties, expected)
+
+    def test_vencode_mc_simulation(self):
+        vencodes = self.vencodes.get_vencode_data(method="return")
+        e_value = self.vencodes.vencode_mc_simulation(vencodes[1], reps=1000)
+        self.assertLessEqual(0, e_value)
 
 
 if __name__ == "__main__":

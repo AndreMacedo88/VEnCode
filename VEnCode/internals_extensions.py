@@ -7,6 +7,8 @@ import os
 from pathlib import Path
 import pandas as pd
 from tqdm import tqdm
+
+import VEnCode.outside_data
 from VEnCode import internals
 from VEnCode.utils import exceptions, pandas_utils as pd_util, general_utils as gen_util, dir_and_file_handling as dhs
 from VEnCode import common_variables as cv
@@ -131,6 +133,7 @@ class GetVencodeValidated(GettingVencodes):
     thresholds must be a list or tuple with the format:
     (non_target_celltypes_inactivity, target_celltype_activity, reg_element_sparseness)
     """
+
     def __init__(self, validate_with, number_vencodes=1, parsed=False, sample_type=None, thresholds=(), *args,
                  **kwargs):
         super().__init__(*args, **kwargs)
@@ -188,6 +191,7 @@ class GetVencodeExternalData(GettingVencodes):
     thresholds must be a list or tuple with the format:
     (non_target_celltypes_inactivity, target_celltype_activity, reg_element_sparseness)
     """
+
     def __init__(self, validate_with, number_vencodes=1, parsed=False, sample_type=None, thresholds=(), *args,
                  **kwargs):
         super().__init__(*args, **kwargs)
@@ -377,26 +381,26 @@ class Assays:
 
     def _data_handler(self, **kwargs):
         if self.database == "BarakatTS2018":
-            data = internals.BarakatTS2018Data(**kwargs)
+            data = VEnCode.outside_data.BarakatTS2018Data(**kwargs)
         elif self.database == "InoueF2017":
-            data = internals.InoueF2017Data()
+            data = VEnCode.outside_data.InoueF2017Data()
         elif self.database == "DennySK2016":
-            data = internals.BroadPeak(self.database)
+            data = VEnCode.outside_data.BroadPeak(self.database)
         elif self.database == "ChristensenCL2014":
-            data = internals.ChristensenCL2014Data(**kwargs)
+            data = VEnCode.outside_data.ChristensenCL2014Data(**kwargs)
         elif self.database == "WangX2018":
-            data = internals.Bed(self.database)
+            data = VEnCode.outside_data.Bed(self.database)
         elif self.database == "LiuY2017":
-            data = internals.BroadPeak(self.database)
+            data = VEnCode.outside_data.BroadPeak(self.database)
         else:
             raise AttributeError("Wrong Cross-Validation data")
         return data
 
     def _validator(self, celltype):
         try:
-            validator = Validator(celltype, self.data_type, self.algorithm, self.n_regulatory_elements, parsed=self.parsed,
-                                  number_vencodes=self.number_vencodes, sample_type=self.sample_type,
-                                  thresholds=self.thresholds, n_samples=self.n_samples,
+            validator = Validator(celltype, self.data_type, self.algorithm, self.n_regulatory_elements,
+                                  parsed=self.parsed, number_vencodes=self.number_vencodes,
+                                  sample_type=self.sample_type, thresholds=self.thresholds, n_samples=self.n_samples,
                                   validate_with=self.validate_with)
         except exceptions.NoVencodeError as e:
             raise e

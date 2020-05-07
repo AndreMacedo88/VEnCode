@@ -64,7 +64,7 @@ for celltype in tqdm(setup.re_list, desc="Completed: "):
                 raise AttributeError("Algorithm '{}' not recognized".format(setup.algorithm))
             vencodes.next(amount=1)
             if vencodes.vencodes:
-                donors_vencode_data = vencodes.celltype_donors_data.loc[vencodes.vencodes[0]]
+                donors_vencode_data = vencodes.target_replicates_data.loc[vencodes.vencodes[0]]
                 assess_if_not_vencode = np.any(donors_vencode_data == 0, axis=0)
                 result = any(assess_if_not_vencode)
                 results_celltype.append(not result)

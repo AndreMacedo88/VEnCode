@@ -8,13 +8,12 @@ from tkinter import filedialog
 from copy import copy, deepcopy
 from pathlib import Path
 from collections import defaultdict
+import inspect
 
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import pylab
-from Bio import SeqIO
-from collections import Counter
 
 import VEnCode.utils.dir_and_file_handling as d_f_handling
 from VEnCode import common_variables as cv
@@ -24,10 +23,13 @@ from VEnCode.utils import general_utils as gen_util, pandas_utils as pd_util
 class DataTpm:
     """
     An Object representing a data set to retrieve VEnCodes from. Contains optional filtering methods and other tools.
+    Create this object to help prepare the data for VEnCode generation. The essential method to call before feeding this
+    data set to a VEnCode object is shown in the Methods section. All the other methods are helper functions, or can be
+    replaced by supplying extra arguments in the VEnCode object.
 
     Attributes
     ----------
-    data : pandas.DataFrame
+    data : pd.DataFrame
         This object is a pandas DataFrame representation of the initial input data set.
     target : str
         The celltype or celltypes that are going to be the target of the VEnCode search algorithms.
@@ -39,14 +41,15 @@ class DataTpm:
 
     Parameters
     ----------
-    file : str
+    file : str, pd.DataFrame
         The file containing the data set to convert into DataTpm object. This can be a complete path to the file,
         or just the file name, provided the path is given in the argument `files_path`. Alternatively, use 'custom'
         to open a file dialog to pick the file. Supported file formats are .csv, .txt, .tsv, or any format
-        supported by the pandas read_csv function. Default is 'custom'.
+        supported by the pandas read_csv function. Finally, a pandas DataFrame object can be supplied in this parameter
+        instead of any file. Default is 'custom'.
     sep : str
         The column separator used in the input file. Default is ','.
-    nrows : int
+    nrows : int, None
         The number of rows to open in the file. Default is 'None' which will open the entire file.
     files_path : str, None
         In case the argument `file` does not contain a complete path, input that path here. This argument is also
@@ -60,6 +63,9 @@ class DataTpm:
     load_data()
         Essential method to call after DataTpm class object generation. Data is not automatically opened at object
         generation to give this class more flexibility to subclassing.
+
+    make_data_celltype_specific(target_celltype, replicates=True)
+        Method necessary to provide the VEnCode object with the information on which celltype is the target.
     """
 
     def __init__(self, file="custom", files_path=None, sep=";", nrows=None, **kwargs):
@@ -86,7 +92,7 @@ class DataTpm:
         return self.data.shape
 
     def __eq__(self, other):
-        """ Allows to check equality between two DataTpmFantom5 objects. """
+        """ Allows to check equality between two DataTpm objects. """
         if isinstance(other, DataTpm):
             args_list = [a for a in dir(self) if not a.startswith('__') and not callable(getattr(self, a))]
             for arg in args_list:
@@ -117,98 +123,6 @@ class DataTpm:
             return True
         return False
 
-    def _filename_handler(self):
-        """ Handles different file names inputs in the arguments. """
-        if self._file == "custom":
-            root = tk.Tk()
-            root.withdraw()
-            file_path = tk.filedialog.askopenfilename()
-        elif re.search(r"\....", self._file[-4:]):
-            if self._parent_path is not None:
-                file_path = os.path.join(self._parent_path, self._file)
-            else:
-                file_path = self._file
-                self._parent_path, self._file = os.path.split(os.path.abspath(self._file))
-        else:
-            raise AttributeError
-        return file_path
-
-    def _code_selector(self, data, celltype, not_include=None, to_dict=False, regex=True):
-        """ Selects celltype codes from database using their general name. """
-        if isinstance(celltype, str):  # celltype can be provided as a list or string
-            celltype = [celltype]
-        codes = []
-        code_dict = {}
-        for item in celltype:
-            if regex:
-                codes_list = pd_util.df_complete_regex_columns_finder(item, data)
-            else:
-                codes_list = pd_util.df_minimal_regex_columns_finder(item, data)
-
-            if to_dict:
-                code_dict[item] = codes_list
-            else:
-                codes.append(codes_list)
-        if not to_dict:
-            codes = [item for sublist in codes for item in sublist]  # make one list from nested lists of codes
-
-        if not_include is not None:  # remove some codes that regex might have not been able to differentiate
-            for key, values in not_include.items():
-                if key not in code_dict.keys():
-                    continue
-                codes_df = data[code_dict.get(key)]
-                not_codes = self._not_include_code_getter(values, codes_df)
-                code_dict[key] = list(set(code_dict[key]) - set(not_codes))
-
-        if to_dict:
-            codes = code_dict
-        self._code_tester(codes, celltype)
-        return codes
-
-    @staticmethod
-    def _not_include_code_getter(not_include, data_frame):
-        """
-        Function streamlined to deduce the names of columns from `DataTpm.data` for celltypes that are not to be
-        included.
-        """
-        if isinstance(not_include, list):
-            not_include_codes = []
-            for item in not_include:
-                not_codes_item = pd_util.df_regex_columns_finder(item, data_frame)
-                not_include_codes.append(not_codes_item)
-            not_include_codes = [item for sublist in not_include_codes for item in sublist]
-        else:
-            not_include_codes = pd_util.df_regex_columns_finder(not_include, data_frame)
-        return not_include_codes
-
-    @staticmethod
-    def _code_tester(codes, celltype, codes_type="list"):
-        """ Tests if any codes were generated. """
-        if codes_type == "list":
-            if not codes:
-                raise Exception("No codes for {}!".format(celltype))
-        elif codes_type == "dict":
-            if bool([a for a in codes.values() if a == []]):
-                print([item for item, value in codes.items() if not value])
-                raise Exception("Some celltypes might not have had codes generated!")
-        elif codes_type == "ndarray":
-            if codes.size == 0:
-                raise Exception("No codes for {}!".format(celltype))
-        else:
-            raise Exception("Wrong codes type to test for the generation of codes!")
-
-    def _merging_main(self, codes_dict, exclude_target=False):
-        if exclude_target:
-            codes_dict.pop(self.target, None)
-        data_merged = pd.DataFrame(index=self.data.index.values, columns=[key for key in codes_dict.keys()])
-        if exclude_target:
-            data_merged = pd.concat([data_merged, self.data[self.target_replicates[self.target]]], axis=1)
-        for code, donors in codes_dict.items():
-            celltypes_averaged = self.data[donors].apply(np.mean, axis=1)
-            data_merged[code] = celltypes_averaged
-        data = data_merged
-        return data
-
     def load_data(self):
         """
         Opens the data file with the previously provided arguments, storing the data set into the class attribute
@@ -216,8 +130,11 @@ class DataTpm:
         This method is not called during initialization to allow the DataTpm object to be easily extended by users.
         """
         self._file_path = self._filename_handler()
-        self.data = pd.read_csv(self._file_path, sep=self._sep, index_col=0, nrows=self._nrows, engine="python",
-                                **self.kwargs)
+        if isinstance(self._file, pd.DataFrame):
+            self.data = self._file
+        else:
+            self.data = pd.read_csv(self._file_path, sep=self._sep, index_col=0, nrows=self._nrows, engine="python",
+                                    **self.kwargs)
 
     def copy(self, deep=True):
         """
@@ -561,6 +478,100 @@ class DataTpm:
         """
         self.data.to_csv(*args, **kwargs)
 
+    def _filename_handler(self):
+        """ Handles different file names inputs in the arguments. """
+        if isinstance(self._file, pd.DataFrame):
+            file_path = None
+        elif self._file == "custom":
+            root = tk.Tk()
+            root.withdraw()
+            file_path = tk.filedialog.askopenfilename()
+        elif re.search(r"\....", self._file[-4:]):
+            if self._parent_path is not None:
+                file_path = os.path.join(self._parent_path, self._file)
+            else:
+                file_path = self._file
+                self._parent_path, self._file = os.path.split(os.path.abspath(self._file))
+        else:
+            raise AttributeError
+        return file_path
+
+    def _code_selector(self, data, celltype, not_include=None, to_dict=False, regex=True):
+        """ Selects celltype codes from database using their general name. """
+        if isinstance(celltype, str):  # celltype can be provided as a list or string
+            celltype = [celltype]
+        codes = []
+        code_dict = {}
+        for item in celltype:
+            if regex:
+                codes_list = pd_util.df_complete_regex_columns_finder(item, data)
+            else:
+                codes_list = pd_util.df_minimal_regex_columns_finder(item, data)
+
+            if to_dict:
+                code_dict[item] = codes_list
+            else:
+                codes.append(codes_list)
+        if not to_dict:
+            codes = [item for sublist in codes for item in sublist]  # make one list from nested lists of codes
+
+        if not_include is not None:  # remove some codes that regex might have not been able to differentiate
+            for key, values in not_include.items():
+                if key not in code_dict.keys():
+                    continue
+                codes_df = data[code_dict.get(key)]
+                not_codes = self._not_include_code_getter(values, codes_df)
+                code_dict[key] = list(set(code_dict[key]) - set(not_codes))
+
+        if to_dict:
+            codes = code_dict
+        self._code_tester(codes, celltype)
+        return codes
+
+    def _merging_main(self, codes_dict, exclude_target=False):
+        if exclude_target:
+            codes_dict.pop(self.target, None)
+        data_merged = pd.DataFrame(index=self.data.index.values, columns=[key for key in codes_dict.keys()])
+        if exclude_target:
+            data_merged = pd.concat([data_merged, self.data[self.target_replicates[self.target]]], axis=1)
+        for code, donors in codes_dict.items():
+            celltypes_averaged = self.data[donors].apply(np.mean, axis=1)
+            data_merged[code] = celltypes_averaged
+        data = data_merged
+        return data
+
+    @staticmethod
+    def _not_include_code_getter(not_include, data_frame):
+        """
+        Function streamlined to deduce the names of columns from `DataTpm.data` for celltypes that are not to be
+        included.
+        """
+        if isinstance(not_include, list):
+            not_include_codes = []
+            for item in not_include:
+                not_codes_item = pd_util.df_regex_columns_finder(item, data_frame)
+                not_include_codes.append(not_codes_item)
+            not_include_codes = [item for sublist in not_include_codes for item in sublist]
+        else:
+            not_include_codes = pd_util.df_regex_columns_finder(not_include, data_frame)
+        return not_include_codes
+
+    @staticmethod
+    def _code_tester(codes, celltype, codes_type="list"):
+        """ Tests if any codes were generated. """
+        if codes_type == "list":
+            if not codes:
+                raise Exception("No codes for {}!".format(celltype))
+        elif codes_type == "dict":
+            if bool([a for a in codes.values() if a == []]):
+                print([item for item, value in codes.items() if not value])
+                raise Exception("Some celltypes might not have had codes generated!")
+        elif codes_type == "ndarray":
+            if codes.size == 0:
+                raise Exception("No codes for {}!".format(celltype))
+        else:
+            raise Exception("Wrong codes type to test for the generation of codes!")
+
 
 class DataTpmFantom5(DataTpm):
     """
@@ -623,99 +634,7 @@ class DataTpmFantom5(DataTpm):
         else:
             pass
 
-    def _filename_handler(self):
-        if self._file == "custom":
-            root = tk.Tk()
-            root.withdraw()
-            file_path = tk.filedialog.askopenfilename()
-        elif re.search(r"\....", self._file[-4:]):
-            file_path = os.path.join(self._parent_path, self._file)
-        elif self._file == "parsed":
-            celltype_name = self.target.replace(":", "-").replace("/", "-")
-            file_path = os.path.join(self._parent_path, "Dbs", f"{celltype_name}_tpm_{self.data_type}-1.csv")
-        else:
-            raise AttributeError
-        return file_path
-
-    def _raw_data_promoters(self):
-        self.raw_data.drop(self.raw_data.index[:2], inplace=True)
-
-    def _raw_data_enhancers(self):
-        column_names = {}
-        for column_code in self.raw_data.columns.values.tolist():
-            try:
-                column_names[column_code] = self.names_db.loc[column_code, "celltypes"]
-            except KeyError:
-                pass
-        self.raw_data.rename(columns=column_names, inplace=True)
-
-    def _raw_data_cleaner(self):
-        data_1 = self.raw_data.copy()
-        universal_rna = self._code_selector(data_1, "universal", not_include=None)
-        data_1.drop(universal_rna, axis=1, inplace=True)
-        if self.data_type == "promoters":
-            to_keep = self._sample_category_selector()
-        else:
-            to_keep = self._sample_category_selector(get="name")
-        data = pd.DataFrame(index=data_1.index.values)
-        for sample in to_keep:
-            if self.data_type == "promoters":
-                data_temp = data_1.filter(regex=sample)
-                column_name = self.sample_type_file.loc[sample, "Name"]
-                try:
-                    data_temp.columns = [column_name]
-                except ValueError:
-                    column_name = [column_name + ", tech_rep1", column_name + ", tech_rep2"]
-                    data_temp.columns = column_name
-            else:
-                try:
-                    data_temp = data_1.loc[:, sample]
-                except KeyError:
-                    data_temp = pd_util.df_minimal_regex_columns_searcher(sample, data_1)
-            try:
-                data = data.join(data_temp)
-            except ValueError:
-                continue
-        # Exclude some specific, on-demand, cell-types from the data straight away:
-        if self.ctp_exclude is not None:
-            codes_exclude = self._code_selector(data, self.ctp_exclude, not_include=None, regex=False)
-            data.drop(codes_exclude, axis=1, inplace=True)
-        return data
-
-    def _sample_category_selector(self, get="index"):
-        """
-        Returns a list of cell types to keep/drop from a file containing the list of cell types and a
-        'Sample category' column which determines which cell types to retrieve.
-        """
-        types = self.sample_type
-        if not isinstance(types, list):
-            types = [types]
-        database = self.sample_type_file.copy()
-        try:
-            possible_types = database["Sample category"].drop_duplicates().values.tolist()
-        except Exception as ex:
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(ex).__name__, ex.args)
-            print(message)
-            raise
-        assert all(
-            sample in possible_types for sample in types), "Sample type is not valid.\nValid sample types: {}" \
-            .format(possible_types)
-        celltypes = []
-        for sample in types:
-            selected = database[database["Sample category"] == sample]
-            if get == "index":
-                for value in selected.index.values:
-                    celltypes.append(value)
-            elif get == "name":
-                for value in selected["Name"].tolist():
-                    celltypes.append(value)
-            else:
-                pass
-        return celltypes
-
-    def make_data_celltype_specific(self, target_celltype,
-                                    supersets=cv.primary_cells_supersets):
+    def make_data_celltype_specific(self, target_celltype, supersets=cv.primary_cells_supersets):
         """
         Determines celltype/donors (columns) of interest to analyse later.
         For previously parsed files, opens the specific file for that celltype.
@@ -871,29 +790,182 @@ class DataTpmFantom5(DataTpm):
             celltypes = [sub_item for item in list(celltypes_dict.values()) for sub_item in item]
         _remove(celltypes)
 
+    def _filename_handler(self):
+        if self._file == "custom":
+            root = tk.Tk()
+            root.withdraw()
+            file_path = tk.filedialog.askopenfilename()
+        elif re.search(r"\....", self._file[-4:]):
+            file_path = os.path.join(self._parent_path, self._file)
+        elif self._file == "parsed":
+            celltype_name = self.target.replace(":", "-").replace("/", "-")
+            file_path = os.path.join(self._parent_path, "Dbs", f"{celltype_name}_tpm_{self.data_type}-1.csv")
+        else:
+            raise AttributeError
+        return file_path
+
+    def _raw_data_promoters(self):
+        self.raw_data.drop(self.raw_data.index[:2], inplace=True)
+
+    def _raw_data_enhancers(self):
+        column_names = {}
+        for column_code in self.raw_data.columns.values.tolist():
+            try:
+                column_names[column_code] = self.names_db.loc[column_code, "celltypes"]
+            except KeyError:
+                pass
+        self.raw_data.rename(columns=column_names, inplace=True)
+
+    def _raw_data_cleaner(self):
+        data_1 = self.raw_data.copy()
+        universal_rna = self._code_selector(data_1, "universal", not_include=None)
+        data_1.drop(universal_rna, axis=1, inplace=True)
+        if self.data_type == "promoters":
+            to_keep = self._sample_category_selector()
+        else:
+            to_keep = self._sample_category_selector(get="name")
+        data = pd.DataFrame(index=data_1.index.values)
+        for sample in to_keep:
+            if self.data_type == "promoters":
+                data_temp = data_1.filter(regex=sample)
+                column_name = self.sample_type_file.loc[sample, "Name"]
+                try:
+                    data_temp.columns = [column_name]
+                except ValueError:
+                    column_name = [column_name + ", tech_rep1", column_name + ", tech_rep2"]
+                    data_temp.columns = column_name
+            else:
+                try:
+                    data_temp = data_1.loc[:, sample]
+                except KeyError:
+                    data_temp = pd_util.df_minimal_regex_columns_searcher(sample, data_1)
+            try:
+                data = data.join(data_temp)
+            except ValueError:
+                continue
+        # Exclude some specific, on-demand, cell-types from the data straight away:
+        if self.ctp_exclude is not None:
+            codes_exclude = self._code_selector(data, self.ctp_exclude, not_include=None, regex=False)
+            data.drop(codes_exclude, axis=1, inplace=True)
+        return data
+
+    def _sample_category_selector(self, get="index"):
+        """
+        Returns a list of cell types to keep/drop from a file containing the list of cell types and a
+        'Sample category' column which determines which cell types to retrieve.
+        """
+        types = self.sample_type
+        if not isinstance(types, list):
+            types = [types]
+        database = self.sample_type_file.copy()
+        try:
+            possible_types = database["Sample category"].drop_duplicates().values.tolist()
+        except Exception as ex:
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args)
+            print(message)
+            raise
+        assert all(
+            sample in possible_types for sample in types), "Sample type is not valid.\nValid sample types: {}" \
+            .format(possible_types)
+        celltypes = []
+        for sample in types:
+            selected = database[database["Sample category"] == sample]
+            if get == "index":
+                for value in selected.index.values:
+                    celltypes.append(value)
+            elif get == "name":
+                for value in selected["Name"].tolist():
+                    celltypes.append(value)
+            else:
+                pass
+        return celltypes
+
 
 class Vencodes:
     """
-    An Object representing the VEnCodes found for a specific celltype
+    An Object representing the VEnCodes found for a specific celltype. VEnCodes are combinations of regulatory elements
+    that are active specifically in one celltype.
+    This class contains methods to search, retrieve, classify and visualize VEnCodes from a matrix of regulatory
+    element (rows) expression levels per celltype (columns).
+
+    Attributes
+    ----------
+    vencodes : list of str
+        List of coordinates for the regulatory elements that constitute the VEnCodes found. There are other ways of
+        retrieving VEnCode information, see Methods. To generate a list of VEnCodes, use the `next()` method.
+    e_values : list of int
+        `E` value score for the VEnCodes found. Must be first determined using the `determine_e_values()` method.
+    data : DataTpm
+        The original data set used to find VEnCodes.
+    algorithm : str
+        Algorithm used to find VEnCodes.
+    k : int
+        The VEnCode size. In other words, the number of regulatory elements that form each VEnCode.
+    target_replicates : list of str, str
+        The target samples names to retrieve VEnCodes from.
+    target_replicates_data : pd.DataFrame
+        A shortcut to the subset of the data corresponding to the target samples.
+
+    Parameters
+    ----------
+    data_object : DataTpm, pd.DataFrame
+        Data to use in finding VEnCodes. This should be a matrix of regulatory elements (rows) expression levels per
+        celltype (columns). The matrix can be supplied as a DataTpm object, which has methods to quickly prepare the
+        data, or as a pandas DataFrame object.
+    algorithm : str
+        Algorithm to find VEnCodes. Currently accepted: `heuristic`, `sampling`.
+    number_of_re : int
+        VEnCode size. In other words, the number of regulatory elements that should form each VEnCode.
+    n_samples : int
+        Number of random samples to take to try to find a VEnCode. Used only if ``algorithm="sampling"``
+    stop : int
+        Number of promoters to test per node level. Used only if ``algorithm="heuristic"``
+    second_data_object : DataTpm, None
+        If the current VEnCode object contains as source a set of promoter expression, supplying an enhancer DataTpm
+        object here will allow retrieval of hybrid enhancer-promoter VEnCodes.
+    using : str, list, None
+        Allows the user to force some REs to be in the VEnCode, if possible.
+    target : str, None
+        When supplying the VEnCode object with a DataFrame, the target celltype must be specified here.
+
+    Methods
+    -------
+    next(amount=1)
+        Call this function to generate the next VEnCode. The VEnCode is appended to the variable `vencodes` and
+        can also be returned as a variable.
+    determine_e_values(repetitions=100)
+        Call this function to generate e-values for the current VEnCodes. E-values will be stored in the variable
+        called e_values. Method applied to calculate e-values is a Monte-Carlo simulation.
+    get_vencode_data(method="return", path=None, verbose=True)
+        Call this function to get the VEnCode data in .csv format (``method="write"``) or just printed in terminal
+        (``method="print"``), or both (``method="both"``). Alternatively, it can return the data to a variable
+        (``method="return"``).
     """
 
     def __init__(self, data_object, algorithm, number_of_re=4, n_samples=10000, stop=5, second_data_object=None,
-                 using=None):
-        """
-        :param DataTpm data_object: Must be made celltype specific before calling this method.
-        :param str algorithm: algorithm to find VEnCodes. Currently accepted: heuristic, sampling
-        :param int n_samples: number of times to try finding a VEnCode. Used only if algorithm = "sampling"
-        :param int stop: number of promoters to test per node level. Used only if algorithm = "heuristic
-        """
-        self._data_object, self.algorithm, self.k = data_object.copy(), algorithm, number_of_re
-        self.celltype_donors = self._data_object.target_replicates[data_object.target]
-        self.problems, self.vencodes, self.e_values = None, [], {}
+                 using=None, target=None):
+        if isinstance(data_object, pd.DataFrame):
+            assert target is not None, "Error: No target supplied. When supplying the VEnCode object with a DataFrame" \
+                                       ", always input the target celltype in the target argument."
+            data_tpm = DataTpm(file=data_object)
+            data_tpm.load_data()
+            data_tpm.make_data_celltype_specific(target)
+            self._data_object = data_tpm.copy(deep=True)
+        elif data_object.target is None:
+            self._data_object = data_object.copy(deep=True)
+            self._data_object.make_data_celltype_specific(target)
+        else:
+            self._data_object = data_object.copy(deep=True)
+
+        self.algorithm, self.k = algorithm, number_of_re
+        self.target_replicates = self._data_object.target_replicates[self._data_object.target]
+        self.vencodes, self.e_values = [], {}
         self._parent_path = os.path.join(str(Path(__file__).parents[2]), "VEnCodes")
 
-        self.celltype_donors_data = self._data_object.data[self.celltype_donors]
+        self.target_replicates_data = self._data_object.data[self.target_replicates]
         self.data = self._data_object.data.copy(deep=True)
-        self.data_not_target = self._data_object.drop_target_ctp(inplace=False)
-        # self.data_not_target = self._data_object.data.drop(self.celltype_donors, axis=1)
+        self._data_not_target = self._data_object.drop_target_ctp(inplace=False)
 
         if second_data_object:
             self.second_data_object = second_data_object.copy()
@@ -901,26 +973,67 @@ class Vencodes:
             self.second_data_object = None
 
         if self.algorithm == "heuristic":
-            self.stop = stop
-            self.vencodes_generator = self._heuristic_method_vencode_getter()
+            self._stop = stop
+            self._vencodes_generator = self._heuristic_method_vencode_getter()
         elif self.algorithm == "sampling":
-            self.n_samples = n_samples
-            self.vencodes_generator = self._sampling_method_vencode_getter(using=using)
+            self._n_samples = n_samples
+            self._vencodes_generator = self._sampling_method_vencode_getter(using=using)
+
+    def __eq__(self, other):
+        if isinstance(other, Vencodes):
+            args_list = [a for a in dir(self) if not a.startswith('__') and not callable(getattr(self, a))]
+            for arg in args_list:
+                arg_self, arg_other = "self." + arg, "other." + arg
+                if isinstance(eval(arg_self), pd.DataFrame):
+                    try:
+                        condition = eval(arg_self + ".equals(" + arg_other + ")")
+                    except ValueError:
+                        cols = eval(arg_self + ".columns.values.tolist()") == eval(arg_other
+                                                                                   + ".columns.values.tolist()")
+                        rows = eval(arg_self + ".index.values.tolist()") == eval(arg_other
+                                                                                 + ".index.values.tolist()")
+                        condition = cols and rows
+                    except AttributeError as e:
+                        print(e)
+                        return False
+                    if not condition:
+                        return False
+                    else:
+                        continue
+                elif inspect.isgenerator(eval(arg_self)):
+                    # there is no way to compare generators without changing their state.
+                    continue
+                try:
+                    if eval(arg_self + "==" + arg_other):
+                        continue
+                except ValueError:
+                    return False
+                else:
+                    return False
+            return True
+        return False
 
     def next(self, amount=1):
         """
-        Call this function to generate the next VEnCode. The VEnCode is appended to the variable self.vencodes, or
-        can be returned as a variable.
+        Call this function to generate the next VEnCode. The VEnCode is appended to the variable `vencodes` and
+        can also be returned as a variable.
 
-        :param int amount: number of vencodes to get.
-        :return: a list containing the desired amount of vencodes.
+        Parameters
+        ----------
+        amount : int
+            Number of vencodes to retrieve.
+
+        Returns
+        -------
+        list
+            A list containing the desired amount of vencodes.
         """
         num = 0
         vencode_list = []
         while num < amount:
             duplicate = False
             try:
-                vencode = next(self.vencodes_generator)
+                vencode = next(self._vencodes_generator)
             except StopIteration:
                 break
             if self.vencodes:
@@ -938,10 +1051,13 @@ class Vencodes:
 
     def determine_e_values(self, repetitions=100):
         """
-        Call this function to generate e-values for the current VEnCodes. E-values will be stored in the variable
-        called e_values. Method applied to calculate e-values is a Monte-Carlo simulation.
+        Call this function to generate `e` values for the current VEnCodes. `E` values will be stored in the variable
+        called `e_values`. The method applied to calculate `e` values is a Monte-Carlo simulation.
 
-        :param int repetitions: number of times each vencode is evaluated to get the average value.
+        Parameters
+        ----------
+        repetitions : int
+            Number of times each vencode is evaluated to get the average value.
         """
 
         if self.vencodes is None:
@@ -967,15 +1083,16 @@ class Vencodes:
     def export(self, *args, **kwargs):
         """
         Call this method to export vencode related values to a .csv file.
-
-        exporting e-values:
+        Exporting e-values:
         - use "e-values" in the args to export the e-values.
-        - Use:
-        >> e-values = path
-        to define a specific path for the file. (must be a complete path)
+        - Use ``e-values = path`` to define a specific path for the file. (must be a complete path)
 
-        :param args: "e-values", "TPP" or a list/tuple with both.
-        :param kwargs: optional args to apply, see description.
+        Parameters
+        ----------
+        args
+            "e-values", "TPP" or a list/tuple with both.
+        kwargs
+            Optional args to apply, see description.
         """
 
         if "e-values" in args and "TPP" not in args:
@@ -986,14 +1103,20 @@ class Vencodes:
             path = kwargs.get("path")
             self._export_e_values_tpp(path)  # TODO: export e_values with Tags per million included
 
-    def get_vencode_data(self, method="return", path=None):
+    def get_vencode_data(self, method="return", path=None, verbose=True):
         """
-        Call this function to get the VEnCode data in .csv format (method="write") or just printed in terminal
-        (method="print"), or both (method="both").
-        Alternatively, it can return the data to a variable (method="return").
+        Call this function to get the VEnCode data in .csv format (``method="write"``) or just printed in terminal
+        (``method="print"``), or both (``method="both"``). Alternatively, it can return the data to a variable
+        (``method="return"``).
 
-        :param str method: how to retrieve the data.
-        :param str path: path to write a file to store the VEnCode data.
+        Parameters
+        ----------
+        method : str
+            How to retrieve the data.
+        path : str, None
+            Path to write a file to store the VEnCode data.
+        verbose : bool
+            Either to allow the function to print messages to console (`True`), or not (`False`).
         """
         vencodes = []
         for vencode in self.vencodes:
@@ -1009,36 +1132,53 @@ class Vencodes:
                     file_name, {":": "-", "*": "-", "?": "-", "<": "-", ">": "-", "/": "-"})
                 file_path = d_f_handling.check_if_and_makefile(file_name, path=path, file_type=".csv")
                 self.data.loc[vencode].to_csv(file_path, sep=';')
-                print("File stored in {}".format(file_path))
+                if verbose:
+                    print("File stored in {}".format(file_path))
             elif method == "return":
                 vencodes.append(self.data.loc[vencode])
         if method == "return":
             return vencodes
 
-    def view_vencodes(self, method="print", interpolation="nearest", path=None, snapshot=None):
+    def view_vencodes(self, method="print", interpolation="nearest", path=None, snapshot=None, verbose=True):
         """
         Call this function to get an heat map visualization of the vencodes.
 
-        :param str method: "print" to get visualization on terminal. "write" to write to a file. "both" for both.
-        :param str interpolation: method for heat map interpolation
-        :param str path: Optional path for the file.
-        :param int snapshot: Number of celltypes to show in heat map. False gets all but may hinder visualization.
+        Parameters
+        ----------
+        method : str
+            Method to view VEnCodes. "print" to get visualization on terminal. "write" to write to a file. "both" for
+            both.
+        interpolation : str
+            Method for heat map interpolation.
+        path : str, None
+            Optional path for the file.
+        snapshot : int, None
+            Number of celltypes to show in heat map. `False` gets all but may hinder visualization.
+        verbose : bool
+            Either to allow the function to print messages to console (`True`), or not (`False`).
         """
         for vencode in self.vencodes:
-            self._heatmap(vencode, method=method, interpolation=interpolation, path=path, snapshot=snapshot)
+            self._heatmap(vencode, method=method, interpolation=interpolation, path=path, snapshot=snapshot,
+                          verbose=verbose)
 
     def next_heuristic2_vencode(self, second_data_object, amount=1):
-
         """
         Call this function to generate the next VEnCode, possibly hybrid enhancer-promoter VEnCode.
         The VEnCode is appended to the variable self.vencodes.
-        :param second_data_object:
+
+        Parameters
+        ----------
+        second_data_object : DataTpm
+            If the current VEnCode object contains as source a set of promoter expression, supplying an enhancer DataTpm
+            object here will allow retrieval of hybrid enhancer-promoter VEnCodes.
+        amount : int
+            Number of vencodes to retrieve.
         """
 
         # TODO: needs to get the minimum number of second promoter/enhancers as possible. rn is getting k second RE
         self.second_data_object = second_data_object.copy()
         self.second_data_object.drop_target_ctp(inplace=True)
-        sparsest = self.data_not_target.head(n=self.k)
+        sparsest = self._data_not_target.head(n=self.k)
         mask = sparsest != 0
         cols = sparsest.columns[np.all(mask.values, axis=0)].tolist()
         cols_target = second_data_object.ctp_analyse_donors[second_data_object.target_ctp]
@@ -1046,7 +1186,7 @@ class Vencodes:
         second_data_object.data = data_problem_cols
         if self.algorithm == "heuristic":
             vencode_heuristic2 = Vencodes(second_data_object, algorithm="heuristic", number_of_re=self.k,
-                                          stop=self.stop)
+                                          stop=self._stop)
             vencode_heuristic2.next(amount=amount)
         else:
             raise AttributeError("Algorithm - {} - currently not supported".format(self.algorithm))
@@ -1056,13 +1196,12 @@ class Vencodes:
                 self.vencodes.append(vencode)
 
     def heuristic2_vencode(self):  # TODO: must implement this within _node_based_algorithm
-
         """
         Call this function to generate the next VEnCode, possibly hybrid enhancer-promoter VEnCode.
         The VEnCode is appended to the variable self.vencodes.
         """
         # TODO: needs to get the minimum number of second promoter/enhancers as possible. rn is getting k second RE
-        sparsest = self.data_not_target.head(n=self.k)
+        sparsest = self._data_not_target.head(n=self.k)
         mask = sparsest != 0
         cols = sparsest.columns[np.all(mask.values, axis=0)].tolist()
         cols_target = self.second_data_object.ctp_analyse_donors[self.second_data_object.target_ctp]
@@ -1070,7 +1209,7 @@ class Vencodes:
         self.second_data_object.data = data_problem_cols
         if self.algorithm == "heuristic":
             vencode_heuristic2 = Vencodes(self.second_data_object, algorithm="heuristic", number_of_re=self.k,
-                                          stop=self.stop)
+                                          stop=self._stop)
             vencode_heuristic2.next()
         else:
             raise AttributeError("Algorithm - {} - currently not supported".format(self.algorithm))
@@ -1078,252 +1217,23 @@ class Vencodes:
             vencode = [sparsest.index.values.tolist(), vencode_heuristic2.vencodes]
             self.vencodes.append(vencode)
 
-    def _sampling_method_vencode_getter(self, threshold=0,
-                                        skip_sparsest=False, using=None):
-        """
-        Function that searches for a VEnCode in data by the sampling method. Please note that it retrieves a DataFrame
-        containing the entire sample. This is the reason why it only retrieves one VEnCode.
-
-        :param int threshold: minimum expression threshold that counts to consider a promoter inactive.
-        :param bool skip_sparsest: Allows user to skip first check - check if sparsest REs already constitute a VEnCode.
-        :return: a list with the promoters that constitute a VEnCode.
-        """
-        if not skip_sparsest:
-            # try first to see if sparsest REs aren't already a VEnCode:
-            sparsest = self.data_not_target.head(n=self.k)
-            if self._assess_vencode_one_zero_boolean(sparsest, threshold=threshold):
-                yield sparsest.index.values.tolist()
-        i = 0
-
-        if using is not None:  # allows user to force some REs to be in the VEnCode
-            use = self.data_not_target.loc[using]
-            if isinstance(using, list):
-                n = self.k - len(using)
-            else:
-                n = self.k - 1
-        else:
-            use = None
-            n = self.k
-
-        while i < self.n_samples:
-            try:
-                sample = self.data_not_target.sample(n=n)  # take a sample of n promoters
-            except ValueError as e:  # Combinations number could be larger than number of RE available.
-                print("Combinations number (k) is probably larger than the number of RE available. {}".format(
-                    e.args))
-                break
-            if using is not None:
-                try:
-                    sample.loc[using] = use
-                except KeyError:
-                    sample = pd.concat([sample, use])
-            if self._assess_vencode_one_zero_boolean(sample, threshold=threshold):  # assess if VEnCode
-                yield sample.index.values.tolist()
-                i = 0
-            else:
-                i += 1
-
-    def _heuristic_method_vencode_getter(self):
-        """
-        Function that searches for a VEnCode in data by the heuristic method.
-        """
-        breaks = {}  # this next section creates a dictionary to update with how many times each node is cycled
-        for item in range(1, self.k):
-            breaks["breaker_" + str(item)] = 0
-        generator = self._node_based_algorithm(breaks=breaks)
-        while True:
-            try:
-                vencode_list = next(generator)
-            except StopIteration:
-                break
-            if vencode_list:
-                vencode_list = [item for sublist in vencode_list for item in sublist]
-                for i in gen_util.combinations_from_nested_lists(vencode_list):
-                    vencode = self._fill_vencode_list(list(i))
-                    yield vencode  # We give the first vencode here
-                    if len(i) == self.k:
-                        continue
-                    for prom_sparse in self.data_not_target.index.values:
-                        if prom_sparse in vencode:
-                            continue
-                        for prom_filled in reversed(vencode):
-                            if prom_filled in i:
-                                continue
-                            vencode_copy = vencode.copy()
-                            vencode_copy.remove(prom_filled)
-                            vencode_copy.append(prom_sparse)
-                            yield vencode_copy
-            else:
-                break
-        yield []
-
-    def _node_based_algorithm(self, promoter=False, counter=1, skip=(),
-                              breaks=None, data=None):
-        """
-        Uses node-based approach to search for vencodes in data.
-
-        :param str promoter: Previous promoter name(founder node if first time calling this function).
-        :param int counter: Counter is equal to the depth of the current node.
-        :param (tuple, list) skip: the promoters to skip when finding a VEnCode.
-        :param dict breaks: Dictionary containing keys for the different levels of breaks (one per each combination
-        number) and values corresponding to how many times each combination already cycled. dict type
-        :return: The VEnCode, in list type, if the algorithm found one.
-        """
-
-        def sort_sparseness(data_):
-            """
-            Sort data by sum of rows
-            :param pd.DataFrame data_: data to sort
-            """
-            data_["sum"] = data_.sum(axis=1)  # create a extra column with the sum of 1s for each row (promoter)
-            data_.sort_values(["sum"], inplace=True)  # sort promoters based on the previous sum. Descending order
-            data_.drop(["sum"], axis=1, inplace=True)
-
-        vencode_promoters_list = []
-        if data is None:
-            data_frame = self.data_not_target.copy()
-        else:
-            data_frame = data
-        data_frame.drop(skip, axis=0, inplace=True,
-                        errors="ignore")  # drop the promoters previously used to generate vencodes
-        if promoter:
-            cols = data_frame.loc[promoter] != 0  # create a mask where True marks the celltypes in which the previous
-            # node is still expressed
-            cols = data_frame.columns[cols]  # apply that mask, selecting the columns that are True
-            data_frame = data_frame[cols].drop(promoter,
-                                               axis=0)  # apply the selection and take the prom out of the dataframe
-            vencode_promoters_list.append(promoter)
-
-        nodes = (data_frame == 0).all(
-            axis=1)  # Check if any VEnCode - if any other promoter have 0 expression in all cells
-        vencode_node_count = np.sum(nodes)  # if any True (VEnCode) the "True" becomes 1 and sum gives num VEnCodes
-        if vencode_node_count > 0:
-            vencode_list = data_frame[nodes].index.values.tolist()
-            vencode_promoters_list.append(vencode_list)
-            yield vencode_promoters_list  # found at least one VEnCode so it can return a successful answer
-
-        else:  # if in previous node could not get a definite VEnCode, re-start search with next node
-            if self.second_data_object:
-                pass
-            sort_sparseness(data_frame)
-            promoters = data_frame.index.values  # get an array of all the promoters, to cycle
-            counter = counter  # counter is defined with previous counter for recursive use of this function
-            counter_thresholds = [i for i in range(2, (self.k + 1))]  # set maximum number for counter
-            # loop the next area until number of nodes in combination exceeds num of desired proms in comb for VEnCode
-            while counter < self.k:
-                counter += 1  # updates the counter as it will enter the next node depth
-                promoters_in_use = (prom for prom in promoters if prom not in skip)
-                for prom in promoters_in_use:  # cycle the promoters
-                    # region "early quit if loop is taking too long"
-                    if breaks is not None and counter in counter_thresholds:
-                        breaker_index = str(counter_thresholds.index(counter) + 1)
-                        breaks["breaker_" + breaker_index] += 1
-                        # Here, we only test x promoters per node level (self.stop):
-                        if breaks["breaker_" + breaker_index] > self.stop:
-                            breaks["breaker_" + breaker_index] = 0
-                            yield []
-                    # endregion "early quit if loop is taking too long"
-                    check_if_ven = self._node_based_algorithm(promoter=prom, skip=skip, counter=counter, breaks=breaks,
-                                                              data=data_frame)
-                    try:
-                        vencode_possible = next(check_if_ven)
-                    except StopIteration:
-                        vencode_possible = False
-                        yield []
-                    if vencode_possible:
-                        vencode_promoters_list.append(vencode_possible)
-                        yield vencode_promoters_list
-                        vencode_promoters_list = []
-            else:
-                vencode_promoters_list = []
-            yield vencode_promoters_list
-
-    def _fill_vencode_list(self, vencode_list):
-        """
-        Given an incomplete list of x REs that make up a VEnCode, it fills the list up, up to y VEnCodes (
-        y = RE combinations number), based on next sparse REs.
-
-        :param list vencode_list: a list containing the promoters necessary to establish a vencode.
-        :return: A list of y REs that comprise a VEnCode, where y = combinations number.
-        """
-        assert len(vencode_list) <= self.k, "vencode list len is bigger than wanted RE number"
-        if len(vencode_list) == self.k:
-            return vencode_list
-        for prom in self.data_not_target.index.values:  # next we'll fill the vencode with the top sparse REs
-            if prom in vencode_list:
-                continue
-            vencode_list.append(prom)
-            if len(vencode_list) == self.k:
-                break
-        return vencode_list
-
-    def _e_value_calculator(self, vencode, reps):
-        """
-        Preps the data to be used in Monte Carlo simulation.
-
-        :param list vencode: one of the VEnCodes found.
-        :param int reps: number of times each vencode is evaluated to get the average value.
-        :return: e-value, that is, the average number of random changes done to the data that breaks the vencode.
-        """
-
-        vencode_data = self.data_not_target.loc[vencode]
-        e_value = self.vencode_mc_simulation(vencode_data, reps=reps)
-        return e_value
-
-    def _e_value_calculator_two_data_sets(self, vencode, reps):
-        """
-        Preps the data to be used in Monte Carlo simulation. Used for heuristic2 algorithm.
-
-        :param list vencode: one of the VEnCodes found.
-        :param int reps: number of times each vencode is evaluated to get the average value.
-        :return: e-value, that is, the average number of random changes done to the data that breaks the vencode.
-        """
-
-        vencode_first_data = self.data_not_target.loc[vencode[0]]
-        vencode_second_data = self.second_data_object.data.loc[vencode[1]]
-        vencode_data = pd.concat([vencode_first_data, vencode_second_data], axis=0)
-        e_value = self.vencode_mc_simulation(vencode_data, reps=reps)
-        return e_value, vencode_data.shape[0]
-
-    def _heatmap(self, vencode, method="print", interpolation="nearest", path=None, snapshot=None):
-        data = self.data.loc[vencode]
-        labels = data.index.values
-        if snapshot is not None:
-            values = eval("data.values[:, -{}:]".format(snapshot))
-        else:
-            values = data.values
-        pylab.imshow(values, interpolation=interpolation, cmap=plt.cm.Reds)
-        pylab.yticks(range(values.shape[0]), labels)
-        # Print or save to file:
-        if not method == "print":
-            if path is None:
-                path = self._parent_path
-            else:
-                pass
-            file_name = "{}_heat_map".format(self._data_object.target)
-            file_path = d_f_handling.check_if_and_makefile(file_name, path=path, file_type=".png")
-        else:
-            file_path = None
-        if method == "write":
-            pylab.savefig(file_path, bbox_inches="tight")
-            print("Image stored in {}".format(file_path))
-        elif method == "print":
-            pylab.show()
-        elif method == "both":
-            pylab.savefig(file_path, bbox_inches="tight")
-            print("Image stored in {}".format(file_path))
-            pylab.show()
-        else:
-            raise AttributeError("method argument is not recognized")
-
     @staticmethod
     def vencode_mc_simulation(data, reps=100):
         """
-        Simulates turning 0s to 1s over a data set and asks if the data still represents a VEnCode.
+        Simulates turning 0s to 1s over a data set, asking each turn if the data still represents a VEnCode.
+        Tests the VEnCode robustness to false negatives in the data.
 
-        :param pd.DataFrame data: Data frame of promoter expression per celltype without the celltype of interest.
-        :param int reps: number of simulations to run.
-        :return: e_values, that is, the average number of random changes done to the data that breaks the vencode.
+        Parameters
+        ----------
+        data : pd.DataFrame
+            Data frame of promoter expression per celltype without the celltype of interest.
+        reps : int
+            Number of simulations to run.
+
+        Returns
+        -------
+        int
+            The `e` value, that is, the average number of random changes done to the data until it breaks the VEnCode.
         """
         col_list = data.columns.values
         index_list = data.index.values
@@ -1351,18 +1261,310 @@ class Vencodes:
         global_counter = np.mean(local_counter_list, dtype=np.float64)
         return global_counter
 
+    def _sampling_method_vencode_getter(self, threshold=0, skip_sparsest=False, using=None):
+        """
+        Function that searches for a VEnCode in data using the sampling method. Please note that it retrieves a
+        DataFrame containing the entire sample. This is the reason why it only retrieves one VEnCode.
+
+        Parameters
+        ----------
+        threshold : int
+            Minimum expression threshold that counts to consider a promoter inactive.
+        skip_sparsest : bool
+            Allows user to skip first check - check if sparsest REs already constitute a VEnCode.
+
+        Yields
+        ------
+        list
+            The promoters that constitute a VEnCode.
+        """
+        if not skip_sparsest:
+            # try first to see if sparsest REs aren't already a VEnCode:
+            sparsest = self._data_not_target.head(n=self.k)
+            if self._assess_vencode_one_zero_boolean(sparsest, threshold=threshold):
+                yield sparsest.index.values.tolist()
+        i = 0
+
+        if using is not None:  # allows user to force some REs to be in the VEnCode
+            use = self._data_not_target.loc[using]
+            if isinstance(using, list):
+                n = self.k - len(using)
+            else:
+                n = self.k - 1
+        else:
+            use = None
+            n = self.k
+
+        while i < self._n_samples:
+            try:
+                sample = self._data_not_target.sample(n=n)  # take a sample of n promoters
+            except ValueError as e:  # Combinations number could be larger than number of RE available.
+                print("Combinations number (k) is probably larger than the number of RE available. {}".format(
+                    e.args))
+                break
+            if using is not None:
+                try:
+                    sample.loc[using] = use
+                except KeyError:
+                    sample = pd.concat([sample, use])
+            if self._assess_vencode_one_zero_boolean(sample, threshold=threshold):  # assess if VEnCode
+                yield sample.index.values.tolist()
+                i = 0
+            else:
+                i += 1
+
+    def _heuristic_method_vencode_getter(self):
+        """
+        Function that searches for a VEnCode in data using the heuristic method.
+        """
+        breaks = {}  # this next section creates a dictionary to update with how many times each node is cycled
+        for item in range(1, self.k):
+            breaks["breaker_" + str(item)] = 0
+        generator = self._node_based_algorithm(breaks=breaks)
+        while True:
+            try:
+                vencode_list = next(generator)
+            except StopIteration:
+                break
+            if vencode_list:
+                vencode_list = [item for sublist in vencode_list for item in sublist]
+                for i in gen_util.combinations_from_nested_lists(vencode_list):
+                    vencode = self._fill_vencode_list(list(i))
+                    yield vencode  # We give the first vencode here
+                    if len(i) == self.k:
+                        continue
+                    for prom_sparse in self._data_not_target.index.values:
+                        if prom_sparse in vencode:
+                            continue
+                        for prom_filled in reversed(vencode):
+                            if prom_filled in i:
+                                continue
+                            vencode_copy = vencode.copy()
+                            vencode_copy.remove(prom_filled)
+                            vencode_copy.append(prom_sparse)
+                            yield vencode_copy
+            else:
+                break
+        yield []
+
+    def _node_based_algorithm(self, promoter=False, counter=1, skip=(), breaks=None, data=None):
+        """
+        Uses node-based approach to search for vencodes in data.
+
+        Parameters
+        ----------
+        promoter : str, bool
+            Previous promoter name(founder node if first time calling this function).
+        counter : int
+            Counter is equal to the depth of the current node.
+        skip : tuple, list
+            The promoters to skip when finding a VEnCode.
+        breaks : dict, None
+            Dictionary containing keys for the different levels of breaks (one per each combination
+        number) and values corresponding to how many times each combination already cycled. dict type
+        data : pd.DataFrame
+            Data to search for VEnCodes. This method is recursive, and as it makes modifications to the initial
+            data frame uses this parameter to feed the next loop.
+
+        Returns
+        -------
+        list
+            The VEnCode, in list type, if the algorithm found one.
+        """
+
+        def sort_sparseness(data_):
+            """
+            Sort data by sum of rows. Descending order of sparseness.
+
+            Parameters
+            ----------
+            data_ : pd.DataFrame
+                Data to sort.
+            """
+            data_["sum"] = data_.sum(axis=1)  # create a extra column with the sum of 1s for each row (promoter)
+            data_.sort_values(["sum"], inplace=True)  # sort promoters based on the previous sum. Descending order.
+            data_.drop(["sum"], axis=1, inplace=True)
+
+        vencode_promoters_list = []
+        if data is None:
+            data_frame = self._data_not_target.copy()
+        else:
+            data_frame = data
+        data_frame.drop(skip, axis=0, inplace=True,
+                        errors="ignore")  # drop the promoters previously used to generate vencodes
+        if promoter:
+            cols = data_frame.loc[promoter] != 0  # create a mask where True marks the celltypes in which the previous
+            # node is still expressed
+            cols = data_frame.columns[cols]  # apply that mask, selecting the columns that are True
+            data_frame = data_frame[cols].drop(promoter,
+                                               axis=0)  # apply the selection and take the prom out of the data frame
+            vencode_promoters_list.append(promoter)
+
+        nodes = (data_frame == 0).all(
+            axis=1)  # Check if any VEnCode - if any other promoter have 0 expression in all cells
+        vencode_node_count = np.sum(nodes)  # if any True (VEnCode) the "True" becomes 1 and sum gives num VEnCodes
+        if vencode_node_count > 0:
+            vencode_list = data_frame[nodes].index.values.tolist()
+            vencode_promoters_list.append(vencode_list)
+            yield vencode_promoters_list  # found at least one VEnCode so it can return a successful answer
+
+        else:  # if in previous node could not get a definite VEnCode, re-start search with next node
+            if self.second_data_object:
+                pass
+            sort_sparseness(data_frame)
+            promoters = data_frame.index.values  # get an array of all the promoters, to cycle
+            counter = counter  # counter is defined with previous counter for recursive use of this function
+            counter_thresholds = [i for i in range(2, (self.k + 1))]  # set maximum number for counter
+            # loop the next area until number of nodes in combination exceeds num of desired proms in comb for VEnCode
+            while counter < self.k:
+                counter += 1  # updates the counter as it will enter the next node depth
+                promoters_in_use = (prom for prom in promoters if prom not in skip)
+                for prom in promoters_in_use:  # cycle the promoters
+                    # region "early quit if loop is taking too long"
+                    if breaks is not None and counter in counter_thresholds:
+                        breaker_index = str(counter_thresholds.index(counter) + 1)
+                        breaks["breaker_" + breaker_index] += 1
+                        # Here, we only test x promoters per node level (self.stop):
+                        if breaks["breaker_" + breaker_index] > self._stop:
+                            breaks["breaker_" + breaker_index] = 0
+                            yield []
+                    # endregion "early quit if loop is taking too long"
+                    check_if_ven = self._node_based_algorithm(promoter=prom, skip=skip, counter=counter, breaks=breaks,
+                                                              data=data_frame)
+                    try:
+                        vencode_possible = next(check_if_ven)
+                    except StopIteration:
+                        vencode_possible = False
+                        yield []
+                    if vencode_possible:
+                        vencode_promoters_list.append(vencode_possible)
+                        yield vencode_promoters_list
+                        vencode_promoters_list = []
+            else:
+                vencode_promoters_list = []
+            yield vencode_promoters_list
+
+    def _fill_vencode_list(self, vencode_list):
+        """
+        Given an incomplete list of x REs that make up a VEnCode, it fills the list up, up to y VEnCodes (
+        y = RE combinations number), based on next sparse REs.
+
+        Parameters
+        ----------
+        vencode_list : list of str
+            A list containing the promoters necessary to establish a vencode.
+
+        Returns
+        -------
+        list
+            A list of y REs that comprise a VEnCode, where y = combinations number.
+        """
+        assert len(vencode_list) <= self.k, "vencode list len is bigger than wanted RE number"
+        if len(vencode_list) == self.k:
+            return vencode_list
+        for prom in self._data_not_target.index.values:  # next we'll fill the vencode with the top sparse REs
+            if prom in vencode_list:
+                continue
+            vencode_list.append(prom)
+            if len(vencode_list) == self.k:
+                break
+        return vencode_list
+
+    def _e_value_calculator(self, vencode, reps):
+        """
+        Prepares the data and feeds it to the function that performs the Monte Carlo simulation.
+
+        Parameters
+        ----------
+        vencode : list of str
+            One of the VEnCodes found.
+        reps : int
+            Number of times each vencode is evaluated to get the average value.
+
+        Returns
+        -------
+        int
+            `E` value, that is, the average number of random changes done to the data that breaks the vencode.
+        """
+
+        vencode_data = self._data_not_target.loc[vencode]
+        e_value = self.vencode_mc_simulation(vencode_data, reps=reps)
+        return e_value
+
+    def _e_value_calculator_two_data_sets(self, vencode, reps):
+        """
+        Preps the data to be used in Monte Carlo simulation. Used for heuristic2 algorithm.
+
+        Parameters
+        ----------
+        vencode : list of str
+            One of the VEnCodes found.
+        reps : int
+            Number of times each vencode is evaluated to get the average value.
+
+        Returns
+        -------
+            `E` value, that is, the average number of random changes done to the data that breaks the vencode.
+        """
+
+        vencode_first_data = self._data_not_target.loc[vencode[0]]
+        vencode_second_data = self.second_data_object.data.loc[vencode[1]]
+        vencode_data = pd.concat([vencode_first_data, vencode_second_data], axis=0)
+        e_value = self.vencode_mc_simulation(vencode_data, reps=reps)
+        return e_value, vencode_data.shape[0]
+
+    def _heatmap(self, vencode, method="print", interpolation="nearest", path=None, snapshot=None, verbose=True):
+        data = self.data.loc[vencode]
+        labels = data.index.values
+        if snapshot is not None:
+            values = eval("data.values[:, -{}:]".format(snapshot))
+        else:
+            values = data.values
+        pylab.imshow(values, interpolation=interpolation, cmap=plt.cm.Reds)
+        pylab.yticks(range(values.shape[0]), labels)
+        # Print or save to file:
+        if not method == "print":
+            if path is None:
+                path = self._parent_path
+            else:
+                pass
+            file_name = "{}_heat_map".format(self._data_object.target)
+            file_path = d_f_handling.check_if_and_makefile(file_name, path=path, file_type=".png")
+        else:
+            file_path = None
+        if method == "write":
+            pylab.savefig(file_path, bbox_inches="tight")
+            if verbose:
+                print("Image stored in {}".format(file_path))
+        elif method == "print":
+            pylab.show()
+        elif method == "both":
+            pylab.savefig(file_path, bbox_inches="tight")
+            if verbose:
+                print("Image stored in {}".format(file_path))
+            pylab.show()
+        else:
+            raise AttributeError("method argument is not recognized")
+
     def _e_value_normalizer(self, e_value_raw, k=None):
         """
-        Normalizes the e-value due to disparity in number of celltypes
+        Normalizes the e-value to account for the variance in the number of celltypes and regulatory elements in the
+        data sets.
 
-        :param e_value_raw: value to normalize
-        :return: normalized e-value
+        Parameters
+        ----------
+        e_value_raw : int
+            Value to normalize
+
+        Returns
+        -------
+            Normalized e-value.
         """
         if k is None:
             k = self.k
 
         coefs = {"a": -164054.1, "b": 0.9998811, "c": 0.000006088948, "d": 1.00051, "m": 0.9527, "e": -0.1131}
-        e_value_expected = (coefs["m"] * k + coefs["e"]) * self.data_not_target.shape[1] ** (
+        e_value_expected = (coefs["m"] * k + coefs["e"]) * self._data_not_target.shape[1] ** (
                 coefs["d"] + ((coefs["a"] - coefs["d"]) / (1 + (k / coefs["c"]) ** coefs["b"])))
         e_value_norm = (e_value_raw / e_value_expected) * 100
         if e_value_norm < 100:
@@ -1386,9 +1588,13 @@ class Vencodes:
 
     def _export_e_values(self, path=None):
         """
-        Call this method to export E-values to a .csv file.
+        Call this method to export `e` values to a .csv file.
         Use path to define a specific path for the file. (must be a complete path)
-        :param str path: Complete path to store the file.
+
+        Parameters
+        ----------
+        path : str
+            Complete path to store the file.
         """
         if not self.e_values:
             self.determine_e_values()
@@ -1400,323 +1606,6 @@ class Vencodes:
         file_path = d_f_handling.check_if_and_makefile(file_name, path=path, file_type=".csv")
         d_f_handling.write_one_value_dict_to_csv(file_path, self.e_values)
         print("File stored in: {}".format(file_path))
-
-
-class OutsideData:
-    """
-    Base class for all data from outside sources.
-    """
-
-    def __init__(self, folder=None):
-        if folder is None:
-            folder = "Validation_files"
-        self.data_path = os.path.join(str(Path(__file__).parents[2]), "Files", folder)
-        self._data_source = None
-        self.data = None
-
-    @property
-    def data_source(self):
-        """
-        File name of the data.
-        :return: File name of the data
-        """
-        return self._data_source
-
-    @data_source.setter
-    def data_source(self, value):
-        if value.endswith((".broadPeak", ".BED", ".txt", ".FASTA", ".fasta", ".csv")):
-            self._data_source = value
-        else:
-            if value == "DennySK2016":
-                self._data_source = "GSE81255_all_merged.H14_H29_H52_H69_H82_H88_peaks.broadPeak"
-            elif value == "InoueF2017":
-                self._data_source = "supp_gr.212092.116_Supplemental_File_2_liverEnhancer_design.tsv"
-            elif value == "BarakatTS2018":
-                self._data_source = ["Barakat et al 2018 - Core and Extended Enhancers.csv",
-                                     "Barakat et al 2018 - Merged Enhancers.csv"]
-            elif value == "ChristensenCL2014":
-                self._data_source = ["1-s2.0-S1535610814004231-mmc3_GLC16.csv",
-                                     "1-s2.0-S1535610814004231-mmc3_H82.csv",
-                                     "1-s2.0-S1535610814004231-mmc3_H69.csv"]
-            elif value == "WangX2018":
-                self._data_source = "41467_2018_7746_MOESM4_ESM.txt"
-            elif value == "LiuY2017":
-                self._data_source = "GSE82204_enhancer_overlap_dnase.txt"
-            elif value.startswith("EnhancerAtlas-"):
-                self._data_source = "{}.fasta".format(value.split("-", 1)[1])
-            else:
-                raise AttributeError("Source {} still not implemented".format(value))
-
-    def join_data_sets(self, data_set):
-        """
-        Joins the data from this source with data from a different source. The result is a filtered data set with
-        just the genomic coordinates that are overlapping in both data sets.
-        :param data_set: the data set to merge with.
-        """
-        union = {"Chromosome": [], "range": []}
-        for index, row in self.data.iterrows():
-            range1 = row.range
-            data2_filter_chr = data_set.data[data_set.data["Chromosome"] == row.Chromosome]
-            range2_list = data2_filter_chr["range"].tolist()
-            for range2 in range2_list:
-                condition = gen_util.partial_subset_of_span(range1, range2)
-                if condition:
-                    temp_chr, temp_rng = union["Chromosome"], union["range"]
-                    temp_chr.append(row.Chromosome)
-                    temp_rng.append(self._range_union(range1, range2))
-                    union["Chromosome"] = temp_chr
-                    union["range"] = temp_rng
-                    break
-        df = pd.DataFrame.from_dict(union)
-        self.data = df
-
-    @staticmethod
-    def _range_union(range1, range2):
-        values = [x for x in range1]
-        values2 = [y for y in range2]
-        values += values2
-        range_union = [min(values), max(values)]
-        return range_union
-
-    def _open_csv_file(self, file_name, sep=";", header="infer", usecols=None, names=None):
-        file_path = os.path.join(self.data_path, file_name)
-        file_data = pd.read_csv(file_path, sep=sep, header=header, engine="python", usecols=usecols, names=names)
-        return file_data
-
-    def _merge_cell_type_files(self):
-        enhancer_data_merged = None
-        for source in self.data_source:
-            enhancer_data = self._open_csv_file(source)
-            if enhancer_data_merged is not None:
-                enhancer_data_merged = pd.concat([enhancer_data_merged, enhancer_data])
-            else:
-                enhancer_data_merged = enhancer_data
-        return enhancer_data_merged
-
-    def _create_range(self):
-        self.data["range"] = [[row.Start, row.End] for index, row in self.data.iterrows()]
-
-
-class BarakatTS2018Data(OutsideData):
-    """
-    Data from Barakat, et al., Cell Stem Cell, 2018.
-    Parsed to use in VEnCode validation studies.
-
-    How to use: data = internals.BarakatTS2018Data(**kwargs)
-    kwargs can be empty, or used to get only part of the data, by using the kwarg: data="core" for example.
-    data available are: core and extended enhancers, merged enhancers. Check Barakat, et al., Cell Stem Cell, 2018.
-    """
-
-    def __init__(self, source="BarakatTS2018", **kwargs):
-        super().__init__()
-        self.data_source = source
-
-        try:
-            source_partial = kwargs["data"]
-            enhancer_file = next((s for s in self.data_source if source_partial.lower() in s.lower()), None)
-            self.data = self._open_csv_file(enhancer_file)
-        except KeyError:
-            self.data = self._merge_cell_type_files()
-
-        gen_util.clean_whitespaces(self.data, "Start", "End")
-        pd_util.columns_to_numeric(self.data, "Start", "End")
-        self._create_range()
-
-
-class InoueF2017Data(OutsideData):
-    """
-        Data from Inoue F, et al., Genome Res., 2017.
-        Parsed to use in VEnCode validation studies.
-
-        How to use: data = internals.InoueF2017Data()
-        """
-
-    def __init__(self, source="InoueF2017"):
-        super().__init__()
-        self.data_source = source
-        self.data = self._open_csv_file(self.data_source, sep="\t", header=None, names=["temp", "sequence"])
-        self._data_cleaner()
-
-    @staticmethod
-    def search_between_brackets(string):
-        """
-        Gets all text between the first [] in a string.
-        :param string: String to search for text.
-        :return: All text between []
-        """
-        try:
-            return re.search("(?<=\[)(.*)(?=\])", string).group(1)
-        except AttributeError:
-            pass
-
-    def _genome_location_to_cols(self):
-        self.data[["Chromosome", "temp"]] = self.data.temp.str.split(":", expand=True)
-        self.data[["Start", "End"]] = self.data.temp.str.split("-", expand=True)
-        self.data = self.data[["Chromosome", "Start", "End"]]
-
-    def _genome_location_cleaner(self):
-        self.data["temp"] = self.data["temp"].apply(self.search_between_brackets)
-        self.data.drop_duplicates("temp", inplace=True)
-        self.data.dropna(inplace=True)
-
-    def _data_cleaner(self):
-        self._genome_location_cleaner()
-        self._genome_location_to_cols()
-        pd_util.columns_to_numeric(self.data, "Start", "End")
-        self._create_range()
-
-
-class ChristensenCL2014Data(OutsideData):
-    """
-    Parses data from Christensen CL, et al., Cancer Cell, 2014, to use in VEnCode validation studies.
-
-    How to use: data = internals.ChristensenCL2014Data(**kwargs)
-    kwargs can be empty, or used to get only part of the data, by using the kwarg: data="H82" for example.
-    data available are: GLC16, H82, and H69.
-    """
-
-    def __init__(self, source="ChristensenCL2014", **kwargs):
-        super().__init__()
-        self.data_source = source
-
-        try:
-            source_partial = kwargs["data"]
-            enhancer_file = next((s for s in self.data_source if source_partial.lower() in s.lower()), None)
-            self.data = self._open_csv_file(enhancer_file)
-        except KeyError:
-            self.data = self._merge_cell_type_files()
-
-        self._data_cleaner()
-
-    def _sort_data(self):
-        self.data.sort_values(by=["Start"], inplace=True)
-
-    def _data_cleaner(self):
-        self._sort_data()
-        self.data.rename({"Chrom": "Chromosome", "Stop": "End"}, axis='columns', inplace=True)
-        self._create_range()
-
-
-class BroadPeak(OutsideData):
-    """
-    Parses data from BroadPeak files to use in VEnCode validation studies.
-
-    How to use: data = internals.BroadPeak(source)
-    source can be any source described in baseclass, or a filename ending in .broadPeak
-    """
-
-    def __init__(self, source=False):
-        super().__init__()
-        self.data_source = source
-        names = ["Chromosome", "Start", "End", "Name", "Score", "Strand", "SignalValue",
-                 "pValue", "qValue"]
-        use_cols = range(0, len(names))
-        self.data = self._open_csv_file(self.data_source, sep="\t", header=None, usecols=use_cols,
-                                        names=names)
-        self._data_cleaner()
-
-    def _data_cleaner(self):
-        self.data = self.data[["Chromosome", "Start", "End", "Score"]]
-        self._create_range()
-
-
-class Bed(OutsideData):
-    """
-    Parses data from BED files to use in VEnCode validation studies.
-
-    How to use: data = internals.Bed(source)
-    source can be any source described in baseclass, or a filename ending in .BED
-    """
-
-    def __init__(self, source=False):
-        super().__init__()
-        if source:
-            self.data_source = source
-        names = ["Chromosome", "Start", "End"]
-        use_cols = range(0, len(names))
-        self.data = self._open_csv_file(self.data_source, sep="\t", header=None, usecols=use_cols,
-                                        names=names)
-
-        self._data_cleaner()
-
-    def _data_cleaner(self):
-        self.data = self.data[["Chromosome", "Start", "End"]]
-        self._create_range()
-
-
-class Fasta(OutsideData):
-    """
-    Parses data from FASTA files to use in VEnCode validation studies.
-
-    How to use: data = internals.Fasta(source)
-    source can be any source described in baseclass, or a filename ending in .Fasta, .Fa, .txt, etc.
-    """
-
-    def __init__(self, source=False):
-        super().__init__()
-        if source:
-            self.data_source = source
-        file_path = os.path.join(self.data_path, self.data_source)
-        fasta_sequences = SeqIO.parse(open(file_path), 'fasta')
-        self._data_cleaner(fasta_sequences)
-
-    def _data_cleaner(self, sequences):
-        array = None
-        for fasta in sequences:
-            name = fasta.id
-            name = name.split(':')
-            chromosome, locations = name[0], name[1].split("-")
-            start, end = locations[0], locations[1]
-            end = re.match(r"[0-9]+", end).group()
-            info = [[chromosome, start, end]]
-            try:
-                array = np.append(array, info, axis=0)
-            except ValueError:
-                array = np.array(info)
-        columns = ["Chromosome", "Start", "End"]
-        self.data = pd.DataFrame(array, columns=columns)
-        pd_util.columns_to_numeric(self.data, "Start", "End")
-        self._create_range()
-
-
-class Csv(OutsideData):
-    """
-        Parses data from CSV files to use in VEnCode validation studies.
-
-        How to use: data = internals.Csv(source)
-        source can be any source described in baseclass, or a filename ending in .csv.
-        """
-
-    def __init__(self, source=False, positions=(0, 0, 0, 1), splits=(":", "-")):
-        super().__init__(folder="Single Cell analysis")
-        if source:
-            self.data_source = source
-        self.data = self._open_csv_file(self.data_source, sep=";")
-        self._data_cleaner(positions, splits)
-        pd_util.columns_to_numeric(self.data, "Start", "End")
-        self._create_range()
-
-    def _data_cleaner(self, positions, splits):
-        data_final = pd.DataFrame()
-        columns = ["Chromosome", "Start", "End", "tpm"]
-        split_count = 0
-        for item, count in Counter(positions).items():
-            if count > 1:
-                data_to_split = self.data.iloc[:, item]
-                for i in range(count - 1):
-                    data_temp = data_to_split.str.split(splits[split_count], n=1, expand=True)
-                    if columns[split_count] not in data_final.columns:
-                        data_final[columns[split_count]] = data_temp[0]
-                    if count == i + 2:
-                        data_final[columns[split_count + 1]] = data_temp[1]
-                    else:
-                        data_final[columns[split_count + 1]] = data_temp[1].str.split(splits[split_count + 1], n=1,
-                                                                                      expand=True)[0]
-                    split_count += 1
-            else:
-                position = positions.index(item)
-                data_final[columns[position]] = self.data.iloc[:, item]
-        self.data = data_final
 
 
 class DataTpmFantom5Validated(DataTpmFantom5):
