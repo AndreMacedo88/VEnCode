@@ -937,10 +937,13 @@ class Vencodes:
     determine_e_values(repetitions=100)
         Call this function to generate e-values for the current VEnCodes. E-values will be stored in the variable
         called e_values. Method applied to calculate e-values is a Monte-Carlo simulation.
-    get_vencode_data(method="return", path=None, verbose=True)
-        Call this function to get the VEnCode data in .csv format (``method="write"``) or just printed in terminal
-        (``method="print"``), or both (``method="both"``). Alternatively, it can return the data to a variable
-        (``method="return"``).
+    export(*args, path=None, verbose=True):
+        Call this method to export vencode related values to CSV files.
+        Put "vencodes" in the arguments to export each VEnCode to a CSV file, "e-values" to export the e-values,
+        and "TPP" to export the tags per million expression of the REs that comprise the VEnCodes for the target
+        celltype.
+        You can put any amount of these arguments in the same function as long as they are supported.
+        Use `path` to define a specific directory to store the file. (must be a complete path)
     """
 
     def __init__(self, data_object, algorithm, number_of_re=4, n_samples=10000, stop=5, second_data_object=None,
@@ -1080,60 +1083,53 @@ class Vencodes:
             e_value = self._e_value_normalizer(e_value_raw, k=k)
             self.e_values[vencode_tuple] = e_value
 
-    def export(self, *args, **kwargs):
+    def export(self, *args, path=None, verbose=True):
         """
-        Call this method to export vencode related values to a .csv file.
-        Exporting e-values:
-        - use "e-values" in the args to export the e-values.
-        - Use ``e-values = path`` to define a specific path for the file. (must be a complete path)
+        Call this method to export vencode related values to CSV files.
+        Put "vencodes" in the arguments to export each VEnCode to a CSV file, "e-values" to export the e-values,
+        and "TPP" to export the tags per million expression of the REs that comprise the VEnCodes for the target
+        celltype.
+        You can put any amount of these arguments in the same function as long as they are supported.
+        Use `path` to define a specific directory to store the file. (must be a complete path)
 
         Parameters
         ----------
         args
-            "e-values", "TPP" or a list/tuple with both.
-        kwargs
-            Optional args to apply, see description.
-        """
-
-        if "e-values" in args and "TPP" not in args:
-            path = kwargs.get("path")
-            self._export_e_values(path)
-
-        if "e-values" in args and "TPP" in args:
-            path = kwargs.get("path")
-            self._export_e_values_tpp(path)  # TODO: export e_values with Tags per million included
-
-    def get_vencode_data(self, method="return", path=None, verbose=True):
-        """
-        Call this function to get the VEnCode data in .csv format (``method="write"``) or just printed in terminal
-        (``method="print"``), or both (``method="both"``). Alternatively, it can return the data to a variable
-        (``method="return"``).
-
-        Parameters
-        ----------
-        method : str
-            How to retrieve the data.
+            "e-values", "vencodes", "TPP" or even all at once.
         path : str, None
             Path to write a file to store the VEnCode data.
         verbose : bool
             Either to allow the function to print messages to console (`True`), or not (`False`).
         """
+        if path is None:
+            path_ = self._parent_path
+        else:
+            path_ = path
+
+        if "e-values" in args and "TPP" not in args:
+            self._export_e_values(path=path_, verbose=verbose)
+        elif "e-values" in args and "TPP" in args:
+            self._export_e_values_tpp(path=path_, verbose=verbose)
+            # TODO: export e_values with Tags per million included
+
+        if "vencodes" in args:
+            self._export_vencodes(path=path_, verbose=verbose)
+
+    def get_vencode_data(self, method="return"):
+        """
+        Call this function to get the VEnCode data as a variable (``method="return"``),
+        or printed in terminal (``method="print"``).
+
+        Parameters
+        ----------
+        method : str
+            How to retrieve the data.
+
+        """
         vencodes = []
         for vencode in self.vencodes:
             if method in ("print", "both"):
                 print(self.data.loc[vencode])
-            if method in ("write", "both"):
-                if path is None:
-                    path = self._parent_path
-                else:
-                    pass
-                file_name = "{}_vencode".format(self._data_object.target)
-                file_name = d_f_handling.str_replace_multi(
-                    file_name, {":": "-", "*": "-", "?": "-", "<": "-", ">": "-", "/": "-"})
-                file_path = d_f_handling.check_if_and_makefile(file_name, path=path, file_type=".csv")
-                self.data.loc[vencode].to_csv(file_path, sep=';')
-                if verbose:
-                    print("File stored in {}".format(file_path))
             elif method == "return":
                 vencodes.append(self.data.loc[vencode])
         if method == "return":
@@ -1586,7 +1582,7 @@ class Vencodes:
             raise ValueError("Threshold for VEnCode assessment is not valid.")
         return all(assess_if_vencode)  # if all columns are True (contain at least one 0), then is VEn
 
-    def _export_e_values(self, path=None):
+    def _export_e_values(self, path=None, verbose=True):
         """
         Call this method to export `e` values to a .csv file.
         Use path to define a specific path for the file. (must be a complete path)
@@ -1595,6 +1591,8 @@ class Vencodes:
         ----------
         path : str
             Complete path to store the file.
+        verbose : bool
+            Either to allow the function to print messages to console (`True`), or not (`False`).
         """
         if not self.e_values:
             self.determine_e_values()
@@ -1605,7 +1603,32 @@ class Vencodes:
             file_name, {":": "-", "*": "-", "?": "-", "<": "-", ">": "-", "/": "-"})
         file_path = d_f_handling.check_if_and_makefile(file_name, path=path, file_type=".csv")
         d_f_handling.write_one_value_dict_to_csv(file_path, self.e_values)
-        print("File stored in: {}".format(file_path))
+        if verbose:
+            print("File stored in: {}".format(file_path))
+
+    def _export_e_values_tpp(self, path=None, verbose=True):
+        pass
+
+    def _export_vencodes(self, path=None, verbose=True):
+        """
+        Call this method to export VEnCodes to a .csv file.
+        Use path to define a specific path for the file. (must be a complete path)
+
+        Parameters
+        ----------
+        path : str
+            Complete path to store the file.
+        verbose : bool
+            Either to allow the function to print messages to console (`True`), or not (`False`).
+        """
+        for vencode in self.vencodes:
+            file_name = "{}_vencode".format(self._data_object.target)
+            file_name = d_f_handling.str_replace_multi(
+                file_name, {":": "-", "*": "-", "?": "-", "<": "-", ">": "-", "/": "-"})
+            file_path = d_f_handling.check_if_and_makefile(file_name, path=path, file_type=".csv")
+            self.data.loc[vencode].to_csv(file_path, sep=';')
+            if verbose:
+                print("File stored in {}".format(file_path))
 
 
 class DataTpmFantom5Validated(DataTpmFantom5):
