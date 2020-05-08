@@ -64,8 +64,7 @@ class GetVEnCodes:
         """
         Export the E values and VEnCode data to a file.
         """
-        self.data.vencodes.export("e-values", path=self.set_up.path_out_ven)
-        self.data.vencodes.get_vencode_data(method="write", path=self.set_up.path_out_ven)
+        self.data.vencodes.export("vencodes", "e-values", path=self.set_up.path_out_ven)
 
 
 if __name__ == "__main__":

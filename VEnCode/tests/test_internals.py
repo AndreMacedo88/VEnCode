@@ -1589,16 +1589,6 @@ class VencodesOtherMethodsTest(unittest.TestCase):
                 self.assertTrue(os.path.exists(i))
                 dh.remove_file(i)
 
-    def test_get_vencodes_write(self):
-        self.vencodes.get_vencode_data(method="write", verbose=False)
-        folder_path = self.vencodes._parent_path
-        file_path_1 = os.path.join(folder_path, "Hepatocyte_vencode.csv")
-        file_path_2 = os.path.join(folder_path, "Hepatocyte_vencode-1.csv")
-        for i in (file_path_1, file_path_2):
-            with self.subTest(i=i):
-                self.assertTrue(os.path.exists(i))
-                dh.remove_file(i)
-
     def test_get_vencodes_return(self):
         vencodes = self.vencodes.get_vencode_data(method="return")
         expected = (pd.DataFrame, (4, 156))
@@ -1611,6 +1601,34 @@ class VencodesOtherMethodsTest(unittest.TestCase):
         vencodes = self.vencodes.get_vencode_data(method="return")
         e_value = self.vencodes.vencode_mc_simulation(vencodes[1], reps=1000)
         self.assertLessEqual(0, e_value)
+
+    def test_export_vencodes(self):
+        self.vencodes.export("vencodes", verbose=False)
+        folder_path = self.vencodes._parent_path
+        file_path_1 = os.path.join(folder_path, "Hepatocyte_vencode.csv")
+        file_path_2 = os.path.join(folder_path, "Hepatocyte_vencode-1.csv")
+        for i in (file_path_1, file_path_2):
+            with self.subTest(i=i):
+                self.assertTrue(os.path.exists(i))
+                dh.remove_file(i)
+
+    def test_export_e_values(self):
+        self.vencodes.export("e-values", verbose=False)
+        folder_path = self.vencodes._parent_path
+        file_path = os.path.join(folder_path, "Hepatocyte_evalues.csv")
+        self.assertTrue(os.path.exists(file_path))
+        dh.remove_file(file_path)
+
+    def test_export_ven_and_e(self):
+        self.vencodes.export("vencodes", "e-values", verbose=False)
+        folder_path = self.vencodes._parent_path
+        file_path_1 = os.path.join(folder_path, "Hepatocyte_vencode.csv")
+        file_path_2 = os.path.join(folder_path, "Hepatocyte_vencode-1.csv")
+        file_path_e = os.path.join(folder_path, "Hepatocyte_evalues.csv")
+        for i in (file_path_1, file_path_2, file_path_e):
+            with self.subTest(i=i):
+                self.assertTrue(os.path.exists(i))
+                dh.remove_file(i)
 
 
 if __name__ == "__main__":
