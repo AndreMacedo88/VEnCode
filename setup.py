@@ -3,6 +3,9 @@ import re
 
 
 def readme():
+    """
+    Opens and reads the README.rst file.
+    """
     with open("README.rst", "r") as readme_file:
         return readme_file.read()
 
@@ -42,8 +45,8 @@ setuptools.setup(
     ],
     include_package_data=True,
     classifiers=[
-        "Programming Language :: Python :: 3.6",
-        "License :: OSI Approved :: BSD LICENSE",
+        "Programming Language :: Python :: 3.8",
+        "License :: OSI Approved :: BSD License",
         "Operating System :: OS Independent",
     ]
 )
