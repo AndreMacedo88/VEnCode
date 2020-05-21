@@ -1,7 +1,9 @@
 Module for VEnCode-related projects based on FANTOM5 databases
 ==============================================================
 
-This module contains classes and functions that perform intersectional genetics-related operations to find VEnCodes using databases provided by the `FANTOM5 consortium`_, namely the CAGE enhancer and transcription start site (TSS) databases.
+This module contains classes and functions that perform intersectional genetics-related operations to find VEnCodes
+using any matrix of databases provided by the `FANTOM5 consortium`_, namely the CAGE enhancer and transcription start site (TSS)
+databases.
 
 For more information on the VEnCode technology, please refer to **Macedo and Gontijo, bioRxiv 2019. DOI:10.1101/552984**
 
@@ -21,8 +23,8 @@ Check the requirements_ file.
 If you install the package with pip, it should resolve the library requirements for you.
 
 Additionally, you will have to download the unannotated TSS files from `FANTOM5 consortium`_ website.
-More specifically, for human, `this file`_ for promoter analysis, and `this one`_ and the `ID-sample name`_ map for enhancers.
-Finally, download the `curated sample category file`_.
+More specifically, for human, `this file`_ for promoter analysis, and `this one`_ and the `ID-sample name`_ map for
+enhancers. Finally, download the `curated sample category file`_.
 
 Those 4 files are enough to find CAGE-based VEnCodes for human.
 

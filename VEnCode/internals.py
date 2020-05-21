@@ -885,7 +885,7 @@ class DataTpmFantom5(DataTpm):
 class Vencodes:
     """
     An Object representing the VEnCodes found for a specific celltype. VEnCodes are combinations of regulatory elements
-    that are active specifically in one celltype.
+    that are active specifically in one celltype and inactive in all others.
     This class contains methods to search, retrieve, classify and visualize VEnCodes from a matrix of regulatory
     element (rows) expression levels per celltype (columns).
 
