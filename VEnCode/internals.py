@@ -23,9 +23,9 @@ from VEnCode.utils import general_utils as gen_util, pandas_utils as pd_util
 class DataTpm:
     """
     An Object representing a data set to retrieve VEnCodes from. Contains optional filtering methods and other tools.
-    Create this object to help prepare the data for VEnCode generation. The essential method to call before feeding this
-    data set to a VEnCode object is shown in the Methods section. All the other methods are helper functions, or can be
-    replaced by supplying extra arguments in the VEnCode object.
+    Create this object to help prepare the data for VEnCode generation. The essential and recommended methods to call
+    before feeding this data set to a VEnCode object is shown in the Methods section. All the other methods are helper
+    functions that facilitate the preparation of the data.
 
     Attributes
     ----------
@@ -50,10 +50,10 @@ class DataTpm:
     sep : str
         The column separator used in the input file. Default is ','.
     nrows : int, None
-        The number of rows to open in the file. Default is 'None' which will open the entire file.
+        The number of rows to open in the file. Default is 'None', which will open the entire file.
     files_path : str, None
         In case the argument `file` does not contain a complete path, input that path here. This argument is also
-        useful to access the module test files by inputting 'native'. Default is 'None'.
+        useful to access the module's test files by inputting 'test'. Default is 'None'.
     kwargs
          Optional keyword arguments available to use are any used by pandas DataFrame object.
          Please refer to the pandas DataFrame documentation for specific details.
@@ -61,11 +61,11 @@ class DataTpm:
     Methods
     -------
     load_data()
-        Essential method to call after DataTpm class object generation. Data is not automatically opened at object
+        Essential method to call after DataTpm class object generation. Data is not automatically accessed at object
         generation to give this class more flexibility to subclassing.
 
     make_data_celltype_specific(target_celltype, replicates=True)
-        Method necessary to provide the VEnCode object with the information on which celltype is the target.
+        Method recommended to provide the VEnCode object with the information on which celltype is the target.
     """
 
     def __init__(self, file="custom", files_path=None, sep=";", nrows=None, **kwargs):
@@ -171,7 +171,7 @@ class DataTpm:
 
     def make_data_celltype_specific(self, target_celltype, replicates=True):
         """
-        Determines celltype/donors (columns) of interest to analyse later.
+        Determines celltype/replicate (columns) of interest to analyse later.
 
         Parameters
         ----------
@@ -376,7 +376,7 @@ class DataTpm:
         Parameters
         ----------
         celltypes : str, list
-            celltype/s to remove (columns).
+            celltype(s) to remove (columns).
         """
         try:
             self.data.drop(celltypes, axis=1, inplace=True)
@@ -406,7 +406,7 @@ class DataTpm:
         ----------
         celltypes : str, list, dict
             Celltypes to merge with the DataTpm data. If false it will add all provided data.
-        data_from:
+        data_from : str, DataTpm
             Data containing the celltypes to add. Can be either another DataTpm object or the path to a file eligible
             to be converted into a DataTpm object.
             "custom" will open a file dialog.
@@ -577,6 +577,54 @@ class DataTpmFantom5(DataTpm):
     """
     An Object specifically representing the initial FANTOM5 CAGE-seq data set with some universal data treatment and
     with optional filtering methods.
+    Create this object to help prepare the FANTOM5 CAGE-seq data for VEnCode generation. The recommended method to call
+    before feeding this data set to a VEnCode object is shown in the Methods section. All the other methods are helper
+    functions that facilitate the preparation of the data.
+
+    Attributes
+    ----------
+    data : pd.DataFrame
+        This object is a pandas DataFrame representation of the initial input data set.
+    target : str
+        The celltype or celltypes that are going to be the target of the VEnCode search algorithms.
+        By calling the method make_data_celltype_specific(), the user can define this object and then apply activity,
+        inactivity, sparseness filters, and other methods.
+    target_replicates
+        The target celltype/s replicates in the data.
+    sample_type
+        The origin/type of samples to be analysed from the CAGE-seq data.
+    data_type
+        The type of RE that comprises the data.
+    shape
+
+    Parameters
+    ----------
+    file : str, pd.DataFrame
+        The file containing the data set to convert into DataTpm object. This can be a complete path to the file,
+        or just the file name, provided the path is given in the argument `files_path`. Alternatively, use 'custom'
+        to open a file dialog to pick the file. Supported file formats are .csv, .txt, .tsv, or any format
+        supported by the pandas read_csv function. Finally, a pandas DataFrame object can be supplied in this parameter
+        instead of any file. Default is 'custom'.
+    sep : str
+        The column separator used in the input file. Default is ','.
+    nrows : int, None
+        The number of rows to open in the file. Default is 'None', which will open the entire file.
+    sample_types : str
+        The origin/type of samples to be analysed from the CAGE-seq data. Currently offering full support for
+        `primary cells` and `cell lines`.
+    data_type : str
+        The type of RE that comprises the data. `promoters` or `enhancers`.
+    files_path : str, None
+        In case the argument `file` does not contain a complete path, input that path here. This argument is also
+        useful to access the module's test files by inputting 'test'. Default is 'test'.
+    kwargs
+         Optional keyword arguments available to use are any used by pandas DataFrame object.
+         Please refer to the pandas DataFrame documentation for specific details.
+
+    Methods
+    -------
+    make_data_celltype_specific(target_celltype, replicates=True)
+        Method to provide the VEnCode object with the information on which celltype is the target.
     """
 
     def __init__(self, file="custom", sample_types="primary cells", data_type="promoters", keep_raw=False, nrows=None,
@@ -641,11 +689,10 @@ class DataTpmFantom5(DataTpm):
 
         Parameters
         ----------
-        target_celltype
+        target_celltype : str, dict
             The celltype to target for analysis.
         supersets : dict
-            When a celltype is a subset of other, we must remove that superset celltype to analyse
-            the subset.
+            When a celltype is a subset of other, we must remove that superset celltype to analyse the subset.
         """
         if self.sample_type == "cell lines":
             self.ctp_not_include = cv.cancer_not_include_codes
@@ -706,10 +753,16 @@ class DataTpmFantom5(DataTpm):
 
     def merge_donors_primary(self, exclude_target=True):
         """
-        Merges replicate samples into one celltype.
+        Merges replicate samples into one celltype. Specific method to use when dealing with FANTOM5 primary celltypes.
+
         A more conservative, but faster approach to data set mining.
-        Cell type columns are created by merging all replicates/donors for that cell type. The value for the merged
-        column corresponds the average of all donors.
+        Celltype columns are created by merging all replicates/donors for that celltype. The value for the merged
+        column corresponds the average of all replicates/donors.
+
+        Parameters
+        ----------
+        exclude_target : bool
+            True if the target celltype replicates are not to be merged. Otherwise, False.
         """
         if self._file == "parsed":
             return
@@ -723,12 +776,21 @@ class DataTpmFantom5(DataTpm):
         Adds expression data for celltypes from other data sets (with similar regulatory element information).
         Examples include adding data from a cancer cell type to a primary cell type data set.
 
-        :param celltypes: Cell types to merge with the DataTpm data. If false it will add all provided data.
-        :param data_from: Data containing the cell types to add. "custom" will open a file dialog.
-        :param sample_types: sample type ("primary cells", for e.g.) of the data set to add.
-        :param fantom: is your data to add from FANTOM5 CAGE-seq? if so put True. Else, False.
-        Optional parameters (**kwargs) are used to create a new DataTpm object from "data_from" to add to the data set.
-        So, if that is the case, check DataTpm documentation.
+        Parameters
+        ----------
+        celltypes : str, list, dict
+            Celltypes to merge with the DataTpmFantom5 data. If false it will add all provided data.
+        data_from : str, DataTpm
+            Data containing the celltypes to add. Can be either another DataTpm object or the path to a file eligible
+            to be converted into a DataTpm object.
+            "custom" will open a file dialog.
+        sample_types : str
+            Sample type ("primary cells", for e.g.) of the data set to add.
+        fantom : bool
+            Is your data to add from FANTOM5 CAGE-seq? if so put True. Else, False.
+        kwargs :
+            Are used to create a new DataTpmFantom5 object from "data_from" to add to the data set.
+            So, if that is the case, check DataTpmFantom5 documentation.
         """
         # handle possible supersets in the data
         if sample_types == "cell lines":
@@ -772,10 +834,14 @@ class DataTpmFantom5(DataTpm):
 
     def remove_celltype(self, celltypes, merged=True):
         """
-        Removes a specific celltype from data
+        Removes a specific celltype from the data.
 
-        :param celltypes: celltype/s to remove. int or list-type
-        :param merged: If the data has been previously merged into celltypes, True. If columns represent donors, False.
+        Parameters
+        ----------
+        celltypes : in, list
+            Celltype(s) to remove.
+        merged : bool
+            If the data has been previously merged into celltypes, True. If columns represent replicates/donors, False.
         """
 
         def _remove(to_remove):
@@ -1634,9 +1700,9 @@ class Vencodes:
 class DataTpmFantom5Validated(DataTpmFantom5):
     """
     This class provides methods to develop a data set with chromosome coordinates intercepted
-    with those of validate_with, which we call validated regulatory elements.
+    with those of an external data set supplied in `validate_with`, which we call validated regulatory elements.
 
-    How to use: After initializing, filter data with validated REs by calling the "select_validated" method.
+    How to use: After initializing, filter data with validated REs by calling the `select_validated` method.
     """
 
     def __init__(self, validate_with, *args, **kwargs):

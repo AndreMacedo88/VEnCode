@@ -2,8 +2,10 @@ Module for VEnCode-related projects based on FANTOM5 databases
 ==============================================================
 
 This module contains classes and functions that perform intersectional genetics-related operations to find VEnCodes
-using any matrix of databases provided by the `FANTOM5 consortium`_, namely the CAGE enhancer and transcription start site (TSS)
-databases.
+using any matrix of cell types (columns) vs regulatory elements or markers (rows).
+
+Moreover, it contains particular methods to make use of the databases provided by the `FANTOM5 consortium`_, namely the CAGE
+enhancer and transcription start site (TSS) databases.
 
 For more information on the VEnCode technology, please refer to **Macedo and Gontijo, bioRxiv 2019. DOI:10.1101/552984**
 
@@ -22,7 +24,8 @@ To effectively use this module you will need Python3_ with some external librari
 Check the requirements_ file.
 If you install the package with pip, it should resolve the library requirements for you.
 
-Additionally, you will have to download the unannotated TSS files from `FANTOM5 consortium`_ website.
+Optionally, if you want to retrieve VEnCodes using the comprehensive FANTOM5 CAGE-seq data, you will have to download
+the unannotated TSS files from `FANTOM5 consortium`_ website.
 More specifically, for human, `this file`_ for promoter analysis, and `this one`_ and the `ID-sample name`_ map for
 enhancers. Finally, download the `curated sample category file`_.
 
@@ -34,13 +37,23 @@ Installing
 
 If you want to edit the project:
 
-2. Fork `this project`_;
+2. Fork `this project`_.
+
+- Optionally, if you are using the FANTOM5 data:
+
 3. Put the missing FANTOM5 prerequisite files (only the large TSS files are missing) in the directory called "Files".
 
 If you are a user:
 
-2. Install VEnCode with pip;
-3. Put all the FANTOM5 prerequisite files in a directory of your choice and when creating DataTpm objects remember to pass the argument: files_path=your_dir_path.
+2. Install VEnCode with pip:
+
+.. code-block:: console
+
+    pip install VEnCode
+
+- Optionally, if you are using the FANTOM5 data:
+
+3. Put all the FANTOM5 prerequisite files in a directory of your choice and when creating DataTpmFantom5 objects remember to pass the argument: files_path=your_dir_path.
 
 Deployment
 -----------------
@@ -106,7 +119,7 @@ See also the list of contributors_ who participated in this project.
 License
 -------
 
-Refer to file LICENSE_.
+Refer to the file LICENSE_.
 
 Acknowledgements
 ----------------
