@@ -1,4 +1,8 @@
-__all__ = ["internals", "internals_extensions", "common_variables", "outside_data"]
+"""
+VEnCode module: Module to find and rank combinations of regulatory elements (rows) that are specific to one
+cell type (column).
+"""
+
 from VEnCode import _metadata
 
 from VEnCode.internals import *

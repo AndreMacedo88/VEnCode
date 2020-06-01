@@ -1012,7 +1012,7 @@ class Vencodes:
         Use `path` to define a specific directory to store the file. (must be a complete path)
     """
 
-    def __init__(self, data_object, algorithm, number_of_re=4, n_samples=10000, stop=5, second_data_object=None,
+    def __init__(self, data_object, algorithm="heuristic", number_of_re=4, n_samples=10000, stop=5, second_data_object=None,
                  using=None, target=None):
         if isinstance(data_object, pd.DataFrame):
             assert target is not None, "Error: No target supplied. When supplying the VEnCode object with a DataFrame" \

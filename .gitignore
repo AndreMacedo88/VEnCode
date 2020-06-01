@@ -1,0 +1,11 @@
+/VEnCode/scripts/Legacy Scripts/__init__.py
+.gitignore
+.idea/.gitignore
+/.idea/.gitignore
+.idea/snapshots/
+VEnCode/__pycache__/
+VEnCode/scripts/__pycache__/
+VEnCode/tests/__pycache__/
+VEnCode/utils/__pycache__/
+__pycache__/
+
