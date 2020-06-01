@@ -3,8 +3,6 @@
 import os
 import random
 import re
-import tkinter as tk
-from tkinter import filedialog
 from copy import copy, deepcopy
 from pathlib import Path
 from collections import defaultdict
@@ -43,10 +41,9 @@ class DataTpm:
     ----------
     file : str, pd.DataFrame
         The file containing the data set to convert into DataTpm object. This can be a complete path to the file,
-        or just the file name, provided the path is given in the argument `files_path`. Alternatively, use 'custom'
-        to open a file dialog to pick the file. Supported file formats are .csv, .txt, .tsv, or any format
-        supported by the pandas read_csv function. Finally, a pandas DataFrame object can be supplied in this parameter
-        instead of any file. Default is 'custom'.
+        or just the file name, provided the path is given in the argument `files_path`.
+        Supported file formats are .csv, .txt, .tsv, or any format supported by the pandas read_csv function.
+        Finally, a pandas DataFrame object can be supplied in this parameter instead of any file.
     sep : str
         The column separator used in the input file. Default is ','.
     nrows : int, None
@@ -68,7 +65,7 @@ class DataTpm:
         Method recommended to provide the VEnCode object with the information on which celltype is the target.
     """
 
-    def __init__(self, file="custom", files_path=None, sep=";", nrows=None, **kwargs):
+    def __init__(self, file, files_path=None, sep=";", nrows=None, **kwargs):
         self._file, self._nrows, self._sep, self.kwargs = file, nrows, sep, kwargs
         self.target, self.target_replicates, self.data = None, defaultdict(list), None
         if files_path == "test":
@@ -77,7 +74,7 @@ class DataTpm:
             self._parent_path = os.path.join(str(Path(__file__).parents[2]), "Files")
         else:
             self._parent_path = files_path
-        self._file_path, self.data = None, None
+        self._file_path = None
 
     @property
     def shape(self):
@@ -397,19 +394,18 @@ class DataTpm:
         except ValueError as e:
             print("Regulatory elements not removed due to: {}".format(e.args[0]))
 
-    def add_celltype(self, celltypes=False, data_from="custom", **kwargs):
+    def add_celltype(self, data_from, celltypes=False, **kwargs):
         """
         Adds expression data for celltypes from other data sets (with similar regulatory element information).
         Examples include adding data from a cancer celltype to a primary celltype data set.
 
         Parameters
         ----------
-        celltypes : str, list, dict
-            Celltypes to merge with the DataTpm data. If false it will add all provided data.
         data_from : str, DataTpm
             Data containing the celltypes to add. Can be either another DataTpm object or the path to a file eligible
             to be converted into a DataTpm object.
-            "custom" will open a file dialog.
+        celltypes : str, list, dict
+            Celltypes to merge with the DataTpm data. If false it will add all provided data.
         kwargs :
             Are used to create a new DataTpm object from "data_from" to add to the data set.
             So, if that is the case, check DataTpm documentation.
@@ -482,10 +478,6 @@ class DataTpm:
         """ Handles different file names inputs in the arguments. """
         if isinstance(self._file, pd.DataFrame):
             file_path = None
-        elif self._file == "custom":
-            root = tk.Tk()
-            root.withdraw()
-            file_path = tk.filedialog.askopenfilename()
         elif re.search(r"\....", self._file[-4:]):
             if self._parent_path is not None:
                 file_path = os.path.join(self._parent_path, self._file)
@@ -601,10 +593,9 @@ class DataTpmFantom5(DataTpm):
     ----------
     file : str, pd.DataFrame
         The file containing the data set to convert into DataTpm object. This can be a complete path to the file,
-        or just the file name, provided the path is given in the argument `files_path`. Alternatively, use 'custom'
-        to open a file dialog to pick the file. Supported file formats are .csv, .txt, .tsv, or any format
-        supported by the pandas read_csv function. Finally, a pandas DataFrame object can be supplied in this parameter
-        instead of any file. Default is 'custom'.
+        or just the file name, provided the path is given in the argument `files_path`.
+        Supported file formats are .csv, .txt, .tsv, or any format supported by the pandas read_csv function.
+        Finally, a pandas DataFrame object can be supplied in this parameter instead of any file.
     sep : str
         The column separator used in the input file. Default is ','.
     nrows : int, None
@@ -627,18 +618,11 @@ class DataTpmFantom5(DataTpm):
         Method to provide the VEnCode object with the information on which celltype is the target.
     """
 
-    def __init__(self, file="custom", sample_types="primary cells", data_type="promoters", keep_raw=False, nrows=None,
+    def __init__(self, file, sample_types="primary cells", data_type="promoters", keep_raw=False, nrows=None,
                  files_path="test", *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._file, self.sample_type, self.data_type, self._nrows = file, sample_types, data_type, nrows
-        self.target, self.target_replicates, self.ctp_not_include, self.data = None, None, None, None
-        self._file_path = None
-        if files_path == "test":
-            self._parent_path = os.path.join(str(Path(__file__).parents[0]), "Files")
-        elif files_path == "outside":
-            self._parent_path = os.path.join(str(Path(__file__).parents[2]), "Files")
-        else:
-            self._parent_path = files_path
+        super().__init__(file=file, nrows=nrows, files_path=files_path, *args, **kwargs)
+        self.sample_type, self.data_type = sample_types, data_type
+        self.target_replicates, self.ctp_not_include = None, None
 
         if sample_types in ("cell lines", "tissues"):
             celltype_exclude = None
@@ -748,6 +732,7 @@ class DataTpmFantom5(DataTpm):
                 self.target_replicates = temp_dict
             else:
                 self.target = target_celltype
+
         if supersets and self.target in supersets.keys():
             self.data.drop(supersets[self.target], axis=1, inplace=True)
 
@@ -771,19 +756,18 @@ class DataTpmFantom5(DataTpm):
         self.data = self._merging_main(codes, exclude_target=exclude_target)
         return
 
-    def add_celltype(self, celltypes=False, data_from="custom", sample_types="cell lines", fantom=True, **kwargs):
+    def add_celltype(self, data_from, celltypes=False, sample_types="cell lines", fantom=True, **kwargs):
         """
         Adds expression data for celltypes from other data sets (with similar regulatory element information).
         Examples include adding data from a cancer cell type to a primary cell type data set.
 
         Parameters
         ----------
-        celltypes : str, list, dict
-            Celltypes to merge with the DataTpmFantom5 data. If false it will add all provided data.
         data_from : str, DataTpm
             Data containing the celltypes to add. Can be either another DataTpm object or the path to a file eligible
             to be converted into a DataTpm object.
-            "custom" will open a file dialog.
+        celltypes : str, list, dict
+            Celltypes to merge with the DataTpmFantom5 data. If false it will add all provided data.
         sample_types : str
             Sample type ("primary cells", for e.g.) of the data set to add.
         fantom : bool
@@ -857,11 +841,7 @@ class DataTpmFantom5(DataTpm):
         _remove(celltypes)
 
     def _filename_handler(self):
-        if self._file == "custom":
-            root = tk.Tk()
-            root.withdraw()
-            file_path = tk.filedialog.askopenfilename()
-        elif re.search(r"\....", self._file[-4:]):
+        if re.search(r"\....", self._file[-4:]):
             file_path = os.path.join(self._parent_path, self._file)
         elif self._file == "parsed":
             celltype_name = self.target.replace(":", "-").replace("/", "-")
@@ -1172,12 +1152,10 @@ class Vencodes:
         else:
             path_ = path
 
-        if "e-values" in args and "TPP" not in args:
+        if "e-values" in args:
             self._export_e_values(path=path_, verbose=verbose)
-        elif "e-values" in args and "TPP" in args:
-            self._export_e_values_tpp(path=path_, verbose=verbose)
-            # TODO: export e_values with Tags per million included
-
+        if "TPP" in args:
+            self._export_ven_tpp(path=path_, verbose=verbose)
         if "vencodes" in args:
             self._export_vencodes(path=path_, verbose=verbose)
 
@@ -1672,8 +1650,26 @@ class Vencodes:
         if verbose:
             print("File stored in: {}".format(file_path))
 
-    def _export_e_values_tpp(self, path=None, verbose=True):
-        pass
+    def _export_ven_tpp(self, path=None, verbose=True):
+        """
+        Call this method to export just the target celltype expression to a .csv file.
+        Use path to define a specific path for the file. (must be a complete path)
+
+        Parameters
+        ----------
+        path : str
+            Complete path to store the file.
+        verbose : bool
+            Either to allow the function to print messages to console (`True`), or not (`False`).
+        """
+        for vencode in self.vencodes:
+            file_name = "{}_target_TPP".format(self._data_object.target)
+            file_name = d_f_handling.str_replace_multi(
+                file_name, {":": "-", "*": "-", "?": "-", "<": "-", ">": "-", "/": "-"})
+            file_path = d_f_handling.check_if_and_makefile(file_name, path=path, file_type=".csv")
+            self.target_replicates_data.loc[vencode].to_csv(file_path, sep=';')
+            if verbose:
+                print("File stored in {}".format(file_path))
 
     def _export_vencodes(self, path=None, verbose=True):
         """

@@ -1,19 +1,10 @@
 import os
 
 import pandas as pd
-import glob
-import tkinter as tk
-from tkinter import filedialog
 import ast
 
 from VEnCode import internals_extensions as iext
 import VEnCode.utils.dir_and_file_handling as d_f_handling
-
-def get_path():
-    """ Gets path using a file dialog. """
-    tk.Tk().withdraw()
-    path = filedialog.askopenfilename()
-    return path
 
 
 path_evalues = "D:/Utilizador HDD/OneDrive - Nova Medical School Faculdade de Ciências Médicas da UNL/1-Research/" \
@@ -24,9 +15,6 @@ path_out = "D:/Utilizador HDD/OneDrive - Nova Medical School Faculdade de Ciênc
                "3-Vencode/Fantom5/Validations/Single Cell"
 filename = "Expression_SC_samp.csv"
 path_out = os.path.join(path_out, filename)
-
-if path_evalues is None:
-    path_evalues = get_path()
 
 cell_type = "lung adenocarcinoma cell line:A549"
 
