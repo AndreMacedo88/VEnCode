@@ -189,14 +189,14 @@ class EncodeValidateVencodes:
         return val_series
 
     def _search_vencodes_full(self, cell_type, thresholds, files_path="outside"):
-        return iext.GetVencode(cell_type=cell_type,
-                               data_type=self.settings.DATA_TYPE, algorithm=self.settings.ALGORITHM,
-                               n_regulatory_elements=self.settings.K,
-                               number_vencodes=self.settings.NUMBER_VENCODES_TO_GET,
-                               parsed=val_util.status_parsed(cell_type),
-                               thresholds=thresholds, n_samples=10000,
-                               sample_type=self.settings.TYPE,
-                               files_path=files_path)
+        return iext.GetVencodeFantom(cell_type=cell_type,
+                                     data_type=self.settings.DATA_TYPE, algorithm=self.settings.ALGORITHM,
+                                     n_regulatory_elements=self.settings.K,
+                                     number_vencodes=self.settings.NUMBER_VENCODES_TO_GET,
+                                     parsed=val_util.status_parsed(cell_type),
+                                     thresholds=thresholds, n_samples=10000,
+                                     sample_type=self.settings.TYPE,
+                                     files_path=files_path)
 
     def _search_vencodes_from_data(self, data):
         vencodes = internals.Vencodes(data, algorithm="sampling", number_of_re=self.settings.K, n_samples=10000)

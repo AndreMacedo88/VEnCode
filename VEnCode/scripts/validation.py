@@ -22,7 +22,7 @@ cell_types = {"hips_assay": "hIPS", "hepG2_assay": "hepatocellular carcinoma cel
               "du145_assay": "prostate cancer cell line:DU145",
               "pc_3_assay": "prostate cancer cell line:PC-3"}
 
-"""
+
 # Barakat TS, 2018 assays:
 # hips_assay = iext.Assay("BarakatTS2018", "sampling", celltype="hIPS", data="core", parsed=False)
 validate_with = internals.BarakatTS2018Data(data="core")
@@ -89,12 +89,11 @@ validate_with = internals.BroadPeak("LiuY2017")
 pc_3_assay_val = iext.Assay("LiuY2017", "sampling", celltype="prostate cancer cell line:PC-3", parsed=False,
                             validate_with=validate_with)
 pc_3_assay_val.to_csv()
-"""
+
 validate_with = VEnCode.outside_data.BroadPeak("LiuY2017")
 prostate_cancer_assay_val = iext.Assay("LiuY2017", "sampling", cell_type="prostate cancer cell line", parsed=True,
                                        validate_with=validate_with)
 prostate_cancer_assay_val.to_csv()
-"""
+
 lncap_controls = iext.NegativeControl("LiuY2017", "sampling")
 lncap_controls.to_csv()
-"""

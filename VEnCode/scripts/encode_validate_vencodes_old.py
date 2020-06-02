@@ -45,13 +45,13 @@ class EncodeValidateVencodes:
             settings.NON_TARGET_CELLTYPES_INACTIVITY, settings.TARGET_CELLTYPE_ACTIVITY,
             settings.REG_ELEMENT_SPARSENESS)
 
-        self.vencodes_object = iext.GetVencode(cell_type=settings.CELL_TYPE,
-                                               data_type=settings.DATA_TYPE, algorithm=settings.ALGORITHM,
-                                               n_regulatory_elements=settings.K,
-                                               number_vencodes=settings.NUMBER_VENCODES_TO_GET,
-                                               parsed=val_util.status_parsed(settings.CELL_TYPE),
-                                               thresholds=thresholds, n_samples=10000, sample_type=settings.TYPE,
-                                               files_path="outside")
+        self.vencodes_object = iext.GetVencodeFantom(cell_type=settings.CELL_TYPE,
+                                                     data_type=settings.DATA_TYPE, algorithm=settings.ALGORITHM,
+                                                     n_regulatory_elements=settings.K,
+                                                     number_vencodes=settings.NUMBER_VENCODES_TO_GET,
+                                                     parsed=val_util.status_parsed(settings.CELL_TYPE),
+                                                     thresholds=thresholds, n_samples=10000, sample_type=settings.TYPE,
+                                                     files_path="outside")
         self.vencodes_data = self.vencodes_object.vencodes.get_vencode_data(method="return")
 
     def validate(self):

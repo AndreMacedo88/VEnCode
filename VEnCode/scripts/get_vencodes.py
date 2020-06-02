@@ -53,12 +53,12 @@ class GetVEnCodes:
         self.set_up = set_up
         thresholds = (
             set_up.non_target_celltypes_inactivity, set_up.target_celltype_activity, set_up.reg_element_sparseness)
-        self.data = iext.GetVencode(cell_type=set_up.cell_type,
-                                    data_type=set_up.data_type, algorithm=set_up.algorithm,
-                                    n_regulatory_elements=set_up.k,
-                                    number_vencodes=set_up.number_vencodes_to_get,
-                                    parsed=val.status_parsed(set_up.cell_type),
-                                    thresholds=thresholds, n_samples=10000, sample_type=set_up.type)
+        self.data = iext.GetVencodeFantom(cell_type=set_up.cell_type,
+                                          data_type=set_up.data_type, algorithm=set_up.algorithm,
+                                          n_regulatory_elements=set_up.k,
+                                          number_vencodes=set_up.number_vencodes_to_get,
+                                          parsed=val.status_parsed(set_up.cell_type),
+                                          thresholds=thresholds, n_samples=10000, sample_type=set_up.type)
 
     def export(self):
         """

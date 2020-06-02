@@ -736,7 +736,7 @@ class FilenameHandlerFantom5Test(DataTpmFantom5Test):
 
     def test_filename(self):
         file_type = cv.test_promoter_file_name
-        database = internals.DataTpmFantom5(file=file_type, nrows=4)
+        database = internals.DataTpmFantom5(file=file_type, nrows=2)
         self.assertEqual(os.path.isfile(database._file_path), True)
 
     def test_parsed(self):
@@ -842,7 +842,7 @@ class MakeCelltypeSpecificFantom5Test(DataTpmFantom5Test):
         self.assertEqual(expected, set(self.database_enhancers.target_replicates["Adipocyte - breast"]))
 
     def test_typos(self):
-        database_promoters = internals.DataTpmFantom5(file=cv.test_promoter_file_name, nrows=4)
+        database_promoters = internals.DataTpmFantom5(file="parsed", nrows=4, data_type="enhancers")
         database_promoters.make_data_celltype_specific("Adipocyte-Breast")
         expected = {'Adipocyte - breast, donor1', 'Adipocyte - breast, donor2'}
         self.assertEqual(expected, set(database_promoters.target_replicates["Adipocyte - breast"]))
@@ -1388,15 +1388,15 @@ class HepatocyteHeuristicTest(VencodesHepatocyteTest):
 
     def test_first_vencode(self):
         self.vencodes.next(amount=1)
-        expected = ['chr15:85427903..85427915,+', 'chr16:72094548..72094561,-', 'chr14:94914994..94915003,-',
+        expected = ['chr12:57828606..57828615,+', 'chr15:85427879..85427899,+', 'chr14:94914994..94915003,-',
                     'chr12:57828590..57828604,+']
         self.assertCountEqual(expected, self.vencodes.vencodes[0])
 
     def test_second_vencode(self):
         self.vencodes.next(amount=1)
         vencode = self.vencodes.next(amount=1)
-        expected = ['chr15:85427903..85427915,+', 'chr16:72094548..72094561,-', 'chr14:94914994..94915003,-',
-                    'chr11:61297083..61297101,-']
+        expected = ['chr12:57828606..57828615,+', 'chr15:85427879..85427899,+', 'chr14:94914994..94915003,-',
+                    'chr12:57828561..57828583,+']
         for i in (self.vencodes.vencodes[1], vencode[0]):
             with self.subTest(i=i):
                 self.assertCountEqual(expected, i)
@@ -1434,7 +1434,7 @@ class HepatocyteSamplingTest(VencodesHepatocyteTest):
 
     def test_vencode(self):
         self.vencodes.next(amount=1)
-        expected = ['chr15:85427903..85427915,+', 'chr16:72094548..72094561,-', 'chr14:94914994..94915003,-',
+        expected = ['chr12:57828606..57828615,+', 'chr15:85427879..85427899,+', 'chr14:94914994..94915003,-',
                     'chr12:57828590..57828604,+']
         self.assertCountEqual(expected, self.vencodes.vencodes[0])
 
@@ -1611,7 +1611,7 @@ class VencodesOtherMethodsTest(unittest.TestCase):
 
     def test_vencode_mc_simulation(self):
         vencodes = self.vencodes.get_vencode_data(method="return")
-        e_value = self.vencodes.vencode_mc_simulation(vencodes[1], reps=1000)
+        e_value = self.vencodes.vencode_mc_simulation(vencodes[1], reps=10)
         self.assertLessEqual(0, e_value)
 
     def test_export_vencodes(self):

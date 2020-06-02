@@ -74,15 +74,22 @@ Tests for this module can be run in several ways; some examples:
 
 1. In the command-line:
 
-1.1. Run python's standard module "unittest" in the tests directory.
+1.1. Using the `process.py` utility file to run all the tests in one go. This is easily done by running the following
+command inside the VEnCode module:
+
+.. code-block:: console
+
+    python process.py run_tests
+
+1.2. Run python's standard module "unittest" in the `tests` directory to run each test individually.
 Basic example in command line:
 
 .. code-block:: console
 
     python -m unittest test_internals
 
-1.2. Install nosetests python package and run nosetests in the "tests" directory.
-Basic example in command line:
+1.3. Another way to run each test individually is to install the nosetests python package and run nosetests in the
+`tests` directory. Basic example in command line:
 
 .. code-block:: console
 
@@ -93,7 +100,7 @@ Basic example in command line:
 .. code-block:: python
 
     from VEnCode import tests
-    tests.test_internals_()
+    tests.run_all_tests()
 
 Contributing
 ------------

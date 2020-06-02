@@ -16,6 +16,10 @@ from VEnCode.utils import validation_utils as val_util
 
 
 class GettingVencodes:
+    pass
+
+
+class GettingVencodesFantom:
     """
     thresholds for non target cell type inactivity, target cell type activity and regulatory element sparseness can
     be supplied as a keyword argument: thresholds = (non_target_celltypes_inactivity, target_celltype_activity,
@@ -127,7 +131,7 @@ class GettingVencodes:
             raise exceptions.NoVencodeError("No VEnCodes found for {}!".format(self.cell_type))
 
 
-class GetVencodeValidated(GettingVencodes):
+class GetVencodeFantomValidated(GettingVencodesFantom):
     """
     Gets VEnCodes
     thresholds must be a list or tuple with the format:
@@ -161,7 +165,7 @@ class GetVencodeValidated(GettingVencodes):
         return data
 
 
-class GetVencode(GettingVencodes):
+class GetVencodeFantom(GettingVencodesFantom):
     def __init__(self, number_vencodes=1, parsed=False, sample_type=None, thresholds=(),
                  *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -185,7 +189,7 @@ class GetVencode(GettingVencodes):
         return data
 
 
-class GetVencodeExternalData(GettingVencodes):
+class GetVencodeFantomExternalData(GettingVencodesFantom):
     """
     Gets VEnCodes
     thresholds must be a list or tuple with the format:
@@ -234,18 +238,18 @@ class Validator:
         self.average_match_percentage = None
         if validate_with is None:
             try:
-                data = GetVencode(cell_type=cell_type, data_type=data_type, algorithm=algorithm,
-                                  n_regulatory_elements=n_regulatory_elements,
-                                  number_vencodes=number_vencodes, parsed=parsed, thresholds=thresholds,
-                                  sample_type=sample_type, n_samples=n_samples)
+                data = GetVencodeFantom(cell_type=cell_type, data_type=data_type, algorithm=algorithm,
+                                        n_regulatory_elements=n_regulatory_elements,
+                                        number_vencodes=number_vencodes, parsed=parsed, thresholds=thresholds,
+                                        sample_type=sample_type, n_samples=n_samples)
             except exceptions.NoVencodeError as e:
                 raise e
         else:
             try:
-                data = GetVencodeValidated(validate_with=validate_with, cell_type=cell_type, data_type=data_type,
-                                           algorithm=algorithm, n_regulatory_elements=n_regulatory_elements,
-                                           number_vencodes=number_vencodes, parsed=parsed, thresholds=thresholds,
-                                           sample_type=sample_type)
+                data = GetVencodeFantomValidated(validate_with=validate_with, cell_type=cell_type, data_type=data_type,
+                                                 algorithm=algorithm, n_regulatory_elements=n_regulatory_elements,
+                                                 number_vencodes=number_vencodes, parsed=parsed, thresholds=thresholds,
+                                                 sample_type=sample_type)
             except exceptions.NoVencodeError as e:
                 raise e
         self.vencodes = data.vencodes.get_vencode_data(method="return")
