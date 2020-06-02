@@ -5,6 +5,7 @@
 
 import itertools as iter
 import collections
+from difflib import get_close_matches
 
 
 def combinations_from_nested_lists(lst):
@@ -64,7 +65,7 @@ def e_value_normalizer(e_value_raw, k, n_celltypes):
     """
     coefs = {"a": -164054.1, "b": 0.9998811, "c": 0.000006088948, "d": 1.00051, "m": 0.9527, "e": -0.1131}
     e_value_expected = (coefs["m"] * k + coefs["e"]) * n_celltypes ** (
-        coefs["d"] + ((coefs["a"] - coefs["d"]) / (1 + (k / coefs["c"]) ** coefs["b"])))
+            coefs["d"] + ((coefs["a"] - coefs["d"]) / (1 + (k / coefs["c"]) ** coefs["b"])))
     e_value_norm = (e_value_raw / e_value_expected) * 100
     if e_value_norm < 100:
         return e_value_norm
@@ -135,3 +136,32 @@ def str_replace_multi(str_, chars):
         str_ = str_.replace(old, new)
     return str_
 
+
+def find_closest_word(word, list_to_search, threshold=0.6):
+    """
+    Uses the built-in module difflib to search for the most likely word in a list.
+
+    Parameters
+    ----------
+    word : str
+        The word with possible mistakes
+    list_to_search : list
+        The list or list-like object to search for the most likely words
+    n : int
+        The number of likely words to retrieve
+    threshold : float
+        The similarity cutoff threshold
+
+    Returns
+    -------
+    str, list
+        The most likely word.
+    """
+    if word in list_to_search:  # in case the word is correctly written, return immediately
+        return word
+    else:
+        matches = get_close_matches(word, list_to_search, cutoff=threshold)
+        if matches:
+            return matches[0]
+        else:
+            raise ValueError(f"The parameter '{word}' is incorrect or has too many typos. Please check the spelling")

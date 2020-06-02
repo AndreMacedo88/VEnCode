@@ -680,15 +680,20 @@ class DataTpmFantom5(DataTpm):
         """
         if self.sample_type == "cell lines":
             self.ctp_not_include = cv.cancer_not_include_codes
+            cell_list = cv.cancer_celltype_list
         elif self.sample_type == "primary cells":
             self.ctp_not_include = cv.primary_not_include_codes
+            cell_list = cv.primary_cell_list
         elif self.sample_type == "time courses":
             self.ctp_not_include = cv.time_courses_not_include_codes
+            cell_list = None
         else:
             self.ctp_not_include = None
+            cell_list = None
         if isinstance(target_celltype, dict):  # to deal with situations such as mesothelioma cell line
             target_ctp_in_data = list(target_celltype.values())[0]
         else:
+            target_celltype = gen_util.find_closest_word(target_celltype, cell_list, threshold=0.6)
             target_ctp_in_data = target_celltype
 
         if self._file == "parsed":

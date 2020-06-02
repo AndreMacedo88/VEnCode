@@ -841,6 +841,12 @@ class MakeCelltypeSpecificFantom5Test(DataTpmFantom5Test):
         expected = {'Adipocyte - breast, donor1', 'Adipocyte - breast, donor2'}
         self.assertEqual(expected, set(self.database_enhancers.target_replicates["Adipocyte - breast"]))
 
+    def test_typos(self):
+        database_promoters = internals.DataTpmFantom5(file=cv.test_promoter_file_name, nrows=4)
+        database_promoters.make_data_celltype_specific("Adipocyte-Breast")
+        expected = {'Adipocyte - breast, donor1', 'Adipocyte - breast, donor2'}
+        self.assertEqual(expected, set(database_promoters.target_replicates["Adipocyte - breast"]))
+
 
 class MakeCelltypeSpecificParsedFantom5Test(DataTpmFantom5Test):
     @classmethod
@@ -861,6 +867,12 @@ class MakeCelltypeSpecificParsedFantom5Test(DataTpmFantom5Test):
     def test_donors_enhancers(self):
         expected = {'Adipocyte - breast, donor1', 'Adipocyte - breast, donor2'}
         self.assertEqual(expected, set(self.database_enhancers.target_replicates["Adipocyte - breast"]))
+
+    def test_typos(self):
+        database_enhancers = internals.DataTpmFantom5(file="parsed", nrows=4, data_type="enhancers")
+        database_enhancers.make_data_celltype_specific("Adipocyte-Breast")
+        expected = {'Adipocyte - breast, donor1', 'Adipocyte - breast, donor2'}
+        self.assertEqual(expected, set(database_enhancers.target_replicates["Adipocyte - breast"]))
 
 
 class MergeDonorsPrimaryFantom5Test(DataTpmFantom5Test):
