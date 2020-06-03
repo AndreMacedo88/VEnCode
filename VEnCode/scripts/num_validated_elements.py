@@ -62,7 +62,7 @@ class ValidatedElements:
         self.data.filter_by_target_celltype_activity(threshold=self.set_up.target_celltype_activity)
 
     def _data_raw_cleaner(self):
-        data_to_add_ctp = internals.DataTpmFantom5(file=self.set_up.file_name, sample_types=self.set_up.type,
+        data_to_add_ctp = internals.DataTpmFantom5(inputs=self.set_up.file_name, sample_types=self.set_up.type,
                                                    data_type=self.set_up.data_type)
 
         self.data = internals.DataTpmFantom5Validated(self.validate_with, file=self.set_up.file_name,

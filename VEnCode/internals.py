@@ -7,6 +7,7 @@ from copy import copy, deepcopy
 from pathlib import Path
 from collections import defaultdict
 import inspect
+from difflib import get_close_matches
 
 import numpy as np
 import pandas as pd
@@ -39,11 +40,12 @@ class DataTpm:
 
     Parameters
     ----------
-    file : str, pd.DataFrame
-        The file containing the data set to convert into DataTpm object. This can be a complete path to the file,
+    inputs : str, pd.DataFrame
+        The input containing the data. It can be one of two types;
+        1- A file containing the data set to convert into DataTpm object. This can be a complete path to the file,
         or just the file name, provided the path is given in the argument `files_path`.
         Supported file formats are .csv, .txt, .tsv, or any format supported by the pandas read_csv function.
-        Finally, a pandas DataFrame object can be supplied in this parameter instead of any file.
+        2- A pandas DataFrame object supplied in this parameter instead of any file.
     sep : str
         The column separator used in the input file. Default is ','.
     nrows : int, None
@@ -65,8 +67,8 @@ class DataTpm:
         Method recommended to provide the VEnCode object with the information on which celltype is the target.
     """
 
-    def __init__(self, file, files_path=None, sep=";", nrows=None, **kwargs):
-        self._file, self._nrows, self._sep, self.kwargs = file, nrows, sep, kwargs
+    def __init__(self, inputs, files_path=None, sep=";", nrows=None, **kwargs):
+        self._inputs, self._nrows, self._sep, self.kwargs = inputs, nrows, sep, kwargs
         self.target, self.target_replicates, self.data = None, defaultdict(list), None
         if files_path == "test":
             self._parent_path = os.path.join(str(Path(__file__).parents[0]), "Files")
@@ -127,8 +129,8 @@ class DataTpm:
         This method is not called during initialization to allow the DataTpm object to be easily extended by users.
         """
         self._file_path = self._filename_handler()
-        if isinstance(self._file, pd.DataFrame):
-            self.data = self._file
+        if isinstance(self._inputs, pd.DataFrame):
+            self.data = self._inputs
         else:
             self.data = pd.read_csv(self._file_path, sep=self._sep, index_col=0, nrows=self._nrows, engine="python",
                                     **self.kwargs)
@@ -407,8 +409,8 @@ class DataTpm:
         celltypes : str, list, dict
             Celltypes to merge with the DataTpm data. If false it will add all provided data.
         kwargs :
-            Are used to create a new DataTpm object from "data_from" to add to the data set.
-            So, if that is the case, check DataTpm documentation.
+            Are used to create a new DataTpm object from `data_from` if `data_from` is an incomplete file
+            path. So, if that is the case, check DataTpm documentation.
         """
         # Deal with possible "celltypes" dict input type:
         if isinstance(celltypes, dict):
@@ -420,13 +422,19 @@ class DataTpm:
             nrows = kwargs.pop("nrows", None)
             if nrows is None:
                 nrows = self._nrows
-            data_new = DataTpm(file=data_from, nrows=nrows, **kwargs)
+            data_new = DataTpm(inputs=data_from, nrows=nrows, **kwargs)
             data_new.load_data()
         assert isinstance(data_new, DataTpm), "data_from parameter should be a DataTpm object, or a path to a file" \
                                               "capable of being turned into one."
         # add data to self.data:
         if celltypes:
-            data_concat = data_new.data[celltypes]
+            try:
+                data_concat = data_new.data[celltypes]
+            except KeyError:
+                print(f"Warning: celltype {celltypes} not found, initiating typo search procedure.")
+                celltypes = get_close_matches(celltypes, data_new.data.columns, n=10, cutoff=0.7)
+                data_concat = data_new.data[celltypes]
+                print(f"The following celltype(s) were found and added: {celltypes}")
         else:
             data_concat = data_new.data
         self.data = pd.concat([self.data, data_concat], axis=1)
@@ -476,14 +484,14 @@ class DataTpm:
 
     def _filename_handler(self):
         """ Handles different file names inputs in the arguments. """
-        if isinstance(self._file, pd.DataFrame):
+        if isinstance(self._inputs, pd.DataFrame):
             file_path = None
-        elif re.search(r"\....", self._file[-4:]):
+        elif re.search(r"\....", self._inputs[-4:]):
             if self._parent_path is not None:
-                file_path = os.path.join(self._parent_path, self._file)
+                file_path = os.path.join(self._parent_path, self._inputs)
             else:
-                file_path = self._file
-                self._parent_path, self._file = os.path.split(os.path.abspath(self._file))
+                file_path = self._inputs
+                self._parent_path, self._inputs = os.path.split(os.path.abspath(self._inputs))
         else:
             raise AttributeError
         return file_path
@@ -591,11 +599,12 @@ class DataTpmFantom5(DataTpm):
 
     Parameters
     ----------
-    file : str, pd.DataFrame
-        The file containing the data set to convert into DataTpm object. This can be a complete path to the file,
+    inputs : str, pd.DataFrame
+        The input containing the data. It can be one of two types;
+        1- The file containing the data set to convert into DataTpm object. This can be a complete path to the file,
         or just the file name, provided the path is given in the argument `files_path`.
         Supported file formats are .csv, .txt, .tsv, or any format supported by the pandas read_csv function.
-        Finally, a pandas DataFrame object can be supplied in this parameter instead of any file.
+        2- A pandas DataFrame object supplied in this parameter instead of any file.
     sep : str
         The column separator used in the input file. Default is ','.
     nrows : int, None
@@ -618,9 +627,9 @@ class DataTpmFantom5(DataTpm):
         Method to provide the VEnCode object with the information on which celltype is the target.
     """
 
-    def __init__(self, file, sample_types="primary cells", data_type="promoters", keep_raw=False, nrows=None,
+    def __init__(self, inputs, sample_types="primary cells", data_type="promoters", keep_raw=False, nrows=None,
                  files_path="test", *args, **kwargs):
-        super().__init__(file=file, nrows=nrows, files_path=files_path, *args, **kwargs)
+        super().__init__(inputs=inputs, nrows=nrows, files_path=files_path, *args, **kwargs)
         self.sample_type, self.data_type = sample_types, data_type
         self.target_replicates, self.ctp_not_include = None, None
 
@@ -631,7 +640,7 @@ class DataTpmFantom5(DataTpm):
         else:
             celltype_exclude = None
 
-        if self._file != "parsed":
+        if self._inputs != "parsed":
             self.ctp_exclude = celltype_exclude
             self._file_path = self._filename_handler()
             self.sample_type_file = pd.read_csv(os.path.join(self._parent_path, cv.sample_type_file), sep=",",
@@ -696,7 +705,7 @@ class DataTpmFantom5(DataTpm):
             target_celltype = gen_util.find_closest_word(target_celltype, cell_list, threshold=0.6)
             target_ctp_in_data = target_celltype
 
-        if self._file == "parsed":
+        if self._inputs == "parsed":
             if isinstance(target_celltype, dict):
                 self.target = list(target_celltype.keys())[0]
             else:
@@ -754,7 +763,7 @@ class DataTpmFantom5(DataTpm):
         exclude_target : bool
             True if the target celltype replicates are not to be merged. Otherwise, False.
         """
-        if self._file == "parsed":
+        if self._inputs == "parsed":
             return
         codes = self._code_selector(self.data, cv.primary_cell_list, not_include=cv.primary_not_include_codes,
                                     to_dict=True, regex=False)
@@ -801,10 +810,10 @@ class DataTpmFantom5(DataTpm):
             if nrows is None:
                 nrows = self._nrows
             if fantom:
-                data_new = DataTpmFantom5(file=data_from, sample_types=sample_types,
+                data_new = DataTpmFantom5(inputs=data_from, sample_types=sample_types,
                                           nrows=nrows, **kwargs)
             else:
-                data_new = DataTpm(file=data_from, nrows=nrows, **kwargs)
+                data_new = DataTpm(inputs=data_from, nrows=nrows, **kwargs)
         assert isinstance(data_new, DataTpm), "data_from parameter should be a DataTpm object, or a path to a file" \
                                               "capable of being turned into one."
         # add data to self.data
@@ -846,9 +855,9 @@ class DataTpmFantom5(DataTpm):
         _remove(celltypes)
 
     def _filename_handler(self):
-        if re.search(r"\....", self._file[-4:]):
-            file_path = os.path.join(self._parent_path, self._file)
-        elif self._file == "parsed":
+        if re.search(r"\....", self._inputs[-4:]):
+            file_path = os.path.join(self._parent_path, self._inputs)
+        elif self._inputs == "parsed":
             celltype_name = self.target.replace(":", "-").replace("/", "-")
             file_path = os.path.join(self._parent_path, "Dbs", f"{celltype_name}_tpm_{self.data_type}-1.csv")
         else:
@@ -1002,7 +1011,7 @@ class Vencodes:
         if isinstance(data_object, pd.DataFrame):
             assert target is not None, "Error: No target supplied. When supplying the VEnCode object with a DataFrame" \
                                        ", always input the target celltype in the target argument."
-            data_tpm = DataTpm(file=data_object)
+            data_tpm = DataTpm(inputs=data_object)
             data_tpm.load_data()
             data_tpm.make_data_celltype_specific(target)
             self._data_object = data_tpm.copy(deep=True)
@@ -1250,8 +1259,8 @@ class Vencodes:
         mask = sparsest != 0
         cols = sparsest.columns[np.all(mask.values, axis=0)].tolist()
         cols_target = self.second_data_object.ctp_analyse_donors[self.second_data_object.target_ctp]
-        data_problem_cols = self.second_data_object.data[cols + cols_target]
-        self.second_data_object.data = data_problem_cols
+        data_problem_cols = self.second_data_object.inputs[cols + cols_target]
+        self.second_data_object.inputs = data_problem_cols
         if self.algorithm == "heuristic":
             vencode_heuristic2 = Vencodes(self.second_data_object, algorithm="heuristic", number_of_re=self.k,
                                           stop=self._stop)
@@ -1553,7 +1562,7 @@ class Vencodes:
         """
 
         vencode_first_data = self._data_not_target.loc[vencode[0]]
-        vencode_second_data = self.second_data_object.data.loc[vencode[1]]
+        vencode_second_data = self.second_data_object.inputs.loc[vencode[1]]
         vencode_data = pd.concat([vencode_first_data, vencode_second_data], axis=0)
         e_value = self.vencode_mc_simulation(vencode_data, reps=reps)
         return e_value, vencode_data.shape[0]
@@ -1715,12 +1724,12 @@ class DataTpmFantom5Validated(DataTpmFantom5):
         Main method to filter the REs in the data, leaving in the data only those that match the external data set.
         """
         df_range = self._regulatory_elements_range()
-        self._interception(df_range, self.validate_with.data, self.data)
+        self._interception(df_range, self.validate_with.inputs, self.data)
 
     def merge_external_cell_type(self, cell_type):
         df_range = self._regulatory_elements_range()
-        self.data = self._interception(df_range, self.validate_with.data, self.data)
-        validate_with = self._interception(self.validate_with.data, df_range, self.validate_with.data)
+        self.data = self._interception(df_range, self.validate_with.inputs, self.data)
+        validate_with = self._interception(self.validate_with.inputs, df_range, self.validate_with.inputs)
         if self.data.shape[0] == validate_with.shape[0]:
             validate_with.index = self.data.index
             self.data[cell_type] = validate_with["tpm"]

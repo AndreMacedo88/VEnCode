@@ -31,10 +31,10 @@ class SetUp:
 # Now you don't need to change anything else
 setup = SetUp()
 
-data = internals.DataTpmFantom5(file=setup.file_name, sample_types="primary cells", data_type=setup.data_type)
+data = internals.DataTpmFantom5(inputs=setup.file_name, sample_types="primary cells", data_type=setup.data_type)
 data.merge_donors_primary(exclude_target=False)
 data_original = data.copy()
-data_cancer = internals.DataTpmFantom5(file=setup.file_name, sample_types="cell lines", data_type=setup.data_type)
+data_cancer = internals.DataTpmFantom5(inputs=setup.file_name, sample_types="cell lines", data_type=setup.data_type)
 
 for celltype in tqdm(cancer_celltype_list, desc="Completed: "):
     data.add_celltype(celltype, data_from=data_cancer)

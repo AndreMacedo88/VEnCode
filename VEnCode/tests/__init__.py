@@ -3,6 +3,7 @@ Module containing all the tests for the VEnCode module.
 """
 
 import unittest
+import os
 
 
 def run_all_tests(verbosity=2):
@@ -14,7 +15,8 @@ def run_all_tests(verbosity=2):
     verbosity : int
         The amount of verbosity output by the tests.
     """
-    from VEnCode.tests import test_internals
 
-    suite = unittest.TestLoader().loadTestsFromModule(test_internals)
-    unittest.TextTestRunner(verbosity=verbosity).run(suite)
+    dir_path = os.path.dirname(os.path.realpath(__file__))  # Gets this file directory, the tests dir
+    loader = unittest.TestLoader()  # Initiates the test loader
+    suite = loader.discover(start_dir=dir_path, pattern='test*.py')  # Adds all files starting in 'test' to the suite
+    unittest.TextTestRunner(verbosity=verbosity).run(suite)  # Runs the test suite

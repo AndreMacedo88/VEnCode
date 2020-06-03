@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-""" internal_extensions.py: file with extended methods and objects based on internals.py """
+""" internal_extensions.py: Wrapper functions for internals.py. File with extended methods and objects based on
+internals.py """
 
 import os
 from pathlib import Path
+
 import pandas as pd
 from tqdm import tqdm
 
@@ -16,10 +18,132 @@ from VEnCode.utils import validation_utils as val_util
 
 
 class GettingVencodes:
-    pass
+    """
+    thresholds for non target cell type inactivity, target cell type activity and regulatory element sparseness can
+    be supplied as a keyword argument: thresholds = (non_target_celltypes_inactivity, target_celltype_activity,
+    reg_element_sparseness).
+    """
+
+    def __init__(self, inputs, cell_type, algorithm, n_regulatory_elements, n_samples=10000, stop=3, using=None,
+                 files_path=None, sep=";", nrows=None, replicates=False, **kwargs):
+        self.inputs = inputs
+        self.cell_type = cell_type
+        self.algorithm = algorithm
+        self.k = n_regulatory_elements
+        self.n_samples, self.stop = n_samples, stop
+        self.using = using
+        self.files_path = files_path
+        self.sep, self.nrows, self.replicates = sep, nrows, replicates
+        self.kwargs = kwargs
+
+    def _filters(self, data, thresholds):
+        non_tgt_ctp_inact, tgt_ctp_act, reg_el_spsness = thresholds
+        data.filter_by_target_celltype_activity(threshold=tgt_ctp_act, binarize=False)
+        data.define_non_target_celltypes_inactivity(threshold=non_tgt_ctp_inact)
+        data.filter_by_reg_element_sparseness(threshold=reg_el_spsness)
+        if self.algorithm != "sampling":
+            data.sort_sparseness()
+        return data
+
+    def _prepare_data(self, thresholds, merge):
+        data_tpm = internals.DataTpm(self.inputs, files_path=self.files_path, sep=self.sep, nrows=self.nrows,
+                                     **self.kwargs)
+        data_tpm.load_data()
+        data_tpm.make_data_celltype_specific(self.cell_type, replicates=self.replicates)
+        if merge is not None:
+            data_tpm.merge_replicates(**merge)
+        data_tpm = self._filters(data_tpm, thresholds)
+        return data_tpm
+
+    def _prepare_data_adding_ctp(self, thresholds, merge, add_celltype):
+        data_tpm = internals.DataTpm(self.inputs, files_path=self.files_path, sep=self.sep, nrows=self.nrows,
+                                     **self.kwargs)
+        data_tpm.load_data()
+        try:
+            kwargs = add_celltype[2]
+        except IndexError:
+            kwargs = []
+        data_tpm.add_celltype(data_from=add_celltype[0], celltypes=add_celltype[1], **kwargs)
+        data_tpm.make_data_celltype_specific(self.cell_type, replicates=False)
+        if merge is not None:
+            data_tpm.merge_replicates(**merge)
+        data_tpm = self._filters(data_tpm, thresholds)
+        return data_tpm
+
+    def _get_data(self, thresholds, merge, add_celltype):
+        if not add_celltype:
+            data = self._prepare_data(thresholds, merge)
+        else:
+            data = self._prepare_data_adding_ctp(thresholds, merge, add_celltype)
+        return data
+
+    def _get_vencode(self, amount, thresholds, merge, add_celltype):
+        data = self._get_data(thresholds, merge, add_celltype)
+        if self.algorithm == "sampling":
+            vencodes = internals.Vencodes(data, algorithm="sampling", number_of_re=self.k, n_samples=self.n_samples,
+                                          using=self.using)
+        elif self.algorithm == "heuristic":
+            vencodes = internals.Vencodes(data, algorithm="heuristic", number_of_re=self.k, stop=self.stop)
+        else:
+            raise AttributeError("Algorithm '{}' not recognized".format(self.algorithm))
+        vencodes.next(amount=amount)
+        if vencodes.vencodes:
+            return vencodes
+        else:
+            raise exceptions.NoVencodeError("No VEnCodes found for {}!".format(self.cell_type))
 
 
-class GettingVencodesFantom:
+class GetVencodes(GettingVencodes):
+    """
+    Pipeline to retrieve VEnCodes in one line of code. It uses DataTpm and Vencode objects in succession to output a
+    Vencode object populated with the desired number, shape and type of VEnCodes. So, when in doubt, refer to these
+    individual object's documentations.
+
+    Parameters
+    __________
+    number_vencodes : int, optional
+        Number of VEnCodes to find and retrieve. Default is 1.
+    thresholds : array_like, optional
+        Thresholds to filter the data with. Thresholds must be a list or tuple with the format:
+        (non_target_celltypes_inactivity, target_celltype_activity, reg_element_sparseness)
+    merge : dict, optional
+        Dictionary with the chosen kwargs to pass to the DataTpm merge_replicates() function.
+    add_celltype : array_like, optional
+        Array-like object containing the following:
+        In the first index, the file or pd.DataFrame object with the data.
+        to add to the original data. This file or data will be fed to the `input` variable of a DataTpm object, so when
+        in doubt, refer to that object's documentation.
+        In the second index, put the celltype(s) to add to the original data.
+        In the third index, put a dictionary containing any additional kwargs to pass to the DataTpm object.
+    """
+
+    def __init__(self, *args, number_vencodes=1, thresholds=(), merge=None, add_celltype=(), **kwargs):
+        super().__init__(*args, **kwargs)
+        self.vencode_obj = self._get_vencode(number_vencodes, thresholds, merge, add_celltype)
+
+    def __getattr__(self, item):
+        """
+        Setting __getattr__ here allows a GetVencodes object to fetch all Vencode object's methods and variables
+        directly.
+        """
+        return eval(f"self.vencode_obj.{item}")
+
+    @property
+    def coordinates(self):
+        """
+        The stored VEnCodes' coordinates.
+        """
+        return self.vencode_obj.vencodes
+
+    @property
+    def data(self):
+        """
+        The stored VEnCodes' full expression data.
+        """
+        return self.vencode_obj.get_vencode_data(method="return")
+
+
+class GettingVencodesFantom(GettingVencodes):
     """
     thresholds for non target cell type inactivity, target cell type activity and regulatory element sparseness can
     be supplied as a keyword argument: thresholds = (non_target_celltypes_inactivity, target_celltype_activity,
@@ -28,13 +152,10 @@ class GettingVencodesFantom:
 
     def __init__(self, cell_type, data_type, algorithm, n_regulatory_elements, n_samples=10000, using=None,
                  files_path="native"):
-        self.cell_type = cell_type
+        inputs = None
+        super().__init__(inputs, cell_type, algorithm, n_regulatory_elements, n_samples=n_samples, using=using,
+                         files_path=files_path)
         self.data_type = data_type
-        self.algorithm = algorithm
-        self.k = n_regulatory_elements
-        self.n_samples = n_samples
-        self.using = using
-        self.files_path = files_path
 
     def _get_sample_type(self, sample_type):
         if sample_type:
@@ -95,8 +216,8 @@ class GettingVencodesFantom:
     def _filters(self, data, thresholds):
         non_tgt_ctp_inact, tgt_ctp_act, reg_el_spsness = self._get_thresholds(thresholds)
         data.filter_by_target_celltype_activity(threshold=tgt_ctp_act, binarize=False)
-        data.filter_by_reg_element_sparseness(threshold=reg_el_spsness)
         data.define_non_target_celltypes_inactivity(threshold=non_tgt_ctp_inact)
+        data.filter_by_reg_element_sparseness(threshold=reg_el_spsness)
         if self.algorithm != "sampling":
             data.sort_sparseness()
         return data
@@ -147,7 +268,7 @@ class GetVencodeFantomValidated(GettingVencodesFantom):
 
     def _prepare_data_parsed(self, sample_type, thresholds):
         data = internals.DataTpmFantom5Validated(self.validate_with, file="parsed", sample_types=sample_type,
-                                                 data_type=self.data_type)
+                                                 data_type=self.data_type, files_path=self.files_path)
         data.make_data_celltype_specific(self.cell_type)
         data.select_validated()
         data = self._filters(data, thresholds)
@@ -156,7 +277,7 @@ class GetVencodeFantomValidated(GettingVencodesFantom):
     def _prepare_data_raw_adding_ctp(self, sample_type, thresholds):
         file_name = self._get_re_file_name()
         data = internals.DataTpmFantom5Validated(self.validate_with, file=file_name, sample_types="primary cells",
-                                                 data_type=self.data_type)
+                                                 data_type=self.data_type, files_path=self.files_path)
         data.merge_donors_primary(exclude_target=False)
         data.add_celltype(self.cell_type, data_from=file_name, sample_types=sample_type, data_type=self.data_type)
         data.make_data_celltype_specific(self.cell_type)
@@ -172,7 +293,7 @@ class GetVencodeFantom(GettingVencodesFantom):
         self.vencodes = self._get_vencode(number_vencodes, sample_type, parsed, thresholds, n_samples=self.n_samples)
 
     def _prepare_data_parsed(self, sample_type, thresholds):
-        data = internals.DataTpmFantom5(file="parsed", sample_types=sample_type, data_type=self.data_type,
+        data = internals.DataTpmFantom5(inputs="parsed", sample_types=sample_type, data_type=self.data_type,
                                         files_path=self.files_path)
         data.make_data_celltype_specific(self.cell_type)
         data = self._filters(data, thresholds)
@@ -180,7 +301,7 @@ class GetVencodeFantom(GettingVencodesFantom):
 
     def _prepare_data_raw_adding_ctp(self, sample_type, thresholds):
         file_name = self._get_re_file_name()
-        data = internals.DataTpmFantom5(file=file_name, sample_types="primary cells", data_type=self.data_type,
+        data = internals.DataTpmFantom5(inputs=file_name, sample_types="primary cells", data_type=self.data_type,
                                         files_path=self.files_path)
         data.merge_donors_primary(exclude_target=False)
         data.add_celltype(self.cell_type, data_from=file_name, sample_types=sample_type, data_type=self.data_type)
@@ -205,7 +326,7 @@ class GetVencodeFantomExternalData(GettingVencodesFantom):
 
     def _prepare_data_parsed(self, sample_type, thresholds):
         data = internals.DataTpmFantom5Validated(self.validate_with, file="parsed", sample_types="primary cells",
-                                                 data_type=self.data_type)
+                                                 data_type=self.data_type, files_path=self.files_path)
         data.make_data_celltype_specific("Hepatocyte")
         data.merge_donors_primary(exclude_target=False)
         # data.add_celltype(self.cell_type, file=file_name, sample_types=sample_type, data_type=self.data_type)
@@ -216,7 +337,7 @@ class GetVencodeFantomExternalData(GettingVencodesFantom):
     def _prepare_data_raw_adding_ctp(self, sample_type, thresholds):
         file_name = self._get_re_file_name()
         data = internals.DataTpmFantom5Validated(self.validate_with, file=file_name, sample_types="primary cells",
-                                                 data_type=self.data_type)
+                                                 data_type=self.data_type, files_path=self.files_path)
         data.merge_donors_primary(exclude_target=False)
         data.merge_external_cell_type(self.cell_type)
         data.make_data_celltype_specific(self.cell_type)
@@ -445,7 +566,7 @@ class Assay(Assays):
 
     def _validate(self):
         validator = self._validator(celltype=self.celltype)
-        validator.calculate_match_percentage(self.data.data, source=self.data.data_source)
+        validator.calculate_match_percentage(self.data.inputs, source=self.data.data_source)
         self.results = validator.results
 
     def _filename(self):
@@ -510,7 +631,7 @@ class NegativeControl(Assays):
                 validator = self._validator(celltype)
             except exceptions.NoVencodeError:
                 continue
-            validator.calculate_match_percentage(self.data.data, source=self.data.data_source)
+            validator.calculate_match_percentage(self.data.inputs, source=self.data.data_source)
             validator.results.rename(columns={'Percentage_Match': celltype}, inplace=True)
             celltype_data = validator.results[celltype].reset_index(drop=True)
             self.results = pd.concat([self.results, celltype_data], axis=1)
@@ -559,13 +680,13 @@ class CheckElementExpression:
         return data
 
     def _prepare_data_parsed(self, sample_type):
-        data = internals.DataTpmFantom5(file="parsed", sample_types=sample_type, data_type=self.data_type)
+        data = internals.DataTpmFantom5(inputs="parsed", sample_types=sample_type, data_type=self.data_type)
         data.make_data_celltype_specific(self.cell_type)
         return data
 
     def _prepare_data_raw(self, sample_type):
         file_name = self._get_re_file_name()
-        data = internals.DataTpmFantom5(file=file_name, sample_types=sample_type, data_type=self.data_type)
+        data = internals.DataTpmFantom5(inputs=file_name, sample_types=sample_type, data_type=self.data_type)
         data.make_data_celltype_specific(self.cell_type)
         return data
 

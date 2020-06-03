@@ -41,7 +41,7 @@ class SetUp:
 # Now you don't need to change anything else
 setup = SetUp()
 results_final = {}
-data = internals.DataTpmFantom5(file="parsed", sample_types="primary cells", data_type=setup.data_type)
+data = internals.DataTpmFantom5(inputs="parsed", sample_types="primary cells", data_type=setup.data_type)
 
 for celltype in tqdm(setup.re_list, desc="Completed: "):
     data.make_data_celltype_specific(celltype)
