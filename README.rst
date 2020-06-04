@@ -1,6 +1,23 @@
 Module for VEnCode-related projects based on FANTOM5 databases
 ==============================================================
 
+|
+
+.. image:: https://img.shields.io/pypi/v/VEnCode
+    :alt: PyPI
+.. image:: https://img.shields.io/github/v/release/AndreMacedo88/VEnCode?include_prereleases
+    :alt: GitHub release (latest by date including pre-releases)
+.. image:: https://img.shields.io/github/release-date/AndreMacedo88/VEnCode
+    :alt: GitHub Release Date
+.. image:: https://img.shields.io/pypi/pyversions/VEnCode
+    :alt: PyPI - Python Version
+.. image:: https://img.shields.io/github/license/AndreMacedo88/VEnCode
+    :alt: GitHub
+.. image:: https://img.shields.io/github/issues/AndreMacedo88/VEnCode
+    :alt: GitHub issues
+
+|
+
 This module contains classes and functions that perform intersectional genetics-related operations to find VEnCodes
 using any matrix of cell types (columns) vs regulatory elements or markers (rows).
 
