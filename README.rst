@@ -4,16 +4,22 @@ Module for VEnCode-related projects based on FANTOM5 databases
 |
 
 .. image:: https://img.shields.io/pypi/v/VEnCode
+    :target: https://pypi.org/project/VEnCode/
     :alt: PyPI
 .. image:: https://img.shields.io/github/v/release/AndreMacedo88/VEnCode?include_prereleases
+    :target: https://github.com/AndreMacedo88/VEnCode/releases
     :alt: GitHub release (latest by date including pre-releases)
 .. image:: https://img.shields.io/github/release-date/AndreMacedo88/VEnCode
+    :target: https://github.com/AndreMacedo88/VEnCode/releases
     :alt: GitHub Release Date
 .. image:: https://img.shields.io/pypi/pyversions/VEnCode
+    :target: https://pypi.org/project/VEnCode/
     :alt: PyPI - Python Version
 .. image:: https://img.shields.io/github/license/AndreMacedo88/VEnCode
+    :target: https://github.com/AndreMacedo88/VEnCode/blob/Stable/LICENSE
     :alt: GitHub
 .. image:: https://img.shields.io/github/issues/AndreMacedo88/VEnCode
+    :target: https://github.com/AndreMacedo88/VEnCode/issues
     :alt: GitHub issues
 
 |
