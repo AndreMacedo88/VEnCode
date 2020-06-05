@@ -698,12 +698,15 @@ class DataTpmFantom5(DataTpm):
             cell_list = None
         else:
             self.ctp_not_include = None
-            cell_list = None
+            cell_list = self.data.columns
         if isinstance(target_celltype, dict):  # to deal with situations such as mesothelioma cell line
             target_ctp_in_data = list(target_celltype.values())[0]
         else:
-            target_celltype = gen_util.find_closest_word(target_celltype, cell_list, threshold=0.6)
-            target_ctp_in_data = target_celltype
+            try:
+                target_celltype = gen_util.find_closest_word(target_celltype, cell_list, threshold=0.6)
+                target_ctp_in_data = target_celltype
+            except (TypeError, ValueError):
+                target_ctp_in_data = target_celltype
 
         if self._inputs == "parsed":
             if isinstance(target_celltype, dict):
@@ -1249,28 +1252,6 @@ class Vencodes:
                 vencode = [sparsest.index.values.tolist(), vencode_second]
                 self.vencodes.append(vencode)
 
-    def heuristic2_vencode(self):  # TODO: must implement this within _node_based_algorithm
-        """
-        Call this function to generate the next VEnCode, possibly hybrid enhancer-promoter VEnCode.
-        The VEnCode is appended to the variable self.vencodes.
-        """
-        # TODO: needs to get the minimum number of second promoter/enhancers as possible. rn is getting k second RE
-        sparsest = self._data_not_target.head(n=self.k)
-        mask = sparsest != 0
-        cols = sparsest.columns[np.all(mask.values, axis=0)].tolist()
-        cols_target = self.second_data_object.ctp_analyse_donors[self.second_data_object.target_ctp]
-        data_problem_cols = self.second_data_object.inputs[cols + cols_target]
-        self.second_data_object.inputs = data_problem_cols
-        if self.algorithm == "heuristic":
-            vencode_heuristic2 = Vencodes(self.second_data_object, algorithm="heuristic", number_of_re=self.k,
-                                          stop=self._stop)
-            vencode_heuristic2.next()
-        else:
-            raise AttributeError("Algorithm - {} - currently not supported".format(self.algorithm))
-        if vencode_heuristic2.vencodes:
-            vencode = [sparsest.index.values.tolist(), vencode_heuristic2.vencodes]
-            self.vencodes.append(vencode)
-
     @staticmethod
     def vencode_mc_simulation(data, reps=100):
         """
@@ -1724,12 +1705,12 @@ class DataTpmFantom5Validated(DataTpmFantom5):
         Main method to filter the REs in the data, leaving in the data only those that match the external data set.
         """
         df_range = self._regulatory_elements_range()
-        self._interception(df_range, self.validate_with.inputs, self.data)
+        self._interception(df_range, self.validate_with.data, self.data)
 
     def merge_external_cell_type(self, cell_type):
         df_range = self._regulatory_elements_range()
-        self.data = self._interception(df_range, self.validate_with.inputs, self.data)
-        validate_with = self._interception(self.validate_with.inputs, df_range, self.validate_with.inputs)
+        self.data = self._interception(df_range, self.validate_with.data, self.data)
+        validate_with = self._interception(self.validate_with.data, df_range, self.validate_with.inputs)
         if self.data.shape[0] == validate_with.shape[0]:
             validate_with.index = self.data.index
             self.data[cell_type] = validate_with["tpm"]

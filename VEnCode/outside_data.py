@@ -20,10 +20,15 @@ class OutsideData:
     Base class for all data from outside sources.
     """
 
-    def __init__(self, folder=None):
+    def __init__(self, folder=None, files_path=None):
         if folder is None:
             folder = "Validation_files"
-        self.data_path = os.path.join(str(Path(__file__).parents[2]), "Files", folder)
+        if files_path is None:
+            self.data_path = os.path.join(str(Path(__file__).parents[2]), "Files", folder)
+        elif files_path == "test":
+            self.data_path = os.path.join(str(Path(__file__).parents[0]), "Files", folder)
+        else:
+            self.data_path = files_path
         self._data_source = None
         self.data = None
 
@@ -129,7 +134,9 @@ class BarakatTS2018Data(OutsideData):
     """
 
     def __init__(self, source="BarakatTS2018", **kwargs):
-        super().__init__()
+        files_path = kwargs.get("files_path")
+        folder = kwargs.get("folder")
+        super().__init__(folder=folder, files_path=files_path)
         self.data_source = source
 
         try:
@@ -151,9 +158,10 @@ class InoueF2017Data(OutsideData):
 
         How to use: data = internals.InoueF2017Data()
         """
-
-    def __init__(self, source="InoueF2017"):
-        super().__init__()
+    def __init__(self, source="InoueF2017", **kwargs):
+        files_path = kwargs.get("files_path")
+        folder = kwargs.get("folder")
+        super().__init__(folder=folder, files_path=files_path)
         self.data_source = source
         self.data = self._open_csv_file(self.data_source, sep="\t", header=None, names=["temp", "sequence"])
         self._data_cleaner()
@@ -197,7 +205,9 @@ class ChristensenCL2014Data(OutsideData):
     """
 
     def __init__(self, source="ChristensenCL2014", **kwargs):
-        super().__init__()
+        files_path = kwargs.get("files_path")
+        folder = kwargs.get("folder")
+        super().__init__(folder=folder, files_path=files_path)
         self.data_source = source
 
         try:
@@ -226,8 +236,10 @@ class BroadPeak(OutsideData):
     source can be any source described in baseclass, or a filename ending in .broadPeak
     """
 
-    def __init__(self, source=False):
-        super().__init__()
+    def __init__(self, source=False, **kwargs):
+        files_path = kwargs.get("files_path")
+        folder = kwargs.get("folder")
+        super().__init__(folder=folder, files_path=files_path)
         self.data_source = source
         names = ["Chromosome", "Start", "End", "Name", "Score", "Strand", "SignalValue",
                  "pValue", "qValue"]
@@ -249,8 +261,10 @@ class Bed(OutsideData):
     source can be any source described in baseclass, or a filename ending in .BED
     """
 
-    def __init__(self, source=False):
-        super().__init__()
+    def __init__(self, source=False, **kwargs):
+        files_path = kwargs.get("files_path")
+        folder = kwargs.get("folder")
+        super().__init__(folder=folder, files_path=files_path)
         if source:
             self.data_source = source
         names = ["Chromosome", "Start", "End"]
@@ -273,8 +287,10 @@ class Fasta(OutsideData):
     source can be any source described in baseclass, or a filename ending in .Fasta, .Fa, .txt, etc.
     """
 
-    def __init__(self, source=False):
-        super().__init__()
+    def __init__(self, source=False, **kwargs):
+        files_path = kwargs.get("files_path")
+        folder = kwargs.get("folder")
+        super().__init__(folder=folder, files_path=files_path)
         if source:
             self.data_source = source
         file_path = os.path.join(self.data_path, self.data_source)
@@ -308,8 +324,10 @@ class Csv(OutsideData):
         source can be any source described in baseclass, or a filename ending in .csv.
         """
 
-    def __init__(self, source=False, positions=(0, 0, 0, 1), splits=(":", "-")):
-        super().__init__(folder="Single Cell analysis")
+    def __init__(self, source=False, positions=(0, 0, 0, 1), splits=(":", "-"), **kwargs):
+        files_path = kwargs.get("files_path")
+        folder = kwargs.get("folder")
+        super().__init__(folder=folder, files_path=files_path)
         if source:
             self.data_source = source
         self.data = self._open_csv_file(self.data_source, sep=";")

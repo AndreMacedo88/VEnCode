@@ -100,8 +100,8 @@ class EncodeValidateVencodes:
                             break
                 if ctn:
                     continue
-                vencodes_data = vencodes_object.vencodes.get_vencode_data(method="return")
-                self.vencode_numbers[cell_type] = len(vencodes_object.vencodes.vencodes)
+                vencodes_data = vencodes_object.vencode_obj.get_vencode_data(method="return")
+                self.vencode_numbers[cell_type] = len(vencodes_object.vencode_obj.vencodes)
             self.matrix.loc[cell_type] = self._vencode_in_encode(vencodes_data)
 
     def validate_active(self, delete=None):
@@ -189,14 +189,14 @@ class EncodeValidateVencodes:
         return val_series
 
     def _search_vencodes_full(self, cell_type, thresholds, files_path="outside"):
-        return iext.GetVencodeFantom(cell_type=cell_type,
-                                     data_type=self.settings.DATA_TYPE, algorithm=self.settings.ALGORITHM,
-                                     n_regulatory_elements=self.settings.K,
-                                     number_vencodes=self.settings.NUMBER_VENCODES_TO_GET,
-                                     parsed=val_util.status_parsed(cell_type),
-                                     thresholds=thresholds, n_samples=10000,
-                                     sample_type=self.settings.TYPE,
-                                     files_path=files_path)
+        return iext.GetVencodesFantom(cell_type=cell_type,
+                                      data_type=self.settings.DATA_TYPE, algorithm=self.settings.ALGORITHM,
+                                      n_regulatory_elements=self.settings.K,
+                                      number_vencodes=self.settings.NUMBER_VENCODES_TO_GET,
+                                      parsed=val_util.status_parsed(cell_type),
+                                      thresholds=thresholds, n_samples=10000,
+                                      sample_type=self.settings.TYPE,
+                                      files_path=files_path)
 
     def _search_vencodes_from_data(self, data):
         vencodes = internals.Vencodes(data, algorithm="sampling", number_of_re=self.settings.K, n_samples=10000)
