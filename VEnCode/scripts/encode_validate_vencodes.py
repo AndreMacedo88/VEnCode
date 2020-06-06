@@ -100,8 +100,8 @@ class EncodeValidateVencodes:
                             break
                 if ctn:
                     continue
-                vencodes_data = vencodes_object.vencode_obj.get_vencode_data(method="return")
-                self.vencode_numbers[cell_type] = len(vencodes_object.vencode_obj.vencodes)
+                vencodes_data = vencodes_object.expression_data
+                self.vencode_numbers[cell_type] = len(vencodes_object.coordinates)
             self.matrix.loc[cell_type] = self._vencode_in_encode(vencodes_data)
 
     def validate_active(self, delete=None):

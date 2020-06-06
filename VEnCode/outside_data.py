@@ -45,29 +45,30 @@ class OutsideData:
         return self._data_source
 
     @data_source.setter
-    def data_source(self, value):
-        if value.endswith((".broadPeak", ".BED", ".txt", ".FASTA", ".fasta", ".csv")):
-            self._data_source = value
+    def data_source(self, source):
+        source = source.lower()
+        if source.endswith((".broadpeak", ".bed", ".txt", ".fasta", ".csv")):
+            self._data_source = source
         else:
-            if value == "DennySK2016":
+            if source == "dennysk2016":
                 self._data_source = "GSE81255_all_merged.H14_H29_H52_H69_H82_H88_peaks.broadPeak"
-            elif value == "InoueF2017":
+            elif source == "inouef2017":
                 self._data_source = "supp_gr.212092.116_Supplemental_File_2_liverEnhancer_design.tsv"
-            elif value == "BarakatTS2018":
+            elif source == "barakatts2018":
                 self._data_source = ["Barakat et al 2018 - Core and Extended Enhancers.csv",
                                      "Barakat et al 2018 - Merged Enhancers.csv"]
-            elif value == "ChristensenCL2014":
+            elif source == "christensencl2014":
                 self._data_source = ["1-s2.0-S1535610814004231-mmc3_GLC16.csv",
                                      "1-s2.0-S1535610814004231-mmc3_H82.csv",
                                      "1-s2.0-S1535610814004231-mmc3_H69.csv"]
-            elif value == "WangX2018":
+            elif source == "wangx2018":
                 self._data_source = "41467_2018_7746_MOESM4_ESM.txt"
-            elif value == "LiuY2017":
+            elif source == "liuy2017":
                 self._data_source = "GSE82204_enhancer_overlap_dnase.txt"
-            elif value.startswith("EnhancerAtlas-"):
-                self._data_source = "{}.fasta".format(value.split("-", 1)[1])
+            elif source.startswith("enhanceratlas-"):
+                self._data_source = "{}.fasta".format(source.split("-", 1)[1])
             else:
-                raise AttributeError("Source {} still not implemented".format(value))
+                raise AttributeError("Source {} still not implemented".format(source))
 
     def join_data_sets(self, data_set):
         """
@@ -261,21 +262,28 @@ class Bed(OutsideData):
     source can be any source described in baseclass, or a filename ending in .BED
     """
 
-    def __init__(self, source=False, **kwargs):
-        files_path = kwargs.get("files_path")
-        folder = kwargs.get("folder")
+    def __init__(self, source=False, files_path=None, folder=None):
         super().__init__(folder=folder, files_path=files_path)
         if source:
             self.data_source = source
-        names = ["Chromosome", "Start", "End"]
-        use_cols = range(0, len(names))
-        self.data = self._open_csv_file(self.data_source, sep="\t", header=None, usecols=use_cols,
-                                        names=names)
+
+        try:
+            names = ["Chromosome", "Start", "End", "Name", "Score", "Strand"]
+            use_cols = range(0, len(names))
+            self.data = self._open_csv_file(self.data_source, sep="\t", header=None, usecols=use_cols,
+                                            names=names)
+        except:
+            names = ["Chromosome", "Start", "End"]
+            self.data = self._open_csv_file(self.data_source, sep="\t", header=None, usecols=use_cols,
+                                            names=names)
 
         self._data_cleaner()
 
     def _data_cleaner(self):
-        self.data = self.data[["Chromosome", "Start", "End"]]
+        try:
+            self.data = self.data[["Chromosome", "Start", "End", "Strand"]]
+        except:
+            self.data = self.data[["Chromosome", "Start", "End"]]
         self._create_range()
 
 

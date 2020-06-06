@@ -439,6 +439,13 @@ class DataTpm:
             data_concat = data_new.data
         self.data = pd.concat([self.data, data_concat], axis=1)
 
+    def merge_reg_elements(self, validate_with, splits=(":", "-")):
+        """
+        Main method to filter the REs in the data, leaving in the data only those that match the external data set.
+        """
+        df_range = self._regulatory_elements_range(splits=splits)
+        self._interception(df_range, validate_with.data, self.data)
+
     def drop_target_ctp(self, inplace=True):
         """
         Shortcut function to drop the target celltypes from the data set. It handles the fact that the data may have
@@ -539,6 +546,45 @@ class DataTpm:
             data_merged[code] = celltypes_averaged
         data = data_merged
         return data
+
+    def _interception(self, data1, data2, data_update):
+        mask = self._mask(data1, data2)
+        data_update = data_update.loc[mask]
+        return data_update
+
+    def _regulatory_elements_range(self, splits=(":", "-")):
+        df_temp = pd.DataFrame()
+        df_temp["Id"] = self.data.index
+        df_temp[["Chromosome", "temp"]] = df_temp.Id.str.split(splits[0], expand=True)
+        df_temp[["Start", "End"]] = df_temp.temp.str.split(splits[1], expand=True)
+        if len(splits) == 3:
+            df_temp[["End", "Strand"]] = df_temp.End.str.split(splits[2], expand=True)
+            df_temp = df_temp[["Chromosome", "Start", "End", "Strand"]]
+        else:
+            df_temp = df_temp[["Chromosome", "Start", "End"]]
+        pd_util.columns_to_numeric(df_temp, "Start", "End")
+        df_temp["range"] = [[row.Start, row.End] for index, row in df_temp.iterrows()]
+        return df_temp
+
+    @staticmethod
+    def _mask(df, df2):
+        mask = []
+        for index, row in df.iterrows():
+            range1 = row.range
+            df2_filters = df2[df2["Chromosome"] == row.iloc[0]]
+            if "Strand" in df2_filters.columns:
+                df2_filters = df2_filters[df2_filters["Strand"] == row.Strand]
+            range2_list = df2_filters["range"].tolist()
+            switch = False
+            for range2 in range2_list:
+                condition = gen_util.partial_subset_of_span(range1, range2)
+                if condition:
+                    mask.append(True)
+                    switch = True
+                    break
+            if not switch:
+                mask.append(False)
+        return mask
 
     @staticmethod
     def _not_include_code_getter(not_include, data_frame):
@@ -1710,17 +1756,17 @@ class DataTpmFantom5Validated(DataTpmFantom5):
     def merge_external_cell_type(self, cell_type):
         df_range = self._regulatory_elements_range()
         self.data = self._interception(df_range, self.validate_with.data, self.data)
-        validate_with = self._interception(self.validate_with.data, df_range, self.validate_with.inputs)
+        validate_with = self._interception(self.validate_with.data, df_range, self.validate_with.data)
         if self.data.shape[0] == validate_with.shape[0]:
             validate_with.index = self.data.index
             self.data[cell_type] = validate_with["tpm"]
         else:
             self.data[cell_type] = pd.Series(data=[50] * len(self.data.index), index=self.data.index)
 
-    def _interception(self, data1, data2, data_updated):
+    def _interception(self, data1, data2, data_update):
         mask = self._mask(data1, data2)
-        data_updated = data_updated.loc[mask]
-        return data_updated
+        data_update = data_update.loc[mask]
+        return data_update
 
     def _regulatory_elements_range(self):
         df_temp = pd.DataFrame()

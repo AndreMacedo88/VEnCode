@@ -15,6 +15,7 @@ from VEnCode import internals_extensions as iext
 from VEnCode import common_variables as cv
 from VEnCode.utils import dir_and_file_handling as dh
 from VEnCode.utils import validation_utils as val
+from VEnCode import outside_data
 
 
 class GettingVencodesTest(unittest.TestCase):
@@ -56,7 +57,7 @@ class GetVencodesHeuristicTest(GettingVencodesTest):
         self.assertCountEqual(expected, self.vencodes[1])
 
     def test_if_correct_vencodes(self):
-        for vencode_data in self.vencode_obj.data:
+        for vencode_data in self.vencode_obj.expression_data:
             vencode_data.drop(self.vencode_obj.target_replicates, axis=1, inplace=True)
             with self.subTest(i=vencode_data.index.values.tolist()):
                 condition = self.vencode_obj._assess_vencode_one_zero_boolean(vencode_data)
@@ -96,7 +97,7 @@ class GetVencodesSamplingTest(GettingVencodesTest):
         self.vencodes = self.vencode_obj.coordinates
 
     def test_if_correct_vencodes(self):
-        for vencode_data in self.vencode_obj.data:
+        for vencode_data in self.vencode_obj.expression_data:
             vencode_data.drop(self.vencode_obj.target_replicates, axis=1, inplace=True)
             with self.subTest(i=vencode_data.index.values.tolist()):
                 condition = self.vencode_obj._assess_vencode_one_zero_boolean(vencode_data)
@@ -125,7 +126,7 @@ class GetVencodesUnmergedTest(GettingVencodesTest):
                                             thresholds=self.thresholds, n_samples=10000,
                                             merge=None, replicates=replicates)
         self.vencodes = self.vencode_obj.coordinates
-        for vencode_data in self.vencode_obj.data:
+        for vencode_data in self.vencode_obj.expression_data:
             vencode_data.drop(self.vencode_obj.target_replicates, axis=1, inplace=True)
             with self.subTest(i=vencode_data.index.values.tolist()):
                 condition = self.vencode_obj._assess_vencode_one_zero_boolean(vencode_data)
@@ -156,16 +157,60 @@ class GetVencodesAddCelltypeTest(GettingVencodesTest):
         self.vencodes = self.vencode_obj.coordinates
 
     def test_correct_addition(self):
-        for vencode_data in self.vencode_obj.data:
+        for vencode_data in self.vencode_obj.expression_data:
             with self.subTest(i=vencode_data.index.values.tolist()):
                 self.assertIn(self.add_celltype_ctp, vencode_data.columns)
 
     def test_if_correct_vencodes(self):
-        for vencode_data in self.vencode_obj.data:
+        for vencode_data in self.vencode_obj.expression_data:
             vencode_data.drop(self.vencode_obj.target_replicates, axis=1, inplace=True)
             with self.subTest(i=vencode_data.index.values.tolist()):
                 condition = self.vencode_obj._assess_vencode_one_zero_boolean(vencode_data)
                 self.assertTrue(condition)
+
+
+class GetVencodesValidateTest(GettingVencodesTest):
+    def setUp(self):
+        """ Sets-up variables to be used in the tests. """
+        self.validate_with = outside_data.Bed(source="get_val_ven_test.bed", files_path=self.files_path,
+                                              folder="Validation_files")
+        self.vencode_obj = iext.GetVencodes(validate_with=(self.validate_with, (":", "\..", ",")),
+                                            inputs=self.inputs,
+                                            files_path=self.files_path,
+                                            cell_type=self.celltype_analyse,
+                                            algorithm=self.algorithm,
+                                            n_regulatory_elements=self.k,
+                                            number_vencodes=4,
+                                            thresholds=self.thresholds, n_samples=10000,
+                                            merge={"replicate_suffix": self.replicate_suffix})
+        self.vencodes = self.vencode_obj.coordinates
+
+    def test_if_correct_vencodes(self):
+        for vencode_data in self.vencode_obj.expression_data:
+            vencode_data.drop(self.vencode_obj.target_replicates, axis=1, inplace=True)
+            with self.subTest(i=vencode_data.index.values.tolist()):
+                condition = self.vencode_obj._assess_vencode_one_zero_boolean(vencode_data)
+                self.assertTrue(condition)
+
+    def test_e_values_created(self):
+        maximum, minimum = 100, 0
+        for i in self.vencode_obj.e_values.values():
+            with self.subTest(i=i):
+                self.assertTrue(maximum >= i >= minimum, msg="{} is not between {} and {}".format(i, minimum, maximum))
+
+    def test_validation(self):
+        vencode_data = self.vencode_obj.expression_data[0]
+        indexes = vencode_data.index
+        _chr, temp = indexes[0].split(":")
+        start, end = temp.split("..")
+        end, strand = end.split(",")
+        coordinates_set = range(int(start) - 200, int(end) + 201)
+        condition = False
+        for index, row in self.validate_with.data.iterrows():
+            condition = (row.Start in coordinates_set) or (row.End in coordinates_set)
+            if condition:
+                break
+        self.assertTrue(condition)
 
 
 class GettingVencodesFantomTest(unittest.TestCase):
@@ -199,7 +244,7 @@ class GetVencodesFantomHeuristicTest(GettingVencodesFantomTest):
         self.vencodes = self.vencode_obj.coordinates
 
     def test_if_correct_vencodes(self):
-        for vencode_data in self.vencode_obj.data:
+        for vencode_data in self.vencode_obj.expression_data:
             vencode_data.drop(self.vencode_obj.target_replicates, axis=1, inplace=True)
             with self.subTest(i=vencode_data.index.values.tolist()):
                 condition = self.vencode_obj._assess_vencode_one_zero_boolean(vencode_data)
@@ -226,7 +271,7 @@ class GetVencodesFantomSamplingTest(GettingVencodesFantomTest):
         self.vencodes = self.vencode_obj.coordinates
 
     def test_if_correct_vencodes(self):
-        for vencode_data in self.vencode_obj.data:
+        for vencode_data in self.vencode_obj.expression_data:
             vencode_data.drop(self.vencode_obj.target_replicates, axis=1, inplace=True)
             with self.subTest(i=vencode_data.index.values.tolist()):
                 condition = self.vencode_obj._assess_vencode_one_zero_boolean(vencode_data)
@@ -262,7 +307,7 @@ class GetVencodesFantomAddCelltypeTest(GettingVencodesFantomTest):
         cls.vencodes = cls.vencode_obj.coordinates
 
     def test_if_correct_vencodes(self):
-        for vencode_data in self.vencode_obj.data:
+        for vencode_data in self.vencode_obj.expression_data:
             vencode_data.drop(self.vencode_obj.target_replicates, axis=1, inplace=True)
             with self.subTest(i=vencode_data.index.values.tolist()):
                 condition = self.vencode_obj._assess_vencode_one_zero_boolean(vencode_data)
@@ -298,14 +343,22 @@ class GetVencodesFantomNotMergedAdd(GettingVencodesFantomTest):
         cls.vencodes = cls.vencode_obj.coordinates
 
     def test_if_correct_vencodes(self):
-        for vencode_data in self.vencode_obj.data:
+        for vencode_data in self.vencode_obj.expression_data:
             vencode_data.drop(self.vencode_obj.target_replicates, axis=1, inplace=True)
             with self.subTest(i=vencode_data.index.values.tolist()):
                 condition = self.vencode_obj._assess_vencode_one_zero_boolean(vencode_data)
                 self.assertTrue(condition)
 
+    def test_if_in_target(self):
+        for column in self.vencode_obj.target_replicates_data.columns:
+            with self.subTest(column=column):
+                self.assertRegex(column, "hIPS.*")
 
-class GetVencodesFantomValidatedRegsHeuristicTest(GettingVencodesFantomTest):
+    def test_if_added(self):
+        self.assertIn("hIPS, biol_rep2", self.vencode_obj.data.columns)
+
+
+class GetVencodesFantomValidatedTest(GettingVencodesFantomTest):
     @classmethod
     def setUpClass(cls):
         """
@@ -316,19 +369,69 @@ class GetVencodesFantomValidatedRegsHeuristicTest(GettingVencodesFantomTest):
         add_celltype_ = [add_celltype_file, "hIPS", {"sample_types": "time courses",
                                                      "files_path": cls.files_path}]
 
-        validate_with = val.get_data_to_validate("hIPS", optional=False, files_path=cls.files_path)
-        cls.vencode_obj = iext.GetVencodeFantomValidatedRegs(validate_with=validate_with,
-                                                             inputs=cv.test_enhancer_file_name,
-                                                             files_path=cls.files_path,
-                                                             cell_type="hIPS",
-                                                             algorithm=cls.algorithm,
-                                                             n_regulatory_elements=cls.k,
-                                                             number_vencodes=2,
-                                                             parsed=False,
-                                                             thresholds=cls.thresholds, n_samples=10000,
-                                                             data_type="enhancers", sample_type=cls.sample_type,
-                                                             add_celltype=add_celltype_,
-                                                             merge={"exclude_target": True})
+        cls.validate_with = val.get_data_to_validate("hIPS", optional=False, files_path=cls.files_path)
+        cls.vencode_obj = iext.GetVencodesFantom(validate_with=cls.validate_with,
+                                                 inputs=cv.test_enhancer_file_name,
+                                                 files_path=cls.files_path,
+                                                 cell_type="hIPS",
+                                                 algorithm=cls.algorithm,
+                                                 n_regulatory_elements=cls.k,
+                                                 number_vencodes=2,
+                                                 parsed=False,
+                                                 thresholds=cls.thresholds, n_samples=10000,
+                                                 data_type="enhancers", sample_type=cls.sample_type,
+                                                 add_celltype=add_celltype_,
+                                                 merge={"exclude_target": True})
+        cls.vencodes = cls.vencode_obj.coordinates
+
+    def test_if_correct_vencodes(self):
+        for vencode_data in self.vencode_obj.expression_data:
+            vencode_data.drop(self.vencode_obj.target_replicates, axis=1, inplace=True)
+            with self.subTest(i=vencode_data.index.values.tolist()):
+                condition = self.vencode_obj._assess_vencode_one_zero_boolean(vencode_data)
+                self.assertTrue(condition)
+
+    def test_e_values_created(self):
+        maximum, minimum = 100, 0
+        for i in self.vencode_obj.e_values.values():
+            with self.subTest(i=i):
+                self.assertTrue(maximum >= i >= minimum, msg="{} is not between {} and {}".format(i, minimum, maximum))
+
+    def test_validation(self):
+        vencode_data = self.vencode_obj.expression_data[0]
+        indexes = vencode_data.index
+        _chr, temp = indexes[0].split(":")
+        start, end = temp.split("-")
+        coordinates_set = range(int(start) - 200, int(end) + 201)
+        condition = False
+        for index, row in self.validate_with.data.iterrows():
+            condition = (row.Start in coordinates_set) or (row.End in coordinates_set)
+            if condition:
+                break
+        self.assertTrue(condition)
+
+
+class GetVencodesFantomExternalHeuristicTest(GettingVencodesFantomTest):
+    @classmethod
+    def setUpClass(cls):
+        """
+        Sets-up class variables to be used in the tests.
+        """
+        super().setUpClass()
+        cls.validate_with = val.get_data_to_validate("A549_singlecell", file_name="A549_singlecell.csv",
+                                                     files_path=cls.files_path, positions=(0, 0, 0, 1),
+                                                     splits=(":", "-"))
+        cls.vencode_obj = iext.GetVencodeFantomExternalData(validate_with=cls.validate_with,
+                                                            inputs=cv.test_enhancer_file_name,
+                                                            files_path=cls.files_path,
+                                                            cell_type="A549_singlecell",
+                                                            algorithm=cls.algorithm,
+                                                            n_regulatory_elements=cls.k,
+                                                            number_vencodes=2,
+                                                            parsed=False,
+                                                            thresholds=cls.thresholds, n_samples=10000,
+                                                            data_type="enhancers", sample_type="cell lines",
+                                                            merge={"exclude_target": True})
         cls.vencodes = cls.vencode_obj.coordinates
 
     def test_if_correct_vencodes(self):
@@ -343,6 +446,19 @@ class GetVencodesFantomValidatedRegsHeuristicTest(GettingVencodesFantomTest):
         for i in self.vencode_obj.e_values.values():
             with self.subTest(i=i):
                 self.assertTrue(maximum >= i >= minimum, msg="{} is not between {} and {}".format(i, minimum, maximum))
+
+    def test_validation(self):
+        vencode_data = self.vencode_obj.data[1]
+        indexes = vencode_data.index
+        _chr, temp = indexes[0].split(":")
+        start, end = temp.split("-")
+        coordinates_set = range(int(start) - 200, int(end) + 201)
+        condition = False
+        for index, row in self.validate_with.data.iterrows():
+            condition = (row.Start in coordinates_set) or (row.End in coordinates_set)
+            if condition:
+                break
+        self.assertTrue(condition)
 
 
 if __name__ == "__main__":

@@ -24,8 +24,6 @@ def get_data_to_validate(cell_type, file_name=None, **kwargs):
                             "embryonic kidney cell line: HEK293/SLAM untreated": "HEK293"}
 
     optional = kwargs.get("optional", None)
-    positions = kwargs.get("positions", None)
-    splits = kwargs.get("splits")
 
     if cell_type == "hIPS":
         return VEnCode.outside_data.BarakatTS2018Data(data="core", **kwargs)
@@ -62,9 +60,7 @@ def get_data_to_validate(cell_type, file_name=None, **kwargs):
     elif cell_type in enhancer_atlas_lines:
         return VEnCode.outside_data.Fasta("EnhancerAtlas-{}".format(enhancer_atlas_lines.get(cell_type)), **kwargs)
     elif "singlecell" in cell_type:
-
-        return VEnCode.outside_data.Csv(source=file_name, positions=positions, splits=splits,
-                                        folder="Single Cell analysis", **kwargs)
+        return VEnCode.outside_data.Csv(source=file_name, folder="Single Cell analysis", **kwargs)
     else:
         raise AttributeError("Cell Type {} to get validated VEnCodes still not supported".format(cell_type))
 

@@ -25,7 +25,7 @@ class GettingVencodes:
     """
 
     def __init__(self, inputs, cell_type, algorithm, n_regulatory_elements, n_samples=10000, stop=3, using=None,
-                 files_path=None, sep=";", nrows=None, replicates=False, **kwargs):
+                 files_path=None, sep=";", nrows=None, replicates=False, validate_with=None, **kwargs):
         self.inputs = inputs
         self.cell_type = cell_type
         self.algorithm = algorithm
@@ -35,6 +35,7 @@ class GettingVencodes:
         self.files_path = files_path
         self.sep, self.nrows, self.replicates = sep, nrows, replicates
         self.kwargs = kwargs
+        self.validate_with = validate_with
 
     def _filters(self, data, thresholds):
         non_tgt_ctp_inact, tgt_ctp_act, reg_el_spsness = thresholds
@@ -50,8 +51,16 @@ class GettingVencodes:
                                      **self.kwargs)
         data_tpm.load_data()
         data_tpm.make_data_celltype_specific(self.cell_type, replicates=self.replicates)
+
+        if self.validate_with is not None:
+            if isinstance(self.validate_with, (list, tuple)):
+                data_tpm.merge_reg_elements(self.validate_with[0], splits=self.validate_with[1])
+            else:
+                data_tpm.merge_reg_elements(self.validate_with)
+
         if merge is not None:
             data_tpm.merge_replicates(**merge)
+
         data_tpm = self._filters(data_tpm, thresholds)
         return data_tpm
 
@@ -65,8 +74,16 @@ class GettingVencodes:
             kwargs = []
         data_tpm.add_celltype(data_from=add_celltype[0], celltypes=add_celltype[1], **kwargs)
         data_tpm.make_data_celltype_specific(self.cell_type, replicates=False)
+
+        if self.validate_with is not None:
+            if isinstance(self.validate_with, (list, tuple)):
+                data_tpm.merge_reg_elements(self.validate_with[0], splits=self.validate_with[1])
+            else:
+                data_tpm.merge_reg_elements(self.validate_with)
+
         if merge is not None:
             data_tpm.merge_replicates(**merge)
+
         data_tpm = self._filters(data_tpm, thresholds)
         return data_tpm
 
@@ -117,8 +134,10 @@ class GetVencodes(GettingVencodes):
         In the third index, put a dictionary containing any additional kwargs to pass to the DataTpm object.
     """
 
-    def __init__(self, *args, number_vencodes=1, thresholds=(), merge=None, add_celltype=(), **kwargs):
+    def __init__(self, *args, number_vencodes=1, thresholds=(), merge=None, add_celltype=(), validate_with=None,
+                 **kwargs):
         super().__init__(*args, **kwargs)
+        self.validate_with = validate_with
         self.vencode_obj = self._get_vencode(number_vencodes, thresholds, merge, add_celltype)
 
     def __getattr__(self, item):
@@ -136,7 +155,7 @@ class GetVencodes(GettingVencodes):
         return self.vencode_obj.vencodes
 
     @property
-    def data(self):
+    def expression_data(self):
         """
         The stored VEnCodes' full expression data.
         """
@@ -260,7 +279,98 @@ class GettingVencodesFantom(GettingVencodes):
             raise exceptions.NoVencodeError("No VEnCodes found for {}!".format(self.cell_type))
 
 
-class GetVencodeFantomValidatedRegs(GettingVencodesFantom):
+class GetVencodesFantom(GettingVencodesFantom):
+    """
+    Parameters
+    ----------
+    Merge : dict, bool
+        Merge should be a dict with kwargs to the merge_celltype func, or just True to accept the default parameters.
+    """
+
+    def __init__(self, number_vencodes=1, parsed=False, sample_type=None, thresholds=(), merge=None, add_celltype=(),
+                 validate_with=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.validate_with = validate_with
+        self.vencode_obj = self._get_vencode(number_vencodes, thresholds, sample_type, parsed, merge, add_celltype)
+
+    def __getattr__(self, item):
+        """
+        Setting __getattr__ here allows a GetVencodes object to fetch all Vencode object's methods and variables
+        directly.
+        """
+        return eval(f"self.vencode_obj.{item}")
+
+    @property
+    def coordinates(self):
+        """
+        The stored VEnCodes' coordinates.
+        """
+        return self.vencode_obj.vencodes
+
+    @property
+    def expression_data(self):
+        """
+        The stored VEnCodes' full expression data.
+        """
+        return self.vencode_obj.get_vencode_data(method="return")
+
+    @property
+    def e_values(self):
+        """
+        The stored VEnCodes' e-values.
+        """
+        if not self.vencode_obj.e_values:
+            self.vencode_obj.determine_e_values()
+        return self.vencode_obj.e_values
+
+    def _prepare_data_parsed(self, sample_type, thresholds, add_celltype):
+        data_tpm = internals.DataTpmFantom5(inputs="parsed", sample_types=sample_type, data_type=self.data_type,
+                                            files_path=self.files_path)
+        data_tpm.make_data_celltype_specific(self.cell_type)
+
+        if add_celltype:
+            try:
+                kwargs = add_celltype[2]
+            except IndexError:
+                kwargs = []
+            data_tpm.add_celltype(data_from=add_celltype[0], celltypes=add_celltype[1], data_type=self.data_type,
+                                  **kwargs)
+        if self.validate_with is not None:
+            data_tpm.merge_reg_elements(self.validate_with)
+        data_tpm = self._filters(data_tpm, thresholds)
+        return data_tpm
+
+    def _prepare_data_raw(self, sample_type, thresholds, merge, add_celltype):
+        if self.inputs:
+            file_name = self.inputs
+        else:
+            file_name = self._get_re_file_name()
+        data_tpm = internals.DataTpmFantom5(inputs=file_name, sample_types=sample_type, data_type=self.data_type,
+                                            files_path=self.files_path)
+
+        if add_celltype:
+            try:
+                kwargs = add_celltype[2]
+            except IndexError:
+                kwargs = []
+            data_tpm.add_celltype(data_from=add_celltype[0], celltypes=add_celltype[1], data_type=self.data_type,
+                                  **kwargs)
+
+        data_tpm.make_data_celltype_specific(self.cell_type)
+        if self.validate_with is not None:
+            data_tpm.merge_reg_elements(self.validate_with)
+
+        if merge is not None:
+            try:
+                data_tpm.merge_donors_primary(**merge)
+            except TypeError:
+                data_tpm.merge_donors_primary()
+
+        data_tpm = self._filters(data_tpm, thresholds)
+        return data_tpm
+
+
+class GetVencodeFantomExternalData(GettingVencodesFantom):
     """
     Gets VEnCodes
     thresholds must be a list or tuple with the format:
@@ -304,7 +414,7 @@ class GetVencodeFantomValidatedRegs(GettingVencodesFantom):
         return self.vencode_obj.e_values
 
     def _prepare_data_parsed(self, sample_type, thresholds, add_celltype):
-        data_tpm = internals.DataTpmFantom5Validated(self.validate_with, file="parsed", sample_types=sample_type,
+        data_tpm = internals.DataTpmFantom5Validated(self.validate_with, inputs="parsed", sample_types=sample_type,
                                                      data_type=self.data_type, files_path=self.files_path)
         data_tpm.make_data_celltype_specific(self.cell_type)
 
@@ -316,7 +426,7 @@ class GetVencodeFantomValidatedRegs(GettingVencodesFantom):
             data_tpm.add_celltype(data_from=add_celltype[0], celltypes=add_celltype[1], data_type=self.data_type,
                                   **kwargs)
 
-        data_tpm.select_validated()
+        data_tpm.merge_external_cell_type(self.cell_type)
         data_tpm = self._filters(data_tpm, thresholds)
         return data_tpm
 
@@ -336,8 +446,8 @@ class GetVencodeFantomValidatedRegs(GettingVencodesFantom):
             data_tpm.add_celltype(data_from=add_celltype[0], celltypes=add_celltype[1], data_type=self.data_type,
                                   **kwargs)
 
+        data_tpm.merge_external_cell_type(self.cell_type)
         data_tpm.make_data_celltype_specific(self.cell_type)
-        data_tpm.select_validated()
 
         if merge is not None:
             try:
@@ -347,128 +457,6 @@ class GetVencodeFantomValidatedRegs(GettingVencodesFantom):
 
         data_tpm = self._filters(data_tpm, thresholds)
         return data_tpm
-
-
-class GetVencodesFantom(GettingVencodesFantom):
-    """
-    Parameters
-    ----------
-    Merge : dict, bool
-        Merge should be a dict with kwargs to the merge_celltype func, or just True to accept the default parameters.
-    """
-
-    def __init__(self, number_vencodes=1, parsed=False, sample_type=None, thresholds=(), merge=None, add_celltype=(),
-                 *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.vencode_obj = self._get_vencode(number_vencodes, thresholds, sample_type, parsed, merge, add_celltype)
-
-    def __getattr__(self, item):
-        """
-        Setting __getattr__ here allows a GetVencodes object to fetch all Vencode object's methods and variables
-        directly.
-        """
-        return eval(f"self.vencode_obj.{item}")
-
-    @property
-    def coordinates(self):
-        """
-        The stored VEnCodes' coordinates.
-        """
-        return self.vencode_obj.vencodes
-
-    @property
-    def data(self):
-        """
-        The stored VEnCodes' full expression data.
-        """
-        return self.vencode_obj.get_vencode_data(method="return")
-
-    @property
-    def e_values(self):
-        """
-        The stored VEnCodes' e-values.
-        """
-        if not self.vencode_obj.e_values:
-            self.vencode_obj.determine_e_values()
-        return self.vencode_obj.e_values
-
-    def _prepare_data_parsed(self, sample_type, thresholds, add_celltype):
-        data_tpm = internals.DataTpmFantom5(inputs="parsed", sample_types=sample_type, data_type=self.data_type,
-                                            files_path=self.files_path)
-        data_tpm.make_data_celltype_specific(self.cell_type)
-
-        if add_celltype:
-            try:
-                kwargs = add_celltype[2]
-            except IndexError:
-                kwargs = []
-            data_tpm.add_celltype(data_from=add_celltype[0], celltypes=add_celltype[1], data_type=self.data_type,
-                                  **kwargs)
-
-        data_tpm = self._filters(data_tpm, thresholds)
-        return data_tpm
-
-    def _prepare_data_raw(self, sample_type, thresholds, merge, add_celltype):
-        if self.inputs:
-            file_name = self.inputs
-        else:
-            file_name = self._get_re_file_name()
-        data_tpm = internals.DataTpmFantom5(inputs=file_name, sample_types=sample_type, data_type=self.data_type,
-                                            files_path=self.files_path)
-
-        if add_celltype:
-            try:
-                kwargs = add_celltype[2]
-            except IndexError:
-                kwargs = []
-            data_tpm.add_celltype(data_from=add_celltype[0], celltypes=add_celltype[1], data_type=self.data_type,
-                                  **kwargs)
-
-            data_tpm.make_data_celltype_specific(self.cell_type)
-
-        if merge is not None:
-            try:
-                data_tpm.merge_donors_primary(**merge)
-            except TypeError:
-                data_tpm.merge_donors_primary()
-
-        data_tpm = self._filters(data_tpm, thresholds)
-        return data_tpm
-
-
-class GetVencodeFantomExternalData(GettingVencodesFantom):
-    """
-    Gets VEnCodes
-    thresholds must be a list or tuple with the format:
-    (non_target_celltypes_inactivity, target_celltype_activity, reg_element_sparseness)
-    """
-
-    def __init__(self, validate_with, number_vencodes=1, parsed=False, sample_type=None, thresholds=(), *args,
-                 **kwargs):
-        super().__init__(*args, **kwargs)
-        self.validate_with = validate_with
-        self.vencodes = self._get_vencode(number_vencodes, sample_type, parsed, thresholds, n_samples=self.n_samples,
-                                          using=self.using)
-
-    def _prepare_data_parsed(self, sample_type, thresholds):
-        data = internals.DataTpmFantom5Validated(self.validate_with, file="parsed", sample_types="primary cells",
-                                                 data_type=self.data_type, files_path=self.files_path)
-        data.make_data_celltype_specific("Hepatocyte")
-        data.merge_donors_primary(exclude_target=False)
-        # data.add_celltype(self.cell_type, file=file_name, sample_types=sample_type, data_type=self.data_type)
-        data.merge_external_cell_type(self.cell_type)
-        data = self._filters(data, thresholds)
-        return data
-
-    def _prepare_data_raw(self, sample_type, thresholds):
-        file_name = self._get_re_file_name()
-        data = internals.DataTpmFantom5Validated(self.validate_with, file=file_name, sample_types="primary cells",
-                                                 data_type=self.data_type, files_path=self.files_path)
-        data.merge_donors_primary(exclude_target=False)
-        data.merge_external_cell_type(self.cell_type)
-        data.make_data_celltype_specific(self.cell_type)
-        data = self._filters(data, thresholds)
-        return data
 
 
 class Validator:
@@ -483,25 +471,15 @@ class Validator:
         self._results = None
         self._match_percentages = []
         self.average_match_percentage = None
-        if validate_with is None:
-            try:
-                data = GetVencodesFantom(cell_type=cell_type, data_type=data_type, algorithm=algorithm,
-                                         n_regulatory_elements=n_regulatory_elements,
-                                         number_vencodes=number_vencodes, parsed=parsed, thresholds=thresholds,
-                                         sample_type=sample_type, n_samples=n_samples)
-            except exceptions.NoVencodeError as e:
-                raise e
-        else:
-            try:
-                data = GetVencodeFantomValidatedRegs(validate_with=validate_with, cell_type=cell_type,
-                                                     data_type=data_type,
-                                                     algorithm=algorithm, n_regulatory_elements=n_regulatory_elements,
-                                                     number_vencodes=number_vencodes, parsed=parsed,
-                                                     thresholds=thresholds,
-                                                     sample_type=sample_type)
-            except exceptions.NoVencodeError as e:
-                raise e
-        self.vencodes = data.vencode_obj.get_vencode_data(method="return")
+        try:
+            data = GetVencodesFantom(validate_with=validate_with, cell_type=cell_type,
+                                     data_type=data_type,
+                                     algorithm=algorithm, n_regulatory_elements=n_regulatory_elements,
+                                     number_vencodes=number_vencodes, parsed=parsed,
+                                     thresholds=thresholds, sample_type=sample_type, n_samples=n_samples)
+        except exceptions.NoVencodeError as e:
+            raise e
+        self.vencodes = data.expression_data
 
     @property
     def results(self):
