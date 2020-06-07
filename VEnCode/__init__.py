@@ -7,6 +7,7 @@ from VEnCode import _metadata
 
 from VEnCode.internals import *
 from VEnCode.common_variables import *
+from VEnCode.internals_extensions import GetVencodes, GetVencodesFantom
 
 __version__ = _metadata.__version__
 __author__ = _metadata.__author__

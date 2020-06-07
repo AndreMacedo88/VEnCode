@@ -219,7 +219,6 @@ class GettingVencodesFantomTest(unittest.TestCase):
         """
         Sets-up class variables to be used in the tests.
         """
-        cls.inputs = cv.expression_data1
         cls.celltype_analyse = "Adipocyte - Breast"
         cls.data_type = "promoters"
         cls.sample_type = "primary cells"
@@ -459,6 +458,39 @@ class GetVencodesFantomExternalHeuristicTest(GettingVencodesFantomTest):
             if condition:
                 break
         self.assertTrue(condition)
+
+
+class CheckElementExpression(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        """
+        Sets-up class variables to be used in the tests.
+        """
+        celltype_analyse = "Adipocyte - breast"
+        data_type = "promoters"
+        sample_type = "primary cells"
+        parsed = False
+        files_path = "test"
+        cls.element_list = ('chr10:100027943..100027958,-', 'chr10:100174900..100174956,-',
+                            'chr10:100204220..100204230,-', 'chr10:100206642..100206717,-')
+        expression_obj = iext.CheckElementExpression(inputs=cv.test_promoter_file_name,
+                                                     element_list=cls.element_list,
+                                                     cell_type=celltype_analyse,
+                                                     data_type=data_type, sample_type=sample_type,
+                                                     parsed=parsed, files_path=files_path)
+        cls.expression = expression_obj.export_expression_data(method="return")
+
+    def test_elements_in_results(self):
+        self.assertCountEqual(self.element_list, self.expression.index)
+
+    def test_celltype_in_results(self):
+        columns = ["Adipocyte - breast, donor1", "Adipocyte - breast, donor2"]
+        self.assertCountEqual(columns, self.expression.columns)
+
+    def test_values(self):
+        values = self.expression.isna()
+        cond = all(values)
+        self.assertTrue(cond)
 
 
 if __name__ == "__main__":

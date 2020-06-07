@@ -14,7 +14,8 @@ sys.path.append(file_dir)
 
 from VEnCode import internals_extensions as iext
 
-element_list = ('chr6:94545083-94545465', 'chr11:94480491-94481212', 'chr2:86922220-86922584', 'chr12:20975224-20975562')
+element_list = ('chr6:94545083-94545465', 'chr11:94480491-94481212', 'chr2:86922220-86922584',
+                'chr12:20975224-20975562')
 
 cell_type = "embryonic kidney cell line: HEK293/SLAM untreated"
 path_out = "D:/Utilizador HDD/OneDrive - Nova Medical School Faculdade de Ciências Médicas da UNL/1-Research/" \

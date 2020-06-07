@@ -129,7 +129,7 @@ class BarakatTS2018Data(OutsideData):
     Data from Barakat, et al., Cell Stem Cell, 2018.
     Parsed to use in VEnCode validation studies.
 
-    How to use: data = internals.BarakatTS2018Data(**kwargs)
+    How to use: data = outside_data.BarakatTS2018Data(**kwargs)
     kwargs can be empty, or used to get only part of the data, by using the kwarg: data="core" for example.
     data available are: core and extended enhancers, merged enhancers. Check Barakat, et al., Cell Stem Cell, 2018.
     """
@@ -157,7 +157,7 @@ class InoueF2017Data(OutsideData):
         Data from Inoue F, et al., Genome Res., 2017.
         Parsed to use in VEnCode validation studies.
 
-        How to use: data = internals.InoueF2017Data()
+        How to use: data = outside_data.InoueF2017Data()
         """
     def __init__(self, source="InoueF2017", **kwargs):
         files_path = kwargs.get("files_path")
@@ -200,7 +200,7 @@ class ChristensenCL2014Data(OutsideData):
     """
     Parses data from Christensen CL, et al., Cancer Cell, 2014, to use in VEnCode validation studies.
 
-    How to use: data = internals.ChristensenCL2014Data(**kwargs)
+    How to use: data = outside_data.ChristensenCL2014Data(**kwargs)
     kwargs can be empty, or used to get only part of the data, by using the kwarg: data="H82" for example.
     data available are: GLC16, H82, and H69.
     """
@@ -233,7 +233,7 @@ class BroadPeak(OutsideData):
     """
     Parses data from BroadPeak files to use in VEnCode validation studies.
 
-    How to use: data = internals.BroadPeak(source)
+    How to use: data = outside_data.BroadPeak(source)
     source can be any source described in baseclass, or a filename ending in .broadPeak
     """
 
@@ -258,7 +258,7 @@ class Bed(OutsideData):
     """
     Parses data from BED files to use in VEnCode validation studies.
 
-    How to use: data = internals.Bed(source)
+    How to use: data = outside_data.Bed(source)
     source can be any source described in baseclass, or a filename ending in .BED
     """
 
@@ -291,7 +291,7 @@ class Fasta(OutsideData):
     """
     Parses data from FASTA files to use in VEnCode validation studies.
 
-    How to use: data = internals.Fasta(source)
+    How to use: data = outside_data.Fasta(source)
     source can be any source described in baseclass, or a filename ending in .Fasta, .Fa, .txt, etc.
     """
 
@@ -328,8 +328,8 @@ class Csv(OutsideData):
     """
         Parses data from CSV files to use in VEnCode validation studies.
 
-        How to use: data = internals.Csv(source)
-        source can be any source described in baseclass, or a filename ending in .csv.
+        How to use: data = outside_data.Csv(source)
+        source can be any source described in the OutsideData class, or a filename ending in .csv.
         """
 
     def __init__(self, source=False, positions=(0, 0, 0, 1), splits=(":", "-"), **kwargs):
