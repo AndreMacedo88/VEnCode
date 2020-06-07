@@ -29,7 +29,7 @@ class GettingVencodesTest(unittest.TestCase):
         cls.replicate_suffix = "_donor"
         cls.algorithm = "heuristic"
         cls.k = 4
-        cls.thresholds = (0, 0.5, 0)  # inact, act, and sparseness, respectively
+        cls.thresholds = (0.5, 0, 0)  # act, inact, and sparseness, respectively
         cls.files_path = "test"
 
 
@@ -224,7 +224,7 @@ class GettingVencodesFantomTest(unittest.TestCase):
         cls.sample_type = "primary cells"
         cls.algorithm = "heuristic"
         cls.k = 4
-        cls.thresholds = (0, 0.5, 0)  # inact, act, and sparseness, respectively
+        cls.thresholds = (0.5, 0, 0)  # act, inact, and sparseness, respectively
         cls.parsed = True
         cls.files_path = "test"
 

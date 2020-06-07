@@ -6,7 +6,6 @@ generate_datasets.py: Script to generate pre-filtered data sets files.
 """
 import os
 
-import classes
 import pandas as pd
 from tqdm import tqdm
 

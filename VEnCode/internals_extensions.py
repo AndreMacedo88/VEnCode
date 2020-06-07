@@ -134,9 +134,11 @@ class GetVencodes(GettingVencodes):
         In the third index, put a dictionary containing any additional kwargs to pass to the DataTpm object.
     """
 
-    def __init__(self, *args, number_vencodes=1, thresholds=(), merge=None, add_celltype=(), validate_with=None,
-                 **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, inputs, cell_type, algorithm, n_regulatory_elements, number_vencodes=1, thresholds=(),
+                 merge=None, add_celltype=(), validate_with=None, n_samples=10000, stop=3, using=None,
+                 files_path=None, sep=";", nrows=None, replicates=False, **kwargs):
+        super().__init__(inputs, cell_type, algorithm, n_regulatory_elements, n_samples=n_samples, stop=stop,
+                         using=using, files_path=files_path, sep=sep, nrows=nrows, replicates=replicates, **kwargs)
         self.validate_with = validate_with
         self.vencode_obj = self._get_vencode(number_vencodes, thresholds, merge, add_celltype)
 
@@ -179,9 +181,9 @@ class GettingVencodesFantom(GettingVencodes):
     """
 
     def __init__(self, cell_type, data_type, algorithm, n_regulatory_elements, n_samples=10000, using=None,
-                 inputs=False, files_path="test"):
+                 inputs=False, files_path="test", **kwargs):
         super().__init__(inputs, cell_type, algorithm, n_regulatory_elements, n_samples=n_samples, using=using,
-                         files_path=files_path)
+                         files_path=files_path, **kwargs)
         self.data_type = data_type
 
     def _get_sample_type(self, sample_type):
@@ -224,7 +226,7 @@ class GettingVencodesFantom(GettingVencodes):
         return file_name
 
     def _filters(self, data, thresholds):
-        non_tgt_ctp_inact, tgt_ctp_act, reg_el_spsness = self._get_thresholds(thresholds)
+        tgt_ctp_act, non_tgt_ctp_inact, reg_el_spsness = self._get_thresholds(thresholds)
         data.filter_by_target_celltype_activity(threshold=tgt_ctp_act, binarize=False)
         data.define_non_target_celltypes_inactivity(threshold=non_tgt_ctp_inact)
         data.filter_by_reg_element_sparseness(threshold=reg_el_spsness)
@@ -266,13 +268,15 @@ class GetVencodesFantom(GettingVencodesFantom):
     """
     Parameters
     ----------
-    Merge : dict, bool
+    merge : dict, bool
         Merge should be a dict with kwargs to the merge_celltype func, or just True to accept the default parameters.
     """
 
-    def __init__(self, number_vencodes=1, parsed=False, sample_type=None, thresholds=(), merge=None, add_celltype=(),
-                 validate_with=None, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, cell_type, data_type, algorithm, n_regulatory_elements, number_vencodes=1, parsed=False,
+                 sample_type=None, thresholds=(), merge=None, add_celltype=(), validate_with=None, n_samples=10000,
+                 using=None, inputs=False, files_path="test", **kwargs):
+        super().__init__(cell_type, data_type, algorithm, n_regulatory_elements, n_samples=n_samples, using=using,
+                         inputs=inputs, files_path=files_path, **kwargs)
         self.validate_with = validate_with
         self.vencode_obj = self._get_vencode(number_vencodes, thresholds, sample_type, parsed, merge, add_celltype)
 
