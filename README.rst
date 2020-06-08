@@ -43,14 +43,14 @@ These instructions are designed to:
 Prerequisites
 ^^^^^^^^^^^^^
 
-To effectively use this module you will need Python3_ with some external libraries installed in your machine.
+To effectively use this module you will need Python3_ with a few external libraries installed in your machine.
 Check the requirements_ file.
 If you install the package with pip, it should resolve the library requirements for you.
 
 Optionally, if you want to retrieve VEnCodes using the comprehensive FANTOM5 CAGE-seq data, you will have to download
 the unannotated TSS files from `FANTOM5 consortium`_ website.
-More specifically, for human, `this file`_ for promoter analysis, and `this one`_ and the `ID-sample name`_ map for
-enhancers. Finally, download the `curated sample category file`_.
+More specifically, for human, download `this file`_ for promoter analysis, and `this one`_ and the `ID-sample name`_
+map for enhancers. Finally, download the `curated sample category file`_.
 
 Those 4 files are enough to find CAGE-based VEnCodes for human.
 
@@ -62,7 +62,7 @@ If you want to edit the project:
 
 2. Fork `this project`_.
 
-- Optionally, if you are using the FANTOM5 data:
+- You are ready. Optionally, if you are using the FANTOM5 data instead of your own:
 
 3. Put the missing FANTOM5 prerequisite files (only the large TSS files are missing) in the directory called "Files".
 
@@ -74,22 +74,34 @@ If you are a user:
 
     pip install VEnCode
 
-- Optionally, if you are using the FANTOM5 data:
+- You are good to go. Optionally, if you are using the FANTOM5 data instead of your own:
 
 3. Put all the FANTOM5 prerequisite files in a directory of your choice and when creating DataTpmFantom5 objects remember to pass the argument: files_path=your_dir_path.
 
-Deployment
+Using the module
 -----------------
-To develop your own projects, import objects directly from VEnCode using, for example:
+There are several ways to use this module:
+
+1. To develop your own projects, import objects directly from VEnCode using, for example:
 
 .. code-block:: python
 
     import VEnCode
     object1 = VEnCode.DataTpm(...)
+    vencodes = VEnCode.Vencodes(object1, ...)
+    vencodes.next(amount=2)
+    vencodes.export("vencodes", ...)
 
 You can see examples of some functions and objects being used at the `VEnCode Capsule`_ hosted in CodeOcean.
 
-Alternatively, you can look at more advanced usage by going to the "Scripts" folder inside the package.
+2. To run the most relevant scripts, use the utility file process.py, which gives easy access to many scripts, for
+example:
+
+.. code-block:: console
+
+    python process.py get_vencodes Hepatocyte --algorithm heuristic
+
+3. Run any script by going to the "Scripts" folder inside the package and calling the script individually.
 
 Running the Tests
 -----------------
