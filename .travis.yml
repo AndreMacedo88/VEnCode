@@ -11,7 +11,7 @@ install:
   - pip install -r requirements.txt
 # command to run tests
 script:
-  - pytest VEnCode/tests/ --cov=VEnCode/
+  - pytest VEnCode/tests/ --cov=VEnCode/internals.py --cov=VEnCode/internals_extensions.py
 
 after_sucess:
   - coveralls

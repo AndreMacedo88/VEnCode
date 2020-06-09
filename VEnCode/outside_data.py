@@ -46,26 +46,26 @@ class OutsideData:
 
     @data_source.setter
     def data_source(self, source):
-        source = source.lower()
-        if source.endswith((".broadpeak", ".bed", ".txt", ".fasta", ".csv")):
+        source_ = source.lower()
+        if source_.endswith((".broadpeak", ".bed", ".txt", ".fasta", ".csv")):
             self._data_source = source
         else:
-            if source == "dennysk2016":
+            if source_ == "dennysk2016":
                 self._data_source = "GSE81255_all_merged.H14_H29_H52_H69_H82_H88_peaks.broadPeak"
-            elif source == "inouef2017":
+            elif source_ == "inouef2017":
                 self._data_source = "supp_gr.212092.116_Supplemental_File_2_liverEnhancer_design.tsv"
-            elif source == "barakatts2018":
+            elif source_ == "barakatts2018":
                 self._data_source = ["Barakat et al 2018 - Core and Extended Enhancers.csv",
                                      "Barakat et al 2018 - Merged Enhancers.csv"]
-            elif source == "christensencl2014":
+            elif source_ == "christensencl2014":
                 self._data_source = ["1-s2.0-S1535610814004231-mmc3_GLC16.csv",
                                      "1-s2.0-S1535610814004231-mmc3_H82.csv",
                                      "1-s2.0-S1535610814004231-mmc3_H69.csv"]
-            elif source == "wangx2018":
+            elif source_ == "wangx2018":
                 self._data_source = "41467_2018_7746_MOESM4_ESM.txt"
-            elif source == "liuy2017":
+            elif source_ == "liuy2017":
                 self._data_source = "GSE82204_enhancer_overlap_dnase.txt"
-            elif source.startswith("enhanceratlas-"):
+            elif source_.startswith("enhanceratlas-"):
                 self._data_source = "{}.fasta".format(source.split("-", 1)[1])
             else:
                 raise AttributeError("Source {} still not implemented".format(source))
