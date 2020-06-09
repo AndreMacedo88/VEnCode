@@ -15,11 +15,12 @@ from VEnCode.scripts import get_vencodes as get_v
 from VEnCode.scripts import get_vencodes_fantom as get_v_f
 
 
-def run_tests():
+def run_tests(args=None):
     """
     Runs the test suite for the module.
     """
-    tests.run_all_tests()
+    kwargs_new = parse_unknown_args(args, 0)
+    tests.run_all_tests(**kwargs_new)
 
 
 def get_vencodes(args=None):
@@ -41,15 +42,13 @@ def parse_unknown_args(args, n_args):
 
 def main(process, unknown_arguments, possibilities):
     """
+    Checks the parameters input by the user and passes them along the pipeline to the correct function.
 
     Parameters
     ----------
-    process
-    unknown_arguments
-    possibilities
-
-    Returns
-    -------
+    process : str
+    unknown_arguments : list
+    possibilities : list
 
     """
     close_matches = get_close_matches(process, possibilities, n=3, cutoff=0.6)
@@ -65,9 +64,10 @@ def main(process, unknown_arguments, possibilities):
 if __name__ == "__main__":
     list_of_processes = ["run_tests", "get_vencodes", "get_vencodes_fantom"]
     parser = argparse.ArgumentParser(description="""Utility script for easy access to most of the VEnCode scripts and
-    tests.
-    Example on how to use in command-line:
-    >python process.py run_tests
+    tests. For the list of arguments to use, refer to this module's documentation or check the help for the script you 
+    are trying to use, which is located in the scripts folder.
+    Example on how to use in the command-line:
+    >python process.py run_tests --verbosity 1
     """)
     parser.add_argument("process", help="The process/script to run.")
 

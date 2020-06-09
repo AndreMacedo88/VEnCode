@@ -38,7 +38,7 @@ class GettingVencodes:
         self.validate_with = validate_with
 
     def _filters(self, data, thresholds):
-        non_tgt_ctp_inact, tgt_ctp_act, reg_el_spsness = thresholds
+        tgt_ctp_act, non_tgt_ctp_inact, reg_el_spsness = thresholds
         data.filter_by_target_celltype_activity(threshold=tgt_ctp_act, binarize=False)
         data.define_non_target_celltypes_inactivity(threshold=non_tgt_ctp_inact)
         data.filter_by_reg_element_sparseness(threshold=reg_el_spsness)

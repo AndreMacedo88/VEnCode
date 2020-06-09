@@ -5,11 +5,13 @@ python:
   - "3.8"
 # command to install dependencies
 install:
+  - pip install pytest
+  - pip install pytest-cov
+  - pip install coveralls
   - pip install -r requirements.txt
 # command to run tests
 script:
-  - cd VEnCode
-  - python process.py run_tests
+  - pytest tests/ --cov=VEnCode/
 
 after_sucess:
-  coveralls
+  - coveralls

@@ -6,6 +6,7 @@
 import sys
 import argparse
 from pathlib import Path
+import ast
 
 file_dir = str(Path(__file__).resolve().parents[2])
 sys.path.append(file_dir)
@@ -17,16 +18,46 @@ from VEnCode.utils import validation_utils as val
 def main(cell_type, number_vencodes=1, algorithm="heuristic", number_of_re=4, thresholds=None,
          sample_type="primary cells", data_type="promoters", parsed=False, n_samples=10000,
          stop=5, files_path="outside", out="VEnCodesFantom"):
+    """
+    Gets VEnCodes from the FANTOM5 CAGE-seq data.
 
+    Parameters
+    ----------
+    cell_type : str
+    number_vencodes : int, str
+    algorithm : str
+    number_of_re : int, str
+    thresholds : str, tuple, None
+    sample_type : str
+    data_type : str
+    parsed : bool, str
+    n_samples : int, str
+    stop : int, str
+    files_path : str, None
+    out : str
+    """
     def export(data_, path):
         """
         Export the E values and VEnCode data to a file.
         """
         data_.export("vencodes", "e-values", path=path)
 
-    if out is not None:
-        pass
+    # Handle wrong data types, usually from process.py
+    number_vencodes, number_of_re, n_samples, stop = (int(i) for i in [number_vencodes, number_of_re, n_samples, stop])
 
+    if parsed == "False":
+        parsed = False
+    if files_path == "None":
+        files_path = None
+
+    if isinstance(thresholds, (list, tuple)) or thresholds is None:
+        pass
+    elif thresholds == "None":
+        thresholds = None
+    else:
+        thresholds = ast.literal_eval(thresholds)
+
+    # Apply some tried and tested thresholds if the user didn't specify any
     if thresholds is None:
         non_target_celltypes_inactivity = 0
         if data_type == "enhancers":
@@ -69,10 +100,10 @@ if __name__ == "__main__":
     parser.add_argument("--number_vencodes", "-n", type=int, help="Number of VEnCodes to retrieve.", default=1)
     parser.add_argument("--algorithm", "-a", type=str, help="Algorithm to use in the search.", default="heuristic")
     parser.add_argument("--number_of_re", "-k", type=int, help="Number of REs (k) that comprise a VEnCode.", default=4)
-    parser.add_argument('--thresholds', '-t', nargs='+', type=int,
-                        help="Thresholds to apply to the data. You should supply 3 values, first the target cell type "
-                             "activity threshold, then the non-target cell types inactivity threshold. Finally the "
-                             "sparseness threshold, that filters the data retaining only the sparsest REs.",
+    parser.add_argument('--thresholds', '-t', type=str,
+                        help="Thresholds to apply to the data. Supply a list or tuple of 3 values: first the target "
+                             "cell type activity threshold, then the non-target cell types inactivity threshold. "
+                             "Finally the sparseness threshold, that filters the data retaining only the sparsest REs.",
                         default=None)
     parser.add_argument("--sample_type", "-s", type=str, help="The type of celltypes to search VEnCodes against."
                                                               "'primary cells' or 'cell lines'.",
