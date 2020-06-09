@@ -175,7 +175,7 @@ class InoueF2017Data(OutsideData):
         :return: All text between []
         """
         try:
-            return re.search("(?<=\[)(.*)(?=\])", string).group(1)
+            return re.search(r"(?<=\[)(.*)(?=\])", string).group(1)
         except AttributeError:
             pass
 

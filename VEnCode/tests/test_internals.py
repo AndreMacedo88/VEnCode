@@ -285,7 +285,7 @@ class NotIncludeTest(MergeReplicatesTest):
 
     def test_average_9(self):
         ctp_9 = self.data_tpm.data.iloc[1, 17:21].values
-        ctp_9 = np.delete(ctp_9, [2, 4])
+        ctp_9 = np.delete(ctp_9, [2])
         expected = np.mean(ctp_9)
         self.data_tpm.merge_replicates(replicate_suffix=self.replicate_suffix, not_include=self.NOT_INCLUDE)
         self.assertAlmostEqual(expected, self.data_tpm.data.iloc[1, 8])

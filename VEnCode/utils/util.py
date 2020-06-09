@@ -533,7 +533,7 @@ def df_regex_searcher(string, database): # Note: migrated to pandas_utils.py
 def df_minimal_regex_searcher(string, database): # Note: migrated to pandas_utils.py
     """ Returns a df containing only the columns which contain the string somewhere in its label
     Used for enhancer data set. """
-    expression = ".*" + string.replace(" ", ".*").replace("+", "\+") + ".*"
+    expression = ".*" + string.replace(" ", ".*").replace("+", r"\+") + ".*"
     idx = database.columns.str.contains(expression, flags=re.IGNORECASE, regex=True, na=False)
     regex_filtered_df = database.loc[:, idx]
     return regex_filtered_df
