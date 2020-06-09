@@ -15,4 +15,4 @@ install:
 script:
   - pytest VEnCode/tests/ --cov=VEnCode
 after_success:
-  - coveralls --include VEnCode/internals.py
+  - coveralls

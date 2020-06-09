@@ -174,7 +174,7 @@ class GetVencodesValidateTest(GettingVencodesTest):
         """ Sets-up variables to be used in the tests. """
         self.validate_with = outside_data.Bed(source="get_val_ven_test.bed", files_path=self.files_path,
                                               folder="Validation_files")
-        self.vencode_obj = iext.GetVencodes(validate_with=(self.validate_with, (":", "\..", ",")),
+        self.vencode_obj = iext.GetVencodes(validate_with=(self.validate_with, (":", r"\..", ",")),
                                             inputs=self.inputs,
                                             files_path=self.files_path,
                                             cell_type=self.celltype_analyse,

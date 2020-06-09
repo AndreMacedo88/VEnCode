@@ -1,9 +1,12 @@
 [run]
-include = VEnCode/internals.py
 omit =
     */docs/*
     */Files/*
     */scripts/*
     */tests/*
     */utils/*
-    */*a.py
+    VEnCode/*a.py
+    VEnCode/internals_extensions.py
+    VEnCode/__init__.py
+    VEnCode/common_variables.py
+    VEnCode/process.py
