@@ -13,7 +13,6 @@ install:
   - pip install -r requirements.txt
 # command to run tests
 script:
-  - pytest VEnCode/tests/ --cov-config=.coveragerc
-
+  - pytest VEnCode/tests/ --cov=VEnCode
 after_success:
-  - coveralls --include "VEnCode/internals.py"
+  - coveralls --include VEnCode/internals.py

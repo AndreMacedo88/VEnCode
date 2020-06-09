@@ -1,2 +1,9 @@
 [run]
 include = VEnCode/internals.py
+omit =
+    */docs/*
+    */Files/*
+    */scripts/*
+    */tests/*
+    */utils/*
+    */*a.py
