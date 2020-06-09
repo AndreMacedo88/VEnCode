@@ -1,2 +1,3 @@
 [run]
-include = internals.py
+
+include = VEnCode/internals.py
