@@ -14,6 +14,8 @@ Module for VEnCode-related projects based on FANTOM5 databases
     :alt: GitHub Release Date
 .. image:: https://travis-ci.com/AndreMacedo88/VEnCode.svg?branch=master
     :target: https://travis-ci.com/AndreMacedo88/VEnCode
+.. image:: https://coveralls.io/repos/github/AndreMacedo88/VEnCode/badge.svg?branch=master
+    :target: https://coveralls.io/github/AndreMacedo88/VEnCode?branch=master
 .. image:: https://img.shields.io/pypi/pyversions/VEnCode
     :target: https://pypi.org/project/VEnCode/
     :alt: PyPI - Python Version
