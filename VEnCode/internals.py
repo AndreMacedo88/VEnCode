@@ -12,7 +12,7 @@ from difflib import get_close_matches
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import pylab
+import matplotlib.pylab as pylab
 
 import VEnCode.utils.dir_and_file_handling as d_f_handling
 from VEnCode import common_variables as cv
