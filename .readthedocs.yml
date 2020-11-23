@@ -10,3 +10,9 @@ sphinx:
   builder: html
   configuration: VEnCode/docs/conf.py
   fail_on_warning: false
+
+# Optionally set the version of Python and requirements required to build your docs
+python:
+  version: 3.7
+  install:
+    - requirements: requirements.txt
