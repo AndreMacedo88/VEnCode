@@ -17,4 +17,4 @@ python:
   install:
     - requirements: requirements.txt
     - method: setuptools
-      path: package
+      path: VEnCode
