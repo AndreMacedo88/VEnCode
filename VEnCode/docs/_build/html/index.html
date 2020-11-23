@@ -35,7 +35,7 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Getting started" href="getting_started.html" /> 
+    <link rel="next" title="Getting Started" href="getting_started.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -81,8 +81,8 @@
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting started</a></li>
-<li class="toctree-l1"><a class="reference internal" href="internals.html">Main Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="main_tools.html">Main Tools</a></li>
 </ul>
 
             
@@ -152,10 +152,10 @@
 <div class="toctree-wrapper compound">
 <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting started</a><ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="getting_started.html#prerequisites">Prerequisites</a></li>
 <li class="toctree-l2"><a class="reference internal" href="getting_started.html#installing">Installing</a></li>
-<li class="toctree-l2"><a class="reference internal" href="getting_started.html#deployment">Deployment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#using-the-module">Using the module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="getting_started.html#running-the-tests">Running the Tests</a></li>
 <li class="toctree-l2"><a class="reference internal" href="getting_started.html#contributing">Contributing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="getting_started.html#versioning">Versioning</a></li>
@@ -164,13 +164,41 @@
 <li class="toctree-l2"><a class="reference internal" href="getting_started.html#acknowledgements">Acknowledgements</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="internals.html">Main Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="main_tools.html">Main Tools</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="data_prep.html">Preparing the data</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data_prep.html#module-VEnCode.internals">Objects for general data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="data_prep.html#module-0">Objects for FANTOM5 data</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="get_vencodes.html">Getting VEnCodes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="get_vencodes.html#module-VEnCode.internals">Objects</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </div>
 <div class="section" id="module-for-vencode-related-projects-based-on-fantom5-databases">
 <h2>Module for VEnCode-related projects based on FANTOM5 databases<a class="headerlink" href="#module-for-vencode-related-projects-based-on-fantom5-databases" title="Permalink to this headline">¶</a></h2>
-<p>This module contains classes and functions that perform intersectional genetics-related operations to find VEnCodes using databases provided by the <a class="reference external" href="http://fantom.gsc.riken.jp/5/data/">FANTOM5 consortium</a>, namely the CAGE enhancer and transcription start site (TSS) databases.</p>
-<p>For more information on the VEnCode technology, please refer to <strong>Macedo and Gontijo, bioRxiv 2019. DOI:10.1101/552984</strong></p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<a class="reference external image-reference" href="https://pypi.org/project/VEnCode/"><img alt="PyPI" src="https://img.shields.io/pypi/v/VEnCode" /></a>
+<a class="reference external image-reference" href="https://github.com/AndreMacedo88/VEnCode/releases"><img alt="GitHub release (latest by date including pre-releases)" src="https://img.shields.io/github/v/release/AndreMacedo88/VEnCode?include_prereleases" /></a>
+<a class="reference external image-reference" href="https://github.com/AndreMacedo88/VEnCode/releases"><img alt="GitHub Release Date" src="https://img.shields.io/github/release-date/AndreMacedo88/VEnCode" /></a>
+<a class="reference external image-reference" href="https://travis-ci.com/AndreMacedo88/VEnCode"><img alt="https://travis-ci.com/AndreMacedo88/VEnCode.svg?branch=master" src="https://travis-ci.com/AndreMacedo88/VEnCode.svg?branch=master" /></a>
+<a class="reference external image-reference" href="https://coveralls.io/github/AndreMacedo88/VEnCode?branch=master"><img alt="https://coveralls.io/repos/github/AndreMacedo88/VEnCode/badge.svg?branch=master" src="https://coveralls.io/repos/github/AndreMacedo88/VEnCode/badge.svg?branch=master" /></a>
+<a class="reference external image-reference" href="https://pypi.org/project/VEnCode/"><img alt="PyPI - Python Version" src="https://img.shields.io/pypi/pyversions/VEnCode" /></a>
+<a class="reference external image-reference" href="https://github.com/AndreMacedo88/VEnCode/blob/Stable/LICENSE"><img alt="GitHub" src="https://img.shields.io/github/license/AndreMacedo88/VEnCode" /></a>
+<a class="reference external image-reference" href="https://github.com/AndreMacedo88/VEnCode/issues"><img alt="GitHub issues" src="https://img.shields.io/github/issues/AndreMacedo88/VEnCode" /></a>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>This module contains classes and functions that perform intersectional genetics-related operations to find VEnCodes
+using any matrix of cell types (columns) vs regulatory elements or markers (rows).</p>
+<p>Moreover, it contains particular methods to make use of the databases provided by the <a class="reference external" href="http://fantom.gsc.riken.jp/5/data/">FANTOM5 consortium</a>, namely the
+CAGE enhancer and transcription start site (TSS) databases.</p>
+<p>For more information on the VEnCode technology, please refer to <a class="reference external" href="https://doi.org/10.1093/gigascience/giaa083">Macedo and Gontijo, GigaScience, 2020</a>.</p>
 </div>
 </div>
 <div class="section" id="indices-and-tables">
@@ -190,7 +218,7 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="getting_started.html" class="btn btn-neutral float-right" title="Getting started" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="getting_started.html" class="btn btn-neutral float-right" title="Getting Started" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
     </div>

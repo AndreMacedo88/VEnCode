@@ -6,16 +6,16 @@ import matplotlib.pyplot as plt
 
 class SetUp:
     path_e_values = "D:/Utilizador HDD/OneDrive - Nova Medical School Faculdade de Ciências Médicas da UNL/1-Research/" \
-                    "3-Vencode/Fantom5/VEnCodes/A549-atlas 200 val vencodes - samp/" \
-                    "lung adenocarcinoma cell line-A549_evalues.csv"
+                    "3-Vencode/Fantom5/VEnCodes/hIPS 200 val vencodes/" \
+                    "hIPS_evalues.csv"
 
     path_vencodes = "D:/Utilizador HDD/OneDrive - Nova Medical School Faculdade de Ciências Médicas da UNL/1-Research/" \
-                    "3-Vencode/Fantom5/VEnCodes/A549-atlas 200 val vencodes - samp"
+                    "3-Vencode/Fantom5/VEnCodes/hIPS 200 val vencodes/"
 
     path_out_heat = "D:/Utilizador HDD/OneDrive - Nova Medical School Faculdade de Ciências Médicas da UNL/1-Research/" \
-                   "3-Vencode/Fantom5/Validations/2- Figures - py/heatmap 200 val vens - A549_samp"
+                   "3-Vencode/Fantom5/Validations/2- Figures - py/heatmap 200 val vens - hIPS_1200dpi"
 
-    name_cell_type = "A549"
+    name_cell_type = "hIPSC"
 
 
 class ValidatedVEnCodesHeatmap:
@@ -73,10 +73,10 @@ class ValidatedVEnCodesHeatmap:
         cbar = plt.colorbar(plot, ticks=range(5), shrink=0.7)
         cbar.ax.tick_params(labelsize=20)
         plt.axes().set_aspect(2)
-        plt.savefig(self.set_up.path_out_heat, transparent=True)
+        plt.savefig(self.set_up.path_out_heat, transparent=True, dpi=1200)
 
 
 if __name__ == "__main__":
     setup = SetUp()
-    ven = ValidatedVEnCodesHeatmap(setup, 0)
+    ven = ValidatedVEnCodesHeatmap(setup, 2)
     ven.plot()

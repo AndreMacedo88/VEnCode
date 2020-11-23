@@ -637,11 +637,11 @@ class DataTpmFantom5(DataTpm):
         inactivity, sparseness filters, and other methods.
     target_replicates
         The target celltype/s replicates in the data.
-    sample_type
+    sample_type : str
         The origin/type of samples to be analysed from the CAGE-seq data.
-    data_type
+    data_type : str
         The type of RE that comprises the data.
-    shape
+    shape : tuple
 
     Parameters
     ----------
@@ -655,11 +655,11 @@ class DataTpmFantom5(DataTpm):
         The column separator used in the input file. Default is ','.
     nrows : int, None
         The number of rows to open in the file. Default is 'None', which will open the entire file.
-    sample_types : str
+    sample_types : {'primary cells', 'cell lines', 'time courses'}, optional
         The origin/type of samples to be analysed from the CAGE-seq data. Currently offering full support for
         `primary cells` and `cell lines`.
-    data_type : str
-        The type of RE that comprises the data. `promoters` or `enhancers`.
+    data_type : {'promoters', 'enhancers'}, optional
+        The type of RE that comprises the data.
     files_path : str, None
         In case the argument `file` does not contain a complete path, input that path here. This argument is also
         useful to access the module's test files by inputting 'test'. Default is 'test'.
@@ -831,8 +831,8 @@ class DataTpmFantom5(DataTpm):
             to be converted into a DataTpm object.
         celltypes : str, list, dict
             Celltypes to merge with the DataTpmFantom5 data. If false it will add all provided data.
-        sample_types : str
-            Sample type ("primary cells", for e.g.) of the data set to add.
+        sample_types : {'primary cells', 'cell lines', 'time courses'}, optional
+            Sample type of the data set to add.
         fantom : bool
             Is your data to add from FANTOM5 CAGE-seq? if so put True. Else, False.
         kwargs :
@@ -1022,8 +1022,8 @@ class Vencodes:
         Data to use in finding VEnCodes. This should be a matrix of regulatory elements (rows) expression levels per
         celltype (columns). The matrix can be supplied as a DataTpm object, which has methods to quickly prepare the
         data, or as a pandas DataFrame object.
-    algorithm : str
-        Algorithm to find VEnCodes. Currently accepted: `heuristic`, `sampling`.
+    algorithm : {'heuristic', 'sampling'}, optional
+        Algorithm to find VEnCodes.
     number_of_re : int
         VEnCode size. In other words, the number of regulatory elements that should form each VEnCode.
     n_samples : int

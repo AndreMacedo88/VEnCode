@@ -1,5 +1,0 @@
-in terminal:
-
-$ sphinx-build -b html . .\build
-
-explanation: sphinx-build -b method source_path_of_config output_folder_name

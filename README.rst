@@ -31,10 +31,10 @@ Module for VEnCode-related projects based on FANTOM5 databases
 This module contains classes and functions that perform intersectional genetics-related operations to find VEnCodes
 using any matrix of cell types (columns) vs regulatory elements or markers (rows).
 
-Moreover, it contains particular methods to make use of the databases provided by the `FANTOM5 consortium`_, namely the CAGE
-enhancer and transcription start site (TSS) databases.
+Moreover, it contains particular methods to make use of the databases provided by the `FANTOM5 consortium`_, namely the
+CAGE enhancer and transcription start site (TSS) databases.
 
-For more information on the VEnCode technology, please refer to **Macedo and Gontijo, bioRxiv 2019. DOI:10.1101/552984**
+For more information on the VEnCode technology, please refer to `Macedo and Gontijo, GigaScience, 2020`_.
 
 Getting started
 ---------------
@@ -179,6 +179,7 @@ Acknowledgements
 .. Starting hyperlink targets:
 
 .. _FANTOM5 consortium: http://fantom.gsc.riken.jp/5/data/
+.. _Macedo and Gontijo, GigaScience, 2020: https://doi.org/10.1093/gigascience/giaa083
 .. _this file: https://fantom.gsc.riken.jp/5/datafiles/latest/extra/CAGE_peaks/hg19.cage_peak_phase1and2combined_tpm.osc.txt.gz
 .. _this one: https://fantom.gsc.riken.jp/5/datafiles/latest/extra/Enhancers/human_permissive_enhancers_phase_1_and_2_expression_tpm_matrix.txt.gz
 .. _ID-sample name: https://fantom.gsc.riken.jp/5/datafiles/latest/extra/Enhancers/Human.sample_name2library_id.txt
