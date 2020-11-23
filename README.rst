@@ -25,6 +25,9 @@ Module for VEnCode-related projects based on FANTOM5 databases
 .. image:: https://img.shields.io/github/issues/AndreMacedo88/VEnCode
     :target: https://github.com/AndreMacedo88/VEnCode/issues
     :alt: GitHub issues
+.. image:: https://readthedocs.org/projects/vencode/badge/?version=latest
+    :target: https://vencode.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status
 
 |
 
