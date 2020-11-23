@@ -1,0 +1,701 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Preparing the data &mdash; VEnCode  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Getting VEnCodes" href="get_vencodes.html" />
+    <link rel="prev" title="Main Tools" href="main_tools.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> VEnCode
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="main_tools.html">Main Tools</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Preparing the data</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-VEnCode.internals">Objects for general data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-0">Objects for FANTOM5 data</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="get_vencodes.html">Getting VEnCodes</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">VEnCode</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="main_tools.html">Main Tools</a> &raquo;</li>
+        
+      <li>Preparing the data</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/data_prep.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="preparing-the-data">
+<h1>Preparing the data<a class="headerlink" href="#preparing-the-data" title="Permalink to this headline">¶</a></h1>
+<p>The following objects should help you prepare the data to then get VEnCodes.</p>
+<p>Note that this step is not essential, depending on your starting data. Nonetheless, the objects listed here
+provide easy methods to prep your data and work well with the objects in the next section.</p>
+<div class="section" id="module-VEnCode.internals">
+<span id="objects-for-general-data"></span><h2>Objects for general data<a class="headerlink" href="#module-VEnCode.internals" title="Permalink to this headline">¶</a></h2>
+<p>internals.py: Classes module for the VEnCode project</p>
+<dl class="py class">
+<dt id="VEnCode.internals.DataTpm">
+<em class="property">class </em><code class="sig-prename descclassname">VEnCode.internals.</code><code class="sig-name descname">DataTpm</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">files_path</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">sep</span><span class="o">=</span><span class="default_value">';'</span></em>, <em class="sig-param"><span class="n">nrows</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#VEnCode.internals.DataTpm" title="Permalink to this definition">¶</a></dt>
+<dd><p>An Object representing a data set to retrieve VEnCodes from. Contains optional filtering methods and other tools.
+Create this object to help prepare the data for VEnCode generation. The essential and recommended methods to call
+before feeding this data set to a VEnCode object is shown in the Methods section. All the other methods are helper
+functions that facilitate the preparation of the data.</p>
+<dl class="py attribute">
+<dt id="VEnCode.internals.DataTpm.data">
+<code class="sig-name descname">data</code><a class="headerlink" href="#VEnCode.internals.DataTpm.data" title="Permalink to this definition">¶</a></dt>
+<dd><p>This object is a pandas DataFrame representation of the initial input data set.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="VEnCode.internals.DataTpm.target">
+<code class="sig-name descname">target</code><a class="headerlink" href="#VEnCode.internals.DataTpm.target" title="Permalink to this definition">¶</a></dt>
+<dd><p>The celltype or celltypes that are going to be the target of the VEnCode search algorithms.
+By calling the method make_data_celltype_specific(), the user can define this object and then apply activity,
+inactivity, sparseness filters, and other methods.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="VEnCode.internals.DataTpm.target_replicates">
+<code class="sig-name descname">target_replicates</code><a class="headerlink" href="#VEnCode.internals.DataTpm.target_replicates" title="Permalink to this definition">¶</a></dt>
+<dd><p>The target celltype/s replicates in the data.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="VEnCode.internals.DataTpm.shape">
+<code class="sig-name descname">shape</code><a class="headerlink" href="#VEnCode.internals.DataTpm.shape" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inputs</strong> (<em>str</em><em>, </em><em>pd.DataFrame</em>) – The input containing the data. It can be one of two types;
+1- A file containing the data set to convert into DataTpm object. This can be a complete path to the file,
+or just the file name, provided the path is given in the argument <cite>files_path</cite>.
+Supported file formats are .csv, .txt, .tsv, or any format supported by the pandas read_csv function.
+2- A pandas DataFrame object supplied in this parameter instead of any file.</p></li>
+<li><p><strong>sep</strong> (<em>str</em>) – The column separator used in the input file. Default is ‘,’.</p></li>
+<li><p><strong>nrows</strong> (<em>int</em><em>, </em><em>None</em>) – The number of rows to open in the file. Default is ‘None’, which will open the entire file.</p></li>
+<li><p><strong>files_path</strong> (<em>str</em><em>, </em><em>None</em>) – In case the argument <cite>file</cite> does not contain a complete path, input that path here. This argument is also
+useful to access the module’s test files by inputting ‘test’. Default is ‘None’.</p></li>
+<li><p><strong>kwargs</strong> – Optional keyword arguments available to use are any used by pandas DataFrame object.
+Please refer to the pandas DataFrame documentation for specific details.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="VEnCode.internals.DataTpm.load_data">
+<code class="sig-name descname">load_data</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#VEnCode.internals.DataTpm.load_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Essential method to call after DataTpm class object generation. Data is not automatically accessed at object
+generation to give this class more flexibility to subclassing.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="VEnCode.internals.DataTpm.make_data_celltype_specific">
+<code class="sig-name descname">make_data_celltype_specific</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">target_celltype</span></em>, <em class="sig-param"><span class="n">replicates</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#VEnCode.internals.DataTpm.make_data_celltype_specific" title="Permalink to this definition">¶</a></dt>
+<dd><p>Method recommended to provide the VEnCode object with the information on which celltype is the target.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="VEnCode.internals.DataTpm.add_celltype">
+<code class="sig-name descname">add_celltype</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data_from</span></em>, <em class="sig-param"><span class="n">celltypes</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#VEnCode.internals.DataTpm.add_celltype" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds expression data for celltypes from other data sets (with similar regulatory element information).
+Examples include adding data from a cancer celltype to a primary celltype data set.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data_from</strong> (<em>str</em><em>, </em><a class="reference internal" href="#VEnCode.internals.DataTpm" title="VEnCode.internals.DataTpm"><em>DataTpm</em></a>) – Data containing the celltypes to add. Can be either another DataTpm object or the path to a file eligible
+to be converted into a DataTpm object.</p></li>
+<li><p><strong>celltypes</strong> (<em>str</em><em>, </em><em>list</em><em>, </em><em>dict</em>) – Celltypes to merge with the DataTpm data. If false it will add all provided data.</p></li>
+<li><p><strong>kwargs</strong> – Are used to create a new DataTpm object from <cite>data_from</cite> if <cite>data_from</cite> is an incomplete file
+path. So, if that is the case, check DataTpm documentation.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="VEnCode.internals.DataTpm.binarize_data">
+<code class="sig-name descname">binarize_data</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">threshold</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#VEnCode.internals.DataTpm.binarize_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts all data to 0 and 1, where 1 is any value above threshold.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>threshold</strong> (<em>int</em>) – Maximum expression value for a RE to be considered inactive.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="VEnCode.internals.DataTpm.copy">
+<code class="sig-name descname">copy</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">deep</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#VEnCode.internals.DataTpm.copy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Method to generate a shallow, or deep copy of DataTpm object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>deep</strong> (<em>bool</em>) – True if deep copy.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="VEnCode.internals.DataTpm.define_non_target_celltypes_inactivity">
+<code class="sig-name descname">define_non_target_celltypes_inactivity</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">threshold</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#VEnCode.internals.DataTpm.define_non_target_celltypes_inactivity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts the non-target celltypes’ data to binary (0 - inactive; 1- active) given a threshold.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>threshold</strong> (<em>int</em><em>, </em><em>float</em>) – Maximum TPM that non-target celltypes can have to be considered inactive.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="VEnCode.internals.DataTpm.drop_target_ctp">
+<code class="sig-name descname">drop_target_ctp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">inplace</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#VEnCode.internals.DataTpm.drop_target_ctp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shortcut function to drop the target celltypes from the data set. It handles the fact that the data may have
+been merged or not.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>inplace</strong> (<em>bool</em>) – <cite>True</cite> modifies the class attribute <cite>data</cite> in place, and the function returns <cite>None</cite>. <cite>False</cite> tells the
+function to return the data after dropping the target celltypes.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The data without the target celltypes. But also modifies it in place</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#VEnCode.internals.DataTpm" title="VEnCode.internals.DataTpm">DataTpm</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="VEnCode.internals.DataTpm.filter_by_reg_element_sparseness">
+<code class="sig-name descname">filter_by_reg_element_sparseness</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">threshold</span><span class="o">=</span><span class="default_value">90</span></em>, <em class="sig-param"><span class="n">min_re</span><span class="o">=</span><span class="default_value">50</span></em>, <em class="sig-param"><span class="n">exclude_target</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#VEnCode.internals.DataTpm.filter_by_reg_element_sparseness" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies a filter to the Data, retaining only the regulatory elements in which xth percentile (x being the
+threshold variable) value is 0 (that is: not expressed). It will exclude the target celltype from the
+calculations. This filter will, then, retain only the REs with most 0 TPM for all non-target celltypes.
+The data must be made celltype specific first.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>threshold</strong> (<em>int</em>) – Percentile value used to filter the data.</p></li>
+<li><p><strong>min_re</strong> (<em>int</em>) – Minimum number of regulatory elements (RE) to keep in the data.</p></li>
+<li><p><strong>exclude_target</strong> (<em>bool</em>) – Usually we want target expression to be the opposite of sparse, but in case the opposite is true, inputting
+<cite>False</cite> in this parameter will include the target in the sparseness filter.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="VEnCode.internals.DataTpm.filter_by_target_celltype_activity">
+<code class="sig-name descname">filter_by_target_celltype_activity</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">threshold</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">replicates</span><span class="o">=</span><span class="default_value">'all'</span></em>, <em class="sig-param"><span class="n">binarize</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#VEnCode.internals.DataTpm.filter_by_target_celltype_activity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies a filter to the Data, retaining only the regulatory elements that are expressed in the celltype of
+interest at &gt;= x TPM, x being the threshold variable.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>threshold</strong> (<em>int</em><em>, </em><em>float</em>) – TPM value used to filter the data.</p></li>
+<li><p><strong>replicates</strong> (<em>list</em>) – Used to select only a few replicates from all the target celltype replicates. Can be the full name of the
+replicates to use in the filter, or their column index numbers relative to all that celltype’s replicates.</p></li>
+<li><p><strong>binarize</strong> (<em>bool</em>) – Convert target cell type expression to 0 and 1, for values below or above the threshold, respectively.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="id0">
+<code class="sig-name descname">load_data</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#id0" title="Permalink to this definition">¶</a></dt>
+<dd><p>Opens the data file with the previously provided arguments, storing the data set into the class attribute
+<cite>data</cite>.
+This method is not called during initialization to allow the DataTpm object to be easily extended by users.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="id1">
+<code class="sig-name descname">make_data_celltype_specific</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">target_celltype</span></em>, <em class="sig-param"><span class="n">replicates</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#id1" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determines celltype/replicate (columns) of interest to analyse later.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target_celltype</strong> (<em>str</em><em>, </em><em>dict</em>) – The celltype to target for analysis, as a string. If the celltype has replicates in the data, either supply
+<cite>target_celltype</cite> with a dictionary in the shape dict[celltype] = [replicates], or let the function
+guess the replicates by supplying the argument <cite>replicates</cite> as True.</p></li>
+<li><p><strong>replicates</strong> (<em>bool</em>) – If the celltype to target have replicates in the data, use True. Else, use False.
+Default is True.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="VEnCode.internals.DataTpm.merge_reg_elements">
+<code class="sig-name descname">merge_reg_elements</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">validate_with</span></em>, <em class="sig-param"><span class="n">splits</span><span class="o">=</span><span class="default_value">':', '-'</span></em><span class="sig-paren">)</span><a class="headerlink" href="#VEnCode.internals.DataTpm.merge_reg_elements" title="Permalink to this definition">¶</a></dt>
+<dd><p>Main method to filter the REs in the data, leaving in the data only those that match the external data set.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="VEnCode.internals.DataTpm.merge_replicates">
+<code class="sig-name descname">merge_replicates</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">replicate_suffix</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">celltype_list</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">replicate_dict</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">exclude_target</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">not_include</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#VEnCode.internals.DataTpm.merge_replicates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Merges replicate samples into one celltype.
+A more conservative, but faster approach to data set mining.
+Cell type columns are created by merging all replicates for that cell type. The value for the merged
+column corresponds the average of all donors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>replicate_suffix</strong> (<em>str</em><em>, </em><em>None</em>) – If the replicates have a defined suffix, this parameter helps the algorithm to find the correct replicates.
+e.g. if the samples are in the format - celltype_rep1, then use <cite>replicate_suffix=’_rep’</cite>. Note that after
+the suffix there must be the unique number for that replicate.</p></li>
+<li><p><strong>celltype_list</strong> (<em>list</em>) – Alternatively, provide the common characters in each group of replicates to merge and the function will try
+to merge by inference. Make sure to provide the list of characters as a complete list of columns to merge.</p></li>
+<li><p><strong>replicate_dict</strong> (<em>dict</em>) – <p>As a last alternative, provide a dictionary with the names for the merged celltypes and their corresponding
+replicates. Use full names for the replicates here.
+e.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rep_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">celltype1</span><span class="p">:</span> <span class="p">[</span><span class="n">rep1</span><span class="p">,</span> <span class="n">rep2</span><span class="p">,</span> <span class="n">rep3</span><span class="p">],</span> <span class="n">celltype2</span><span class="p">:</span> <span class="p">[</span><span class="n">rep1</span><span class="p">,</span> <span class="n">rep2</span><span class="p">]}</span>
+</pre></div>
+</div>
+</p></li>
+<li><p><strong>exclude_target</strong> (<em>bool</em>) – True if the target celltype replicates are not to be merged. Otherwise, False.</p></li>
+<li><p><strong>not_include</strong> (<em>dict</em>) – Dictionary containing key:value pairs where key are the celltype names (as provided in the first arguments)
+and values are partial- or complete-matching strings to columns that are not to be merged with the others
+for that celltype, but could be getting caught up by the algorithm. e.g. celltype “adipocyte” could be
+merging all replicates for the pre-adipocytes. In this case supplying the dictionary {adipocyte: [“pre”]
+would exclude all pre-adipocyte replicates from merging with the adipocyte replicates}. Default is <cite>None</cite>.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="VEnCode.internals.DataTpm.remove_celltype">
+<code class="sig-name descname">remove_celltype</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">celltypes</span></em><span class="sig-paren">)</span><a class="headerlink" href="#VEnCode.internals.DataTpm.remove_celltype" title="Permalink to this definition">¶</a></dt>
+<dd><p>Removes a specific celltype (column) from data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>celltypes</strong> (<em>str</em><em>, </em><em>list</em>) – celltype(s) to remove (columns).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="VEnCode.internals.DataTpm.remove_element">
+<code class="sig-name descname">remove_element</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">elements</span></em><span class="sig-paren">)</span><a class="headerlink" href="#VEnCode.internals.DataTpm.remove_element" title="Permalink to this definition">¶</a></dt>
+<dd><p>Removes a specific regulatory element (row) from data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>elements</strong> (<em>str</em><em>, </em><em>list</em>) – Regulatory element/s to remove (rows).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="id2">
+<em class="property">property </em><code class="sig-name descname">shape</code><a class="headerlink" href="#id2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Outputs the shape of the data’s data frame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The shape of the data in (rows, cols).</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="VEnCode.internals.DataTpm.sort_columns">
+<code class="sig-name descname">sort_columns</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">col_to_shift</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">pos_to_move</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#VEnCode.internals.DataTpm.sort_columns" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sorts columns alphabetically.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="VEnCode.internals.DataTpm.sort_sparseness">
+<code class="sig-name descname">sort_sparseness</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">exclude_target</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">descending</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#VEnCode.internals.DataTpm.sort_sparseness" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sorts the data by sparsest RE.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>exclude_target</strong> (<em>bool</em>) – Usually we want to sort the sparseness of just the non-target celltypes, but in case the opposite is true,
+inputting <cite>False</cite> in this parameter will include the target in the sorting method.</p></li>
+<li><p><strong>descending</strong> (<em>bool</em>) – <cite>True</cite> if the data is to be sorted in descending sparseness (most sparse appear on top). <cite>False</cite> otherwise.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="VEnCode.internals.DataTpm.to_csv">
+<code class="sig-name descname">to_csv</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#VEnCode.internals.DataTpm.to_csv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a csv file. args and kwargs passed must be compatible to Pandas DataFrame.to_csv()</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> – Arguments to be passed on to pandas DataFrame.to_csv()</p></li>
+<li><p><strong>kwargs</strong> – Keyword arguments to be passed on to pandas DataFrame.to_csv()</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-0">
+<span id="objects-for-fantom5-data"></span><h2>Objects for FANTOM5 data<a class="headerlink" href="#module-0" title="Permalink to this headline">¶</a></h2>
+<p>internals.py: Classes module for the VEnCode project</p>
+<dl class="py class">
+<dt id="VEnCode.internals.DataTpmFantom5">
+<em class="property">class </em><code class="sig-prename descclassname">VEnCode.internals.</code><code class="sig-name descname">DataTpmFantom5</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">sample_types</span><span class="o">=</span><span class="default_value">'primary cells'</span></em>, <em class="sig-param"><span class="n">data_type</span><span class="o">=</span><span class="default_value">'promoters'</span></em>, <em class="sig-param"><span class="n">keep_raw</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">nrows</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">files_path</span><span class="o">=</span><span class="default_value">'test'</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#VEnCode.internals.DataTpmFantom5" title="Permalink to this definition">¶</a></dt>
+<dd><p>An Object specifically representing the initial FANTOM5 CAGE-seq data set with some universal data treatment and
+with optional filtering methods.
+Create this object to help prepare the FANTOM5 CAGE-seq data for VEnCode generation. The recommended method to call
+before feeding this data set to a VEnCode object is shown in the Methods section. All the other methods are helper
+functions that facilitate the preparation of the data.</p>
+<dl class="py attribute">
+<dt id="VEnCode.internals.DataTpmFantom5.data">
+<code class="sig-name descname">data</code><a class="headerlink" href="#VEnCode.internals.DataTpmFantom5.data" title="Permalink to this definition">¶</a></dt>
+<dd><p>This object is a pandas DataFrame representation of the initial input data set.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="VEnCode.internals.DataTpmFantom5.target">
+<code class="sig-name descname">target</code><a class="headerlink" href="#VEnCode.internals.DataTpmFantom5.target" title="Permalink to this definition">¶</a></dt>
+<dd><p>The celltype or celltypes that are going to be the target of the VEnCode search algorithms.
+By calling the method make_data_celltype_specific(), the user can define this object and then apply activity,
+inactivity, sparseness filters, and other methods.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="VEnCode.internals.DataTpmFantom5.target_replicates">
+<code class="sig-name descname">target_replicates</code><a class="headerlink" href="#VEnCode.internals.DataTpmFantom5.target_replicates" title="Permalink to this definition">¶</a></dt>
+<dd><p>The target celltype/s replicates in the data.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="VEnCode.internals.DataTpmFantom5.sample_type">
+<code class="sig-name descname">sample_type</code><a class="headerlink" href="#VEnCode.internals.DataTpmFantom5.sample_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>The origin/type of samples to be analysed from the CAGE-seq data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="VEnCode.internals.DataTpmFantom5.data_type">
+<code class="sig-name descname">data_type</code><a class="headerlink" href="#VEnCode.internals.DataTpmFantom5.data_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>The type of RE that comprises the data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="VEnCode.internals.DataTpmFantom5.shape">
+<code class="sig-name descname">shape</code><a class="headerlink" href="#VEnCode.internals.DataTpmFantom5.shape" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inputs</strong> (<em>str</em><em>, </em><em>pd.DataFrame</em>) – The input containing the data. It can be one of two types;
+1- The file containing the data set to convert into DataTpm object. This can be a complete path to the file,
+or just the file name, provided the path is given in the argument <cite>files_path</cite>.
+Supported file formats are .csv, .txt, .tsv, or any format supported by the pandas read_csv function.
+2- A pandas DataFrame object supplied in this parameter instead of any file.</p></li>
+<li><p><strong>sep</strong> (<em>str</em>) – The column separator used in the input file. Default is ‘,’.</p></li>
+<li><p><strong>nrows</strong> (<em>int</em><em>, </em><em>None</em>) – The number of rows to open in the file. Default is ‘None’, which will open the entire file.</p></li>
+<li><p><strong>sample_types</strong> (<em>{'primary cells'</em><em>, </em><em>'cell lines'</em><em>, </em><em>'time courses'}</em><em>, </em><em>optional</em>) – The origin/type of samples to be analysed from the CAGE-seq data. Currently offering full support for
+<cite>primary cells</cite> and <cite>cell lines</cite>.</p></li>
+<li><p><strong>data_type</strong> (<em>{'promoters'</em><em>, </em><em>'enhancers'}</em><em>, </em><em>optional</em>) – The type of RE that comprises the data.</p></li>
+<li><p><strong>files_path</strong> (<em>str</em><em>, </em><em>None</em>) – In case the argument <cite>file</cite> does not contain a complete path, input that path here. This argument is also
+useful to access the module’s test files by inputting ‘test’. Default is ‘test’.</p></li>
+<li><p><strong>kwargs</strong> – Optional keyword arguments available to use are any used by pandas DataFrame object.
+Please refer to the pandas DataFrame documentation for specific details.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="VEnCode.internals.DataTpmFantom5.make_data_celltype_specific">
+<code class="sig-name descname">make_data_celltype_specific</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">target_celltype</span></em>, <em class="sig-param"><span class="n">replicates</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#VEnCode.internals.DataTpmFantom5.make_data_celltype_specific" title="Permalink to this definition">¶</a></dt>
+<dd><p>Method to provide the VEnCode object with the information on which celltype is the target.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="VEnCode.internals.DataTpmFantom5.add_celltype">
+<code class="sig-name descname">add_celltype</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data_from</span></em>, <em class="sig-param"><span class="n">celltypes</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">sample_types</span><span class="o">=</span><span class="default_value">'cell lines'</span></em>, <em class="sig-param"><span class="n">fantom</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#VEnCode.internals.DataTpmFantom5.add_celltype" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds expression data for celltypes from other data sets (with similar regulatory element information).
+Examples include adding data from a cancer cell type to a primary cell type data set.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data_from</strong> (<em>str</em><em>, </em><a class="reference internal" href="#VEnCode.internals.DataTpm" title="VEnCode.internals.DataTpm"><em>DataTpm</em></a>) – Data containing the celltypes to add. Can be either another DataTpm object or the path to a file eligible
+to be converted into a DataTpm object.</p></li>
+<li><p><strong>celltypes</strong> (<em>str</em><em>, </em><em>list</em><em>, </em><em>dict</em>) – Celltypes to merge with the DataTpmFantom5 data. If false it will add all provided data.</p></li>
+<li><p><strong>sample_types</strong> (<em>{'primary cells'</em><em>, </em><em>'cell lines'</em><em>, </em><em>'time courses'}</em><em>, </em><em>optional</em>) – Sample type of the data set to add.</p></li>
+<li><p><strong>fantom</strong> (<em>bool</em>) – Is your data to add from FANTOM5 CAGE-seq? if so put True. Else, False.</p></li>
+<li><p><strong>kwargs</strong> – Are used to create a new DataTpmFantom5 object from “data_from” to add to the data set.
+So, if that is the case, check DataTpmFantom5 documentation.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="id3">
+<code class="sig-name descname">make_data_celltype_specific</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">target_celltype</span></em>, <em class="sig-param"><span class="n">supersets</span><span class="o">=</span><span class="default_value">{'CD14+ CD16+ Monocytes': 'CD14+ Monocytes', 'CD14+ CD16- Monocytes': 'CD14+ Monocytes', 'CD4+CD25+CD45RA+ naive regulatory T cells': 'CD4+ T Cells', 'CD4+CD25+CD45RA- memory regulatory T cells': 'CD4+ T Cells', 'CD4+CD25-CD45RA+ naive conventional T cells': 'CD4+ T Cells', 'CD4+CD25-CD45RA- memory conventional T cells': 'CD4+ T Cells'}</span></em><span class="sig-paren">)</span><a class="headerlink" href="#id3" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determines celltype/donors (columns) of interest to analyse later.
+For previously parsed files, opens the specific file for that celltype.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target_celltype</strong> (<em>str</em><em>, </em><em>dict</em>) – The celltype to target for analysis.</p></li>
+<li><p><strong>supersets</strong> (<em>dict</em>) – When a celltype is a subset of other, we must remove that superset celltype to analyse the subset.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="VEnCode.internals.DataTpmFantom5.merge_donors_primary">
+<code class="sig-name descname">merge_donors_primary</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">exclude_target</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#VEnCode.internals.DataTpmFantom5.merge_donors_primary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Merges replicate samples into one celltype. Specific method to use when dealing with FANTOM5 primary celltypes.</p>
+<p>A more conservative, but faster approach to data set mining.
+Celltype columns are created by merging all replicates/donors for that celltype. The value for the merged
+column corresponds the average of all replicates/donors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>exclude_target</strong> (<em>bool</em>) – True if the target celltype replicates are not to be merged. Otherwise, False.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="VEnCode.internals.DataTpmFantom5.remove_celltype">
+<code class="sig-name descname">remove_celltype</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">celltypes</span></em>, <em class="sig-param"><span class="n">merged</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#VEnCode.internals.DataTpmFantom5.remove_celltype" title="Permalink to this definition">¶</a></dt>
+<dd><p>Removes a specific celltype from the data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>celltypes</strong> (<em>in</em><em>, </em><em>list</em>) – Celltype(s) to remove.</p></li>
+<li><p><strong>merged</strong> (<em>bool</em>) – If the data has been previously merged into celltypes, True. If columns represent replicates/donors, False.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="get_vencodes.html" class="btn btn-neutral float-right" title="Getting VEnCodes" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="main_tools.html" class="btn btn-neutral float-left" title="Main Tools" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, André Macedo, Alisson M. Gontijo
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
