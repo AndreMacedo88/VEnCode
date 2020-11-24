@@ -46,7 +46,7 @@ for celltype in tqdm(cancer_celltype_list, desc="Completed: "):
     celltype = gen_utils.str_replace_multi(celltype, {":": "-", "/": "-"})  # those symbols can't be in file names
     directory = dir_handlers.check_if_and_makefile(os.path.join(
         "Files", "Dbs",
-        "{}_tpm_{}-1".format(celltype, setup.data_type)), path_type="parent3")
+        "{}_tpm_{}".format(celltype, setup.data_type)), path_type="parent3")
 
     data.data.to_csv(directory, sep=";")
     data = data_original.copy()
