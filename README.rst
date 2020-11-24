@@ -69,7 +69,7 @@ If you want to edit the project:
 
 2. Fork `this project`_.
 
-- You are ready. Optionally, if you are using the FANTOM5 data instead of your own:
+You are now ready to go. Optionally, if you are using the FANTOM5 data instead of your own:
 
 3. Put the missing FANTOM5 prerequisite files (only the large TSS files are missing) in the directory called "Files".
 
@@ -81,9 +81,13 @@ If you are a user:
 
     pip install VEnCode
 
-- You are good to go. Optionally, if you are using the FANTOM5 data instead of your own:
+You are good to go. Optionally, if you are using the FANTOM5 data instead of your own:
 
-3. Put all the FANTOM5 prerequisite files in a directory of your choice and when creating DataTpmFantom5 objects remember to pass the argument: files_path=your_dir_path.
+3. Put all the FANTOM5 prerequisite files in a directory of your choice and when creating DataTpmFantom5 objects remember to pass the argument:
+
+.. code-block:: python
+
+    files_path = "just put here the path to your file"
 
 Using the module
 -----------------
@@ -99,10 +103,9 @@ There are several ways to use this module:
     vencodes.next(amount=2)
     vencodes.export("vencodes", ...)
 
-You can see examples of some functions and objects being used at the `VEnCode Capsule`_ hosted in CodeOcean.
+- You can see examples of some functions and objects being used at the `VEnCode Capsule`_ hosted in CodeOcean.
 
-2. To run the most relevant scripts, use the utility file process.py, which gives easy access to many scripts, for
-example:
+2. To run the most relevant scripts, use the utility file process.py, which gives easy access to many scripts, for example:
 
 .. code-block:: console
 
@@ -143,6 +146,14 @@ Basic example in command line:
 
     from VEnCode import tests
     tests.run_all_tests()
+
+Documentation
+-------------
+
+- The documentation on the main methods of this tool can be found in the official `documentation`_.
+- To see some of the functions in action, refer to the `VEnCode Capsule`_ hosted at CodeOcean.
+- For more examples on how to use this module, we suggest going through the scripts folder inside this projects' python package. There, we take the VEnCode tool functions and methods and apply them, as seen in `Macedo and Gontijo, GigaScience, 2020`_.
+- Finally, all the public methods are thoroughly documented in the methods' docstring itself.
 
 Contributing
 ------------
@@ -194,6 +205,7 @@ Acknowledgements
 .. _tags on github: https://github.com/AndreMacedo88/VEnCode/tags
 .. _PyPi: https://pypi.org/project/VEnCode/#history
 .. _VEnCode Capsule: https://codeocean.com/capsule/7611480/tree
+.. _documentation: https://vencode.readthedocs.io/en/latest/index.html
 .. _CONTRIBUTING.rst: https://github.com/AndreMacedo88/VEnCode/blob/master/CONTRIBUTING.rst
 .. _contributors: https://github.com/AndreMacedo88/VEnCode/graphs/contributors
 .. _Andre Macedo: https://github.com/AndreMacedo88
