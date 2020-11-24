@@ -8,5 +8,11 @@ Pay special attention to the type of data needed to feed this object, its argume
 Objects
 _______
 
+.. autoclass:: Vencodes
+    :members:
+
+and now
+_______
+
 .. automodule:: VEnCode.internals
     :members: Vencodes
