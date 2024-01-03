@@ -1,5 +1,4 @@
 /VEnCode/scripts/Legacy Scripts/__init__.py
-.gitignore
 .idea/.gitignore
 /.idea/.gitignore
 .idea/snapshots/
@@ -8,5 +7,6 @@ VEnCode/scripts/__pycache__/
 VEnCode/tests/__pycache__/
 VEnCode/utils/__pycache__/
 __pycache__/
-
 /VEnCode/docs/_build/
+*.egg-info
+environment.yml
