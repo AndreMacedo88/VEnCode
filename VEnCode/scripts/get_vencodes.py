@@ -77,7 +77,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="""Searches for VEnCodes in the supplied data.
         Exports the VEnCodes and their E values to files, which path you can set with -out.
         Example on how to use in command-line:
-        >python get_vencodes.py Hepatocyte --algorithm heuristic --number_vencodes 2
+        >python get_vencodes.py input.csv Hepatocyte --algorithm heuristic --number_vencodes 2
         """)
     parser.add_argument("file", help="File with the data to search for VEnCodes.")
     parser.add_argument("cell_type", help="sCelltype to search for VEnCodes.")
